@@ -8,6 +8,7 @@ use App\Models\EmployeeTraining;
 use App\Models\TrainingAssessment;
 use App\Models\TrainingProgram;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
@@ -19,92 +20,104 @@ class EmployeeTrainingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = EmployeeTraining::with(['employee.employee', 'trainingProgram.trainingType'])
-            ->withPermissionCheck();
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('employee', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->search . '%')
-                        ->orWhere('employee_id', 'like', '%' . $request->search . '%');
-                })
-                ->orWhereHas('trainingProgram', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-employee-trainings')) {
+            $query = EmployeeTraining::with(['employee.employee', 'trainingProgram.trainingType'])
+                ->where(function ($q) {
+                    if (Auth::user()->can('manage-any-employee-trainings')) {
+                        $q->whereIn('created_by',  getCompanyAndUsersId());
+                    } elseif (Auth::user()->can('manage-own-employee-trainings')) {
+                        $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id());
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
                 });
-            });
-        }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id)) {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Handle program filter
-        if ($request->has('training_program_id') && !empty($request->training_program_id)) {
-            $query->where('training_program_id', $request->training_program_id);
-        }
-
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
-        }
-
-        // Handle date range filter
-        if ($request->has('assigned_date_from') && !empty($request->assigned_date_from)) {
-            $query->whereDate('assigned_date', '>=', $request->assigned_date_from);
-        }
-        if ($request->has('assigned_date_to') && !empty($request->assigned_date_to)) {
-            $query->whereDate('assigned_date', '<=', $request->assigned_date_to);
-        }
-
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            if ($request->sort_field === 'employee_name') {
-                $query->join('employees', 'employee_trainings.employee_id', '=', 'employees.id')
-                    ->select('employee_trainings.*')
-                    ->orderBy('employees.name', $request->sort_direction ?? 'asc');
-            } elseif ($request->sort_field === 'program_name') {
-                $query->join('training_programs', 'employee_trainings.training_program_id', '=', 'training_programs.id')
-                    ->select('employee_trainings.*')
-                    ->orderBy('training_programs.name', $request->sort_direction ?? 'asc');
-            } else {
-                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->whereHas('employee', function ($q) use ($request) {
+                        $q->where('name', 'like', '%' . $request->search . '%')
+                            ->orWhere('employee_id', 'like', '%' . $request->search . '%');
+                    })
+                        ->orWhereHas('trainingProgram', function ($q) use ($request) {
+                            $q->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
             }
+
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id)) {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+            // Handle program filter
+            if ($request->has('training_program_id') && !empty($request->training_program_id)) {
+                $query->where('training_program_id', $request->training_program_id);
+            }
+
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status)) {
+                $query->where('status', $request->status);
+            }
+
+            // Handle date range filter
+            if ($request->has('assigned_date_from') && !empty($request->assigned_date_from)) {
+                $query->whereDate('assigned_date', '>=', $request->assigned_date_from);
+            }
+            if ($request->has('assigned_date_to') && !empty($request->assigned_date_to)) {
+                $query->whereDate('assigned_date', '<=', $request->assigned_date_to);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                if ($request->sort_field === 'employee_name') {
+                    $query->join('employees', 'employee_trainings.employee_id', '=', 'employees.id')
+                        ->select('employee_trainings.*')
+                        ->orderBy('employees.name', $request->sort_direction ?? 'asc');
+                } elseif ($request->sort_field === 'program_name') {
+                    $query->join('training_programs', 'employee_trainings.training_program_id', '=', 'training_programs.id')
+                        ->select('employee_trainings.*')
+                        ->orderBy('training_programs.name', $request->sort_direction ?? 'asc');
+                } else {
+                    $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+                }
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            // Add assessment results count
+            $query->withCount(['assessmentResults']);
+
+            $employeeTrainings = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::with('employee')
+                ->where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name . ' (' . ($user->employee->employee_id ?? '') . ')'
+                    ];
+                });
+
+            // Get training programs for filter dropdown
+            $trainingPrograms = TrainingProgram::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('hr/training/employee-trainings/index', [
+                'employeeTrainings' => $employeeTrainings,
+                'employees' => $employees,
+                'trainingPrograms' => $trainingPrograms,
+                'filters' => $request->all(['search', 'employee_id', 'training_program_id', 'status', 'assigned_date_from', 'assigned_date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('id', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        // Add assessment results count
-        $query->withCount(['assessmentResults']);
-
-        $employeeTrainings = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::with('employee')
-            ->where('type', 'employee')
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name . ' (' . ($user->employee->employee_id ?? '') . ')'
-                ];
-            });
-
-        // Get training programs for filter dropdown
-        $trainingPrograms = TrainingProgram::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('hr/training/employee-trainings/index', [
-            'employeeTrainings' => $employeeTrainings,
-            'employees' => $employees,
-            'trainingPrograms' => $trainingPrograms,
-            'filters' => $request->all(['search', 'employee_id', 'training_program_id', 'status', 'assigned_date_from', 'assigned_date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     /**
@@ -118,7 +131,7 @@ class EmployeeTrainingController extends Controller
         $inProgressTrainings = EmployeeTraining::withPermissionCheck()->where('status', 'in_progress')->count();
         $assignedTrainings = EmployeeTraining::withPermissionCheck()->where('status', 'assigned')->count();
         $failedTrainings = EmployeeTraining::withPermissionCheck()->where('status', 'failed')->count();
-        
+
         // Get completion rate by program
         $programStats = TrainingProgram::whereIn('created_by', getCompanyAndUsersId())
             ->withCount([
@@ -129,9 +142,9 @@ class EmployeeTrainingController extends Controller
                 },
                 'employeeTrainings as completed_count' => function ($q) {
                     $q->where('status', 'completed')
-                      ->whereHas('employee', function ($q) {
-                          $q->whereIn('created_by', getCompanyAndUsersId());
-                      });
+                        ->whereHas('employee', function ($q) {
+                            $q->whereIn('created_by', getCompanyAndUsersId());
+                        });
                 }
             ])
             ->having('total_count', '>', 0)
@@ -141,12 +154,12 @@ class EmployeeTrainingController extends Controller
                     'name' => $program->name,
                     'total' => $program->total_count,
                     'completed' => $program->completed_count,
-                    'completion_rate' => $program->total_count > 0 
-                        ? round(($program->completed_count / $program->total_count) * 100) 
+                    'completion_rate' => $program->total_count > 0
+                        ? round(($program->completed_count / $program->total_count) * 100)
                         : 0
                 ];
             });
-        
+
         // Get recent completions
         $recentCompletions = EmployeeTraining::with(['employee', 'trainingProgram'])
             ->withPermissionCheck()
@@ -154,7 +167,7 @@ class EmployeeTrainingController extends Controller
             ->orderBy('completion_date', 'desc')
             ->take(5)
             ->get();
-        
+
         // Get upcoming trainings
         $upcomingTrainings = EmployeeTraining::with(['employee', 'trainingProgram'])
             ->withPermissionCheck()
@@ -251,9 +264,9 @@ class EmployeeTrainingController extends Controller
 
         // Load relationships
         $employeeTraining->load([
-            'employee.employee.department', 
+            'employee.employee.department',
             'employee.employee.designation',
-            'trainingProgram.trainingType', 
+            'trainingProgram.trainingType',
             'assessmentResults.trainingAssessment',
             'assigner'
         ]);
@@ -321,7 +334,7 @@ class EmployeeTrainingController extends Controller
     {
         // Check if employee training belongs to current company
         if (!in_array($employeeTraining->employee->created_by, getCompanyAndUsersId())) {
-            return redirect()->back()->with('error',__('You do not have permission to delete this employee training'));
+            return redirect()->back()->with('error', __('You do not have permission to delete this employee training'));
         }
 
         // Delete certification if exists
@@ -331,7 +344,7 @@ class EmployeeTrainingController extends Controller
 
         // Delete assessment results
         $employeeTraining->assessmentResults()->delete();
-        
+
         // Delete the employee training
         $employeeTraining->delete();
 
@@ -353,11 +366,11 @@ class EmployeeTrainingController extends Controller
         }
 
         $filePath = getStorageFilePath($employeeTraining->certification);
-        
+
         if (!file_exists($filePath)) {
             return redirect()->back()->with('error', __('Certification file not found'));
         }
-        
+
         return response()->download($filePath);
     }
 

@@ -9,61 +9,74 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class DocumentAcknowledgmentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = DocumentAcknowledgment::withPermissionCheck()->with(['document', 'user', 'assignedBy']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('document', function ($dq) use ($request) {
-                    $dq->where('title', 'like', '%' . $request->search . '%');
-                })
-                ->orWhereHas('user', function ($uq) use ($request) {
-                    $uq->where('name', 'like', '%' . $request->search . '%');
-                });
+        if (Auth::user()->can('manage-document-acknowledgments')) {
+            $query = DocumentAcknowledgment::with(['document', 'user', 'assignedBy'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-document-acknowledgments')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-document-acknowledgments')) {
+                    $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id())->orWhere('assigned_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->whereHas('document', function ($dq) use ($request) {
+                        $dq->where('title', 'like', '%' . $request->search . '%');
+                    })
+                        ->orWhereHas('user', function ($uq) use ($request) {
+                            $uq->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            if ($request->has('document_id') && !empty($request->document_id) && $request->document_id !== 'all') {
+                $query->where('document_id', $request->document_id);
+            }
+
+            if ($request->has('user_id') && !empty($request->user_id) && $request->user_id !== 'all') {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Auto-update overdue acknowledgments
+            DocumentAcknowledgment::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'Pending')
+                ->where('due_date', '<', Carbon::today())
+                ->update(['status' => 'Overdue']);
+
+            $query->orderBy('id', 'desc');
+            $documentAcknowledgments = $query->paginate($request->per_page ?? 10);
+
+            $documents = HrDocument::whereIn('created_by', getCompanyAndUsersId())
+                ->where('requires_acknowledgment', true)
+                ->select('id', 'title')
+                ->get();
+
+            $users = User::whereIn('created_by', getCompanyAndUsersId())
+                ->where('type', 'employee')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('hr/documents/document-acknowledgments/index', [
+                'documentAcknowledgments' => $documentAcknowledgments,
+                'documents' => $documents,
+                'users' => $users,
+                'filters' => $request->all(['search', 'document_id', 'user_id', 'status', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('document_id') && !empty($request->document_id) && $request->document_id !== 'all') {
-            $query->where('document_id', $request->document_id);
-        }
-
-        if ($request->has('user_id') && !empty($request->user_id) && $request->user_id !== 'all') {
-            $query->where('user_id', $request->user_id);
-        }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        // Auto-update overdue acknowledgments
-        DocumentAcknowledgment::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'Pending')
-            ->where('due_date', '<', Carbon::today())
-            ->update(['status' => 'Overdue']);
-
-        $query->orderBy('id', 'desc');
-        $documentAcknowledgments = $query->paginate($request->per_page ?? 10);
-
-        $documents = HrDocument::whereIn('created_by', getCompanyAndUsersId())
-            ->where('requires_acknowledgment', true)
-            ->select('id', 'title')
-            ->get();
-
-        $users = User::whereIn('created_by', getCompanyAndUsersId())
-            ->where('type', 'employee')
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('hr/documents/document-acknowledgments/index', [
-            'documentAcknowledgments' => $documentAcknowledgments,
-            'documents' => $documents,
-            'users' => $users,
-            'filters' => $request->all(['search', 'document_id', 'user_id', 'status', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

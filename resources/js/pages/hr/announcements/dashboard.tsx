@@ -170,8 +170,8 @@ export default function AnnouncementDashboard() {
             {announcement.start_date && (
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
-                {window.appSettings?.formatDateTime(announcement.start_date, false) || format(new Date(announcement.start_date), 'MMM dd, yyyy')}
-                {announcement.end_date && ` - ${window.appSettings?.formatDateTime(announcement.end_date, false) || format(new Date(announcement.end_date), 'MMM dd, yyyy')}`}
+                {window.appSettings?.formatDateTimeSimple(announcement.start_date, false) || format(new Date(announcement.start_date), 'MMM dd, yyyy')}
+                {announcement.end_date && ` - ${window.appSettings?.formatDateTimeSimple(announcement.end_date, false) || format(new Date(announcement.end_date), 'MMM dd, yyyy')}`}
               </div>
             )}
           </div>

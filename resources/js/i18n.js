@@ -8,44 +8,63 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 export { default as i18next } from 'i18next';
 
 // Custom backend to handle the modified response format
+// const customBackend = {
+//   type: 'backend',
+//   init: function(services, backendOptions) {
+//     this.services = services;
+//     this.options = backendOptions;
+//   },
+//   read: function(language, namespace, callback) {
+//     const loadPath = window.route ? window.route('translations', language) : `/translations/${language}`;
+
+//     fetch(loadPath)
+//       .then(response => response.json())
+//       .then(data => {
+//         // Extract translations from the structured response
+//         const translations = data.translations;
+
+//         // Set document direction based on layoutDirection
+//         if (data.layoutDirection) {
+//           // Always keep LTR for sidebar compatibility
+//           document.documentElement.dir = 'ltr';
+//           document.documentElement.setAttribute('dir', 'ltr');
+//         }
+
+//         // Store the current locale
+//         if (data.locale) {
+//           localStorage.setItem('i18nextLng', data.locale);
+//           // Also store in a session cookie for server-side awareness
+//           document.cookie = `app_language=${data.locale}; path=/; max-age=${60 * 60 * 24}`;
+//         }
+
+//         callback(null, translations);
+//       })
+//       .catch(error => {
+//         console.error('Translation loading error:', error);
+//         callback(error, null);
+//       });
+//   }
+// };
+
 const customBackend = {
   type: 'backend',
-  init: function(services, backendOptions) {
+  init: function (services, backendOptions) {
     this.services = services;
     this.options = backendOptions;
   },
-  read: function(language, namespace, callback) {
+  read: function (language, namespace, callback) {
     const loadPath = window.route ? window.route('translations', language) : `/translations/${language}`;
-    
+
     fetch(loadPath)
       .then(response => response.json())
       .then(data => {
         // Extract translations from the structured response
         const translations = data.translations;
-        
-        // Set document direction based on layoutDirection
-        if (data.layoutDirection) {
-          // Force direction change regardless of previous state
-          document.documentElement.dir = data.layoutDirection;
-          document.documentElement.setAttribute('dir', data.layoutDirection);
-          
-          // Store direction in localStorage for persistence
-          localStorage.setItem('layoutDirection', data.layoutDirection);
-          
-          // Force re-render of sidebar by adding and removing a class
-          document.documentElement.classList.add('direction-changed');
-          setTimeout(() => {
-            document.documentElement.classList.remove('direction-changed');
-          }, 50); // Increased timeout for better rendering
-        }
-        
-        // Store the current locale
-        if (data.locale) {
-          localStorage.setItem('i18nextLng', data.locale);
-          // Also store in a session cookie for server-side awareness
-          document.cookie = `app_language=${data.locale}; path=/; max-age=${60 * 60 * 24}`;
-        }
-        
+
+        // Set document direction - always keep LTR for sidebar compatibility
+        document.documentElement.dir = 'ltr';
+        document.documentElement.setAttribute('dir', 'ltr');
+
         callback(null, translations);
       })
       .catch(error => {
@@ -58,13 +77,11 @@ const customBackend = {
 // Function to get initial language
 const getInitialLanguage = () => {
   // Try to get from server if available
-  
-  if (window.initialLocale) {
-    return window.initialLocale;
-  }
-  
-  // Otherwise use browser detection with fallback to 'en'
-  return null; // null will trigger language detection
+
+  // if (window.initialLocale) {
+  //   return window.initialLocale;
+  // }
+  return null;
 };
 
 // Function to reset language cache when switching languages
@@ -81,38 +98,59 @@ const resetLanguageCache = (language) => {
 
 // Override the changeLanguage method to reset cache
 const originalChangeLanguage = i18n.changeLanguage;
-i18n.changeLanguage = function(language) {
+i18n.changeLanguage = function (language) {
   resetLanguageCache(language);
   return originalChangeLanguage.apply(this, arguments);
 };
 
 // Initialize i18n
+// i18n
+//   .use(customBackend)
+//   .use(LanguageDetector)
+//   .use(initReactI18next)
+//   .init({
+//     lng: getInitialLanguage(),
+//     fallbackLng: getInitialLanguage(),
+//     load: 'currentOnly',
+//     debug: process.env.NODE_ENV === 'development',
+
+//     interpolation: {
+//       escapeValue: false,
+//     },
+
+//     detection: {
+//       order: ['localStorage', 'cookie', 'navigator'],
+//       lookupCookie: 'app_language',
+//       caches: ['localStorage', 'cookie'],
+//     },
+
+//     ns: ['translation'],
+//     defaultNS: 'translation',
+
+//     partialBundledLanguages: true,
+//     loadOnInitialization: true
+//   });
+
+// Initialize i18n
 i18n
-    .use(customBackend)
-    .use(LanguageDetector)
-    .use(initReactI18next)
-    .init({
-        lng: getInitialLanguage(),
-        fallbackLng: getInitialLanguage(),
-        load: 'currentOnly',
-        debug: process.env.NODE_ENV === 'development',
-        
-        interpolation: {
-            escapeValue: false,
-        },
-        
-        detection: {
-          order: ['localStorage', 'cookie', 'navigator'],
-          lookupCookie: 'app_language',
-          caches: ['localStorage', 'cookie'],
-        },
-        
-        ns: ['translation'],
-        defaultNS: 'translation',
-        
-        partialBundledLanguages: true,
-        loadOnInitialization: true
-    });
+  .use(customBackend)
+  .use(initReactI18next)
+  .init({
+    lng: undefined,
+    fallbackLng: false,
+    load: 'currentOnly',
+    debug: process.env.NODE_ENV === 'development',
+
+    interpolation: {
+      escapeValue: false,
+    },
+
+    ns: ['translation'],
+    defaultNS: 'translation',
+
+    partialBundledLanguages: true,
+    loadOnInitialization: false
+  });
 
 // Export the initialized instance
 export default i18n;

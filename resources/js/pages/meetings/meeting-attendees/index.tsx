@@ -315,7 +315,7 @@ export default function MeetingAttendees() {
           <div className="font-medium">{row.meeting?.title}</div>
           <div className="text-xs text-gray-500 flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {row.meeting?.meeting_date ? window.appSettings?.formatDateTime(row.meeting?.meeting_date, false) : '-'}
+            {row.meeting?.meeting_date ? window.appSettings?.formatDateTimeSimple(row.meeting?.meeting_date, false) : '-'}
           </div>
         </div>
       )
@@ -342,7 +342,7 @@ export default function MeetingAttendees() {
     { 
       key: 'rsvp_date', 
       label: t('RSVP Date'),
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     { 
       key: 'decline_reason', 
@@ -390,7 +390,7 @@ export default function MeetingAttendees() {
   ];
 
   const rsvpOptions = [
-    { value: '_empty_', label: t('All RSVP') },
+    { value: '_empty_', label: t('All RSVP') , disabled: true},
     { value: 'Pending', label: t('Pending') },
     { value: 'Accepted', label: t('Accepted') },
     { value: 'Declined', label: t('Declined') },
@@ -398,7 +398,7 @@ export default function MeetingAttendees() {
   ];
 
   const attendanceOptions = [
-    { value: '_empty_', label: t('All Attendance') },
+    { value: '_empty_', label: t('All Attendance'), disabled: true },
     { value: 'Not Attended', label: t('Not Attended') },
     { value: 'Present', label: t('Present') },
     { value: 'Late', label: t('Late') },
@@ -406,7 +406,7 @@ export default function MeetingAttendees() {
   ];
 
   const meetingOptions = [
-    { value: '_empty_', label: t('All Meetings') },
+    { value: '_empty_', label: t('All Meetings'), disabled: true },
     ...(meetings || []).map((meeting: any) => ({
       value: meeting.id.toString(),
       label: `${meeting.title} - ${format(new Date(meeting.meeting_date), 'MMM dd, yyyy')}`
@@ -465,7 +465,8 @@ export default function MeetingAttendees() {
               type: 'select',
               value: meetingFilter,
               onChange: setMeetingFilter,
-              options: meetingOptions
+              options: meetingOptions,
+              searchable : true
             }
           ]}
           showFilters={showFilters}
@@ -528,14 +529,16 @@ export default function MeetingAttendees() {
               label: t('Meeting'), 
               type: 'select', 
               required: true,
-              options: meetingSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: meetingSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'user_id', 
               label: t('Employee'), 
               type: 'select', 
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '_empty_')
+              options: employeeOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'type', 

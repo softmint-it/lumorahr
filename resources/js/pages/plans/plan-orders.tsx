@@ -12,54 +12,91 @@ import { Filter, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function PlanOrdersPage() {
   const { t } = useTranslation();
-  const { flash, planOrders, filters: pageFilters = {}, auth, currencySymbol } = usePage().props as any;
+  const { flash, planOrders, filters: pageFilters = {}, auth, currencySymbol, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
 
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState<any>(null);
 
-  useEffect(() => {
-    if (flash?.success) {
-      toast.success(flash.success);
-    }
-    if (flash?.error) {
-      toast.error(flash.error);
-    }
-  }, [flash]);
 
   useEffect(() => {
     const initialFilters: Record<string, any> = {};
     planOrdersConfig.filters?.forEach(filter => {
-      initialFilters[filter.key] = pageFilters[filter.key] || 'all';
+      initialFilters[filter.key] = pageFilters[filter.key] || '';
     });
     setFilterValues(initialFilters);
   }, []);
 
   const handleAction = (action: string, item: any) => {
     if (action === 'approve') {
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Approving plan order...'));
+      }
+
       router.post(route("plan-orders.approve", item.id), {}, {
-        onSuccess: () => {
-          toast.success(t('Plan order approved successfully'));
+        onSuccess: (page) => {
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
+          if (page.props.flash.success) {
+            toast.success(t(page.props.flash.success));
+          } else if (page.props.flash.error) {
+            toast.error(t(page.props.flash.error));
+          }
         },
-        onError: () => {
-          toast.error(t('Failed to approve plan order'));
+        onError: (errors) => {
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
+          if (typeof errors === 'string') {
+            toast.error(t(errors));
+          } else {
+            toast.error(t('Failed to approve plan order: {{errors}}', { errors: Object.values(errors).join(', ') }));
+          }
         }
       });
     } else if (action === 'reject') {
-      const notes = prompt(t('Rejection reason (optional):'));
-      router.post(route("plan-orders.reject", item.id), { notes }, {
-        onSuccess: () => {
-          toast.success(t('Plan order rejected successfully'));
-        },
-        onError: () => {
-          toast.error(t('Failed to reject plan order'));
-        }
-      });
+      setCurrentItem(item);
+      setIsRejectModalOpen(true);
     }
+  };
+
+  const handleRejectConfirm = (notes: string) => {
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Rejecting plan order...'));
+    }
+    
+    router.post(route("plan-orders.reject", currentItem.id), { notes }, {
+      onSuccess: (page) => {
+        setIsRejectModalOpen(false);
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
+        if (page.props.flash.success) {
+          toast.success(t(page.props.flash.success));
+        } else if (page.props.flash.error) {
+          toast.error(t(page.props.flash.error));
+        }
+      },
+      onError: (errors) => {
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
+        if (typeof errors === 'string') {
+          toast.error(t(errors));
+        } else {
+          toast.error(t('Failed to reject plan order: {{errors}}', { errors: Object.values(errors).join(', ') }));
+        }
+      }
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -213,6 +250,41 @@ export default function PlanOrdersPage() {
           }}
         />
       </div>
+
+      {/* Reject Modal */}
+      <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('Reject Plan Order')}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const notes = formData.get('notes') as string;
+            handleRejectConfirm(notes);
+          }}>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="notes">{t('Rejection Reason (Optional)')}</Label>
+                <Textarea 
+                  id="notes" 
+                  name="notes" 
+                  placeholder={t('Enter rejection reason...')} 
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setIsRejectModalOpen(false)}>
+                {t('Cancel')}
+              </Button>
+              <Button type="submit" variant="destructive">
+                {t('Reject')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </PageTemplate>
   );
 }

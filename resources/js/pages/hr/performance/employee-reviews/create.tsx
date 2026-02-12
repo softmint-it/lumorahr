@@ -121,7 +121,7 @@ export default function CreateEmployeeReview() {
                   <SelectTrigger className={errors.employee_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={t('Select employee')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent searchable={true}>
                     {employees.map((employee: any) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {`${employee.name} (${employee.employee_id})`}
@@ -141,7 +141,7 @@ export default function CreateEmployeeReview() {
                   <SelectTrigger className={errors.reviewer_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={t('Select reviewer')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent searchable={true}>
                     {employees.map((employee: any) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {`${employee.name} (${employee.employee_id})`}
@@ -161,7 +161,7 @@ export default function CreateEmployeeReview() {
                   <SelectTrigger className={errors.review_cycle_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={t('Select review cycle')} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent searchable={true}>
                     {reviewCycles.map((cycle: any) => (
                       <SelectItem key={cycle.id} value={cycle.id.toString()}>
                         {cycle.name}

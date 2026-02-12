@@ -95,17 +95,6 @@ export default function EmployeeContracts() {
   };
   
   const handleFormSubmit = (formData: any) => {
-    // Convert comma-separated strings to arrays
-    if (formData.allowances && typeof formData.allowances === 'string') {
-      formData.allowances = formData.allowances.split(',').map((item: string) => {
-        const parts = item.trim().split(':');
-        return { name: parts[0]?.trim(), amount: parseFloat(parts[1]?.trim()) || 0 };
-      }).filter(item => item.name);
-    }
-    if (formData.benefits && typeof formData.benefits === 'string') {
-      formData.benefits = formData.benefits.split(',').map((item: string) => item.trim()).filter(Boolean);
-    }
-
     if (formMode === 'create') {
       toast.loading(t('Creating employee contract...'));
 
@@ -252,14 +241,8 @@ export default function EmployeeContracts() {
     return diffDays;
   };
 
-  const getTotalCompensation = (basicSalary: number, allowances: any[]) => {
-    let total = basicSalary;
-    if (allowances && Array.isArray(allowances)) {
-      allowances.forEach(allowance => {
-        total += allowance.amount || 0;
-      });
-    }
-    return total;
+  const getTotalCompensation = (basicSalary: number) => {
+    return basicSalary;
   };
 
   const columns = [
@@ -297,11 +280,11 @@ export default function EmployeeContracts() {
           <div>
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4 text-gray-500" />
-              {window.appSettings?.formatDateTime(value, false) || format(new Date(value), 'MMM dd, yyyy')}
+              {window.appSettings?.formatDateTimeSimple(value, false) || format(new Date(value), 'MMM dd, yyyy')}
             </div>
             {row.end_date && (
               <div className="text-xs text-gray-500">
-                to {window.appSettings?.formatDateTime(row.end_date, false) || format(new Date(row.end_date), 'MMM dd, yyyy')}
+                to {window.appSettings?.formatDateTimeSimple(row.end_date, false) || format(new Date(row.end_date), 'MMM dd, yyyy')}
                 {daysUntilExpiry !== null && daysUntilExpiry <= 30 && daysUntilExpiry > 0 && (
                   <div className="flex items-center gap-1 text-orange-600 mt-1">
                     <AlertTriangle className="h-3 w-3" />
@@ -318,17 +301,13 @@ export default function EmployeeContracts() {
       key: 'basic_salary', 
       label: t('Compensation'),
       render: (value, row) => {
-        const total = getTotalCompensation(value, row.allowances);
+        const total = getTotalCompensation(value);
         return (
           <div className="flex items-center gap-1">
-            <DollarSign className="h-4 w-4 text-gray-500" />
             <div>
               <div className="font-medium">{window.appSettings?.formatCurrency(total)}</div>
               <div className="text-xs text-gray-500">
                 Base: {window.appSettings?.formatCurrency(value)}
-                {row.allowances && row.allowances.length > 0 && (
-                  <span> + {row.allowances.length} allowances</span>
-                )}
               </div>
             </div>
           </div>
@@ -351,7 +330,7 @@ export default function EmployeeContracts() {
         if (!value) return '-';
         return (
           <div>
-            <div className="text-sm">{window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()}</div>
+            <div className="text-sm">{window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()}</div>
             <div className="text-xs text-gray-500">{row.approver?.name}</div>
           </div>
         );
@@ -391,7 +370,7 @@ export default function EmployeeContracts() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true},
     { value: 'Draft', label: t('Draft') },
     { value: 'Pending Approval', label: t('Pending Approval') },
     { value: 'Active', label: t('Active') },
@@ -401,7 +380,7 @@ export default function EmployeeContracts() {
   ];
 
   const typeOptions = [
-    { value: '_empty_', label: t('All Types') },
+    { value: '_empty_', label: t('All Types') , disabled: true },
     ...(contractTypes || []).map((type: any) => ({
       value: type.id.toString(),
       label: type.name
@@ -409,7 +388,7 @@ export default function EmployeeContracts() {
   ];
 
   const employeeOptions = [
-    { value: '_empty_', label: t('All Employees') },
+    { value: '_empty_', label: t('All Employees') ,disabled: true},
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -452,7 +431,7 @@ export default function EmployeeContracts() {
               type: 'select',
               value: statusFilter,
               onChange: setStatusFilter,
-              options: statusOptions
+              options: statusOptions,
             },
             {
               name: 'contract_type_id',
@@ -460,7 +439,8 @@ export default function EmployeeContracts() {
               type: 'select',
               value: typeFilter,
               onChange: setTypeFilter,
-              options: typeOptions
+              options: typeOptions,
+              searchable: true
             },
             {
               name: 'employee_id',
@@ -468,7 +448,8 @@ export default function EmployeeContracts() {
               type: 'select',
               value: employeeFilter,
               onChange: setEmployeeFilter,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -516,7 +497,18 @@ export default function EmployeeContracts() {
           total={employeeContracts?.total || 0}
           links={employeeContracts?.links}
           entityName={t("employee contracts")}
-          onPageChange={(url) => router.get(url)}
+          onPageChange={(url) => {
+            const urlObj = new URL(url);
+            // Preserve current filters
+            if (searchTerm) urlObj.searchParams.set('search', searchTerm);
+            if (statusFilter !== '_empty_') urlObj.searchParams.set('status', statusFilter);
+            if (typeFilter !== '_empty_') urlObj.searchParams.set('contract_type_id', typeFilter);
+            if (employeeFilter !== '_empty_') urlObj.searchParams.set('employee_id', employeeFilter);
+            if (pageFilters.sort_field) urlObj.searchParams.set('sort_field', pageFilters.sort_field);
+            if (pageFilters.sort_direction) urlObj.searchParams.set('sort_direction', pageFilters.sort_direction);
+            if (pageFilters.per_page) urlObj.searchParams.set('per_page', pageFilters.per_page);
+            router.get(urlObj.toString());
+          }}
         />
       </div>
 
@@ -531,14 +523,16 @@ export default function EmployeeContracts() {
               label: t('Employee'), 
               type: 'select', 
               required: true,
-              options: employeeSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: employeeSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'contract_type_id', 
               label: t('Contract Type'), 
               type: 'select', 
               required: true,
-              options: typeSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: typeSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'start_date', 
@@ -561,18 +555,6 @@ export default function EmployeeContracts() {
               step: 0.01
             },
             { 
-              name: 'allowances', 
-              label: t('Allowances'), 
-              type: 'text',
-              helpText: t('Format: Name:Amount, Name:Amount (e.g., Transport:500, Meal:300)')
-            },
-            { 
-              name: 'benefits', 
-              label: t('Benefits'), 
-              type: 'text',
-              helpText: t('Comma-separated list of benefits')
-            },
-            { 
               name: 'terms_conditions', 
               label: t('Terms & Conditions'), 
               type: 'textarea',
@@ -583,8 +565,8 @@ export default function EmployeeContracts() {
         }}
         initialData={currentItem ? {
           ...currentItem,
-          allowances: currentItem.allowances && Array.isArray(currentItem.allowances) ? currentItem.allowances.map((a: any) => `${a.name}:${a.amount}`).join(', ') : (currentItem.allowances || ''),
-          benefits: currentItem.benefits && Array.isArray(currentItem.benefits) ? currentItem.benefits.join(', ') : (currentItem.benefits || '')
+          start_date: currentItem.start_date ? window.appSettings.formatDateTimeSimple(currentItem.start_date, false) : currentItem.start_date,
+          end_date: currentItem.end_date ? window.appSettings.formatDateTimeSimple(currentItem.end_date, false) : currentItem.end_date
         } : null}
         title={
           formMode === 'create'

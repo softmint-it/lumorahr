@@ -267,30 +267,30 @@ export default function SalaryComponents() {
         </span>
       )
     },
-    {
-      key: 'is_taxable',
-      label: t('Taxable'),
-      render: (value: boolean) => (
-        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${value
-          ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20'
-          : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
-          }`}>
-          {value ? t('Yes') : t('No')}
-        </span>
-      )
-    },
-    {
-      key: 'is_mandatory',
-      label: t('Mandatory'),
-      render: (value: boolean) => (
-        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${value
-          ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
-          : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
-          }`}>
-          {value ? t('Yes') : t('No')}
-        </span>
-      )
-    },
+    // {
+    //   key: 'is_taxable',
+    //   label: t('Taxable'),
+    //   render: (value: boolean) => (
+    //     <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${value
+    //       ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20'
+    //       : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
+    //       }`}>
+    //       {value ? t('Yes') : t('No')}
+    //     </span>
+    //   )
+    // },
+    // {
+    //   key: 'is_mandatory',
+    //   label: t('Mandatory'),
+    //   render: (value: boolean) => (
+    //     <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${value
+    //       ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+    //       : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
+    //       }`}>
+    //       {value ? t('Yes') : t('No')}
+    //     </span>
+    //   )
+    // },
     {
       key: 'status',
       label: t('Status'),
@@ -341,26 +341,26 @@ export default function SalaryComponents() {
 
   // Prepare options for filters
   const typeOptions = [
-    { value: 'all', label: t('All Types') },
+    { value: 'all', label: t('All Types') , disabled : true},
     { value: 'earning', label: t('Earning') },
     { value: 'deduction', label: t('Deduction') }
   ];
 
   const calculationTypeOptions = [
-    { value: 'all', label: t('All Calculations') },
+    { value: 'all', label: t('All Calculations') , disabled : true},
     { value: 'fixed', label: t('Fixed Amount') },
     { value: 'percentage', label: t('Percentage') }
   ];
 
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses') , disabled : true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   return (
     <PageTemplate
-      title={t("Salary Component Management")}
+      title={t("Salary Components")}
       url="/hr/salary-components"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -480,8 +480,8 @@ export default function SalaryComponents() {
             },
             { name: 'default_amount', label: t('Fixed Amount'), type: 'number', min: 0, step: 0.01 },
             { name: 'percentage_of_basic', label: t('Percentage of Basic'), type: 'number', min: 0, max: 100, step: 0.01 },
-            { name: 'is_taxable', label: t('Is Taxable'), type: 'checkbox', defaultValue: true },
-            { name: 'is_mandatory', label: t('Is Mandatory'), type: 'checkbox', defaultValue: false },
+            // { name: 'is_taxable', label: t('Is Taxable'), type: 'checkbox', defaultValue: true },
+            // { name: 'is_mandatory', label: t('Is Mandatory'), type: 'checkbox', defaultValue: false },
             {
               name: 'status',
               label: t('Status'),

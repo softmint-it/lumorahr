@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\JobLocation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -11,31 +12,44 @@ class JobLocationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = JobLocation::withPermissionCheck();
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('city', 'like', '%' . $request->search . '%')
-                    ->orWhere('address', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-job-locations')) {
+            $query = JobLocation::where(function ($q) {
+                if (Auth::user()->can('manage-any-job-locations')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-job-locations')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('city', 'like', '%' . $request->search . '%')
+                        ->orWhere('address', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('is_remote') && $request->is_remote !== 'all') {
+                $query->where('is_remote', $request->is_remote === 'true');
+            }
+
+            $query->orderBy('id', 'desc');
+            $jobLocations = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/recruitment/job-locations/index', [
+                'jobLocations' => $jobLocations,
+                'filters' => $request->all(['search', 'status', 'is_remote', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('is_remote') && $request->is_remote !== 'all') {
-            $query->where('is_remote', $request->is_remote === 'true');
-        }
-
-        $query->orderBy('id', 'desc');
-        $jobLocations = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/recruitment/job-locations/index', [
-            'jobLocations' => $jobLocations,
-            'filters' => $request->all(['search', 'status', 'is_remote', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

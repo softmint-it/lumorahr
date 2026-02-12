@@ -11,44 +11,55 @@ class ShiftController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Shift::withPermissionCheck()
-            ->with(['creator']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-shifts')) {
+            $query = Shift::with(['creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-shifts')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-shifts')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        // Handle shift type filter
-        if ($request->has('shift_type') && !empty($request->shift_type) && $request->shift_type !== 'all') {
-            if ($request->shift_type === 'night') {
-                $query->where('is_night_shift', true);
-            } else {
-                $query->where('is_night_shift', false);
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
             }
-        }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle shift type filter
+            if ($request->has('shift_type') && !empty($request->shift_type) && $request->shift_type !== 'all') {
+                if ($request->shift_type === 'night') {
+                    $query->where('is_night_shift', true);
+                } else {
+                    $query->where('is_night_shift', false);
+                }
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $shifts = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/shifts/index', [
+                'shifts' => $shifts,
+                'filters' => $request->all(['search', 'status', 'shift_type', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('created_at', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $shifts = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/shifts/index', [
-            'shifts' => $shifts,
-            'filters' => $request->all(['search', 'status', 'shift_type', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

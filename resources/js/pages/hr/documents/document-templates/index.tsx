@@ -10,6 +10,10 @@ import { useTranslation } from 'react-i18next';
 import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 import { Plus, FileText, Code, Eye, Star, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 
 export default function DocumentTemplates() {
@@ -24,8 +28,11 @@ export default function DocumentTemplates() {
   const [showFilters, setShowFilters] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [placeholderValues, setPlaceholderValues] = useState<Record<string, string>>({});
   
   const hasActiveFilters = () => {
     return categoryFilter !== '_empty_' || statusFilter !== '_empty_' || defaultFilter !== '_empty_' || searchTerm !== '';
@@ -85,39 +92,21 @@ export default function DocumentTemplates() {
         handleToggleStatus(item);
         break;
       case 'preview':
-        // Simple preview - in real app, this could open a modal with template preview
-        alert(`Template Preview:\n\n${item.template_content.substring(0, 500)}...`);
+        setCurrentItem(item);
+        setIsPreviewModalOpen(true);
         break;
       case 'generate':
-        // Simple generation - in real app, this would open a form to fill placeholders
-        const values = {};
         if (item.placeholders && item.placeholders.length > 0) {
+          const initialValues = {};
           item.placeholders.forEach((placeholder: string) => {
-            const value = prompt(`Enter value for ${placeholder}:`);
-            if (value) values[placeholder] = value;
+            initialValues[placeholder] = item.default_values?.[placeholder] || '';
           });
+          setPlaceholderValues(initialValues);
+          setCurrentItem(item);
+          setIsGenerateModalOpen(true);
+        } else {
+          handleGenerate(item, {});
         }
-        
-        // Generate document
-        fetch(route('hr.documents.document-templates.generate', item.id), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-          },
-          body: JSON.stringify({ values })
-        })
-        .then(response => response.blob())
-        .then(blob => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${item.name}_${new Date().toISOString().split('T')[0]}.${item.file_format || 'txt'}`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-        });
         break;
     }
   };
@@ -126,6 +115,34 @@ export default function DocumentTemplates() {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
+  };
+  
+  const handleGenerate = (item: any, values: Record<string, string>) => {
+    fetch(route('hr.documents.document-templates.generate', item.id), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify({ values })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${item.name}_${new Date().toISOString().split('T')[0]}.${item.file_format || 'txt'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    });
+  };
+
+  const handleGenerateSubmit = () => {
+    handleGenerate(currentItem, placeholderValues);
+    setIsGenerateModalOpen(false);
+    setPlaceholderValues({});
   };
   
   const handleFormSubmit = (formData: any) => {
@@ -355,7 +372,7 @@ export default function DocumentTemplates() {
       key: 'created_at', 
       label: t('Created'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -617,6 +634,70 @@ export default function DocumentTemplates() {
         itemName={currentItem?.name || ''}
         entityName="document template"
       />
+
+      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {t('Template Preview')}: {currentItem?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 overflow-y-auto max-h-[60vh] pr-1">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+              <pre className="whitespace-pre-wrap text-sm font-mono">
+                {currentItem?.template_content || t('No content available')}
+              </pre>
+            </div>
+            {currentItem?.placeholders && currentItem.placeholders.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">{t('Available Placeholders')}:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {currentItem.placeholders.map((placeholder: string, index: number) => (
+                    <span key={index} className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                      {`{{${placeholder}}}`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Document Modal */}
+      <Dialog open={isGenerateModalOpen} onOpenChange={setIsGenerateModalOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              {t('Generate Document')}
+            </DialogTitle>
+            <p className="text-sm text-gray-600">{currentItem?.name}</p>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[50vh] space-y-3 py-2 pr-2">
+            {currentItem?.placeholders?.map((placeholder: string) => (
+              <div key={placeholder} className="space-y-1">
+                <Label htmlFor={placeholder} className="text-sm font-medium">
+                  {placeholder.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </Label>
+                <Input
+                  id={placeholder}
+                  value={placeholderValues[placeholder] || ''}
+                  onChange={(e) => setPlaceholderValues(prev => ({ ...prev, [placeholder]: e.target.value }))}
+                  placeholder={`Enter ${placeholder.replace(/_/g, ' ')}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end space-x-2 pt-2 border-t">
+            <Button variant="outline" onClick={() => setIsGenerateModalOpen(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleGenerateSubmit} className="bg-red-500 hover:bg-red-600">
+              {t('Generate Document')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageTemplate>
   );
 }

@@ -14,7 +14,8 @@ import { toast } from '@/components/custom-toast';
 
 export default function EmailSettings() {
   const { t } = useTranslation();
-  const { settings = {} } = usePage().props as any;
+  const { settings = {}, globalSettings } = usePage().props as any;
+  
   
   // Email Settings form state
   const [emailSettings, setEmailSettings] = useState({
@@ -26,7 +27,7 @@ export default function EmailSettings() {
     password: settings.email_password ? '••••••••••••' : '',
     encryption: settings.email_encryption || 'tls',
     fromAddress: settings.email_from_address || 'noreply@example.com',
-    fromName: settings.email_from_name || 'LumoraHR System'
+    fromName: settings.email_from_name || 'WorkDo System'
   });
 
   // Test email state
@@ -46,12 +47,16 @@ export default function EmailSettings() {
   const submitEmailSettings = (e: React.FormEvent) => {
     e.preventDefault();
     
-    toast.loading(t('Saving email settings...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Saving email settings...'));
+    }
     
     router.post(route('settings.email.update'), emailSettings, {
       preserveScroll: true,
       onSuccess: (page) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         const successMessage = page.props.flash?.success;
         const errorMessage = page.props.flash?.error;
         
@@ -64,7 +69,9 @@ export default function EmailSettings() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         const errorMessage = errors.error || Object.values(errors).join(', ') || t('Failed to save email settings');
         toast.error(errorMessage);
       }
@@ -78,13 +85,17 @@ export default function EmailSettings() {
     
     setIsSending(true);
     setTestResult(null);
-    toast.loading(t('Sending test email...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Sending test email...'));
+    }
     
     router.post(route('settings.email.test'), { email: testEmail }, {
       preserveScroll: true,
       onSuccess: (page) => {
         setIsSending(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         const successMessage = page.props.flash?.success;
         const errorMessage = page.props.flash?.error;
         
@@ -107,7 +118,9 @@ export default function EmailSettings() {
       },
       onError: (errors) => {
         setIsSending(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         const errorMessage = errors.error || Object.values(errors).join(', ') || t('Failed to send test email');
         toast.error(errorMessage);
         setTestResult({ success: false, message: errorMessage });

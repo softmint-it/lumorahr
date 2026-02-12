@@ -63,7 +63,7 @@ class LanguageController extends Controller
                 $languages = collect(json_decode(File::get($langListPath), true));
             }
             $lang = $request->get('lang');
-            $data = $request->get('data');            
+            $data = $request->get('data');
             if (!$lang || !is_array($data) || !$languages->pluck('code')->contains($lang)) {
                 if ($request->expectsJson()) {
                     return response()->json(['error' => __('Invalid request')], 400);
@@ -246,6 +246,30 @@ class LanguageController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => __('Failed to save translations: ') . $e->getMessage()], 500);
         }
+    }
+
+    public function changeLanguage(Request $request)
+    {        
+        $languageCode = $request->input('language');
+
+        // RTL languages that should automatically set layoutDirection to 'right'
+        $rtlLanguages = ['ar', 'he'];
+        $isRtl = in_array($languageCode, $rtlLanguages);
+
+        if (config('app.is_demo')) {
+            return redirect()->back()->cookie('app_language', $languageCode, 60 * 24 * 365);
+        }
+
+        if ($request->user()) {
+            $request->user()->update(['lang' => $languageCode]);
+
+            // Auto-update layoutDirection for RTL languages
+            if ($isRtl) {
+                updateSetting('layoutDirection', 'right', $request->user()->id);
+            }
+        }
+
+        return redirect()->back();
     }
 
 }

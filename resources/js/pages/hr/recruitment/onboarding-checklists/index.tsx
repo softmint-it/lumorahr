@@ -16,7 +16,7 @@ export default function OnboardingChecklists() {
   const { t } = useTranslation();
   const { auth, onboardingChecklists, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [statusFilter, setStatusFilter] = useState(pageFilters.status || '_empty_');
   const [defaultFilter, setDefaultFilter] = useState(pageFilters.is_default || '_empty_');
@@ -25,22 +25,22 @@ export default function OnboardingChecklists() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  
+
   const hasActiveFilters = () => {
     return statusFilter !== '_empty_' || defaultFilter !== '_empty_' || searchTerm !== '';
   };
-  
+
   const activeFilterCount = () => {
     return (statusFilter !== '_empty_' ? 1 : 0) + (defaultFilter !== '_empty_' ? 1 : 0) + (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.recruitment.onboarding-checklists.index'), { 
+    router.get(route('hr.recruitment.onboarding-checklists.index'), {
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -48,13 +48,13 @@ export default function OnboardingChecklists() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.recruitment.onboarding-checklists.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.recruitment.onboarding-checklists.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -62,10 +62,10 @@ export default function OnboardingChecklists() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
         setFormMode('view');
@@ -83,13 +83,13 @@ export default function OnboardingChecklists() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
       toast.loading(t('Creating onboarding checklist...'));
@@ -137,7 +137,7 @@ export default function OnboardingChecklists() {
       });
     }
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting onboarding checklist...'));
 
@@ -161,7 +161,7 @@ export default function OnboardingChecklists() {
       }
     });
   };
-  
+
   const handleToggleStatus = (item: any) => {
     const newStatus = item.status === 'active' ? 'inactive' : 'active';
     toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} onboarding checklist...`);
@@ -185,13 +185,13 @@ export default function OnboardingChecklists() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('_empty_');
     setDefaultFilter('_empty_');
     setShowFilters(false);
-    
+
     router.get(route('hr.recruitment.onboarding-checklists.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -199,7 +199,7 @@ export default function OnboardingChecklists() {
   };
 
   const pageActions = [];
-  
+
   if (hasPermission(permissions, 'create-onboarding-checklists')) {
     pageActions.push({
       label: t('Add Checklist'),
@@ -216,9 +216,9 @@ export default function OnboardingChecklists() {
   ];
 
   const columns = [
-    { 
-      key: 'name', 
-      label: t('Name'), 
+    {
+      key: 'name',
+      label: t('Name'),
       sortable: true,
       render: (value, row) => (
         <div>
@@ -231,13 +231,8 @@ export default function OnboardingChecklists() {
         </div>
       )
     },
-    { 
-      key: 'description', 
-      label: t('Description'),
-      render: (value) => value || '-'
-    },
-    { 
-      key: 'checklist_items_count', 
+    {
+      key: 'checklist_items_count',
       label: t('Items'),
       render: (value) => (
         <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
@@ -245,73 +240,72 @@ export default function OnboardingChecklists() {
         </span>
       )
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => (
-        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-          value === 'active' 
-            ? 'bg-green-50 text-green-700 ring-green-600/20' 
+        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${value === 'active'
+            ? 'bg-green-50 text-green-700 ring-green-600/20'
             : 'bg-red-50 text-red-700 ring-red-600/20'
-        }`}>
+          }`}>
           {t(value === 'active' ? 'Active' : 'Inactive')}
         </span>
       )
     },
-    { 
-      key: 'created_at', 
+    {
+      key: 'created_at',
       label: t('Created At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-onboarding-checklists'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
       requiredPermission: 'edit-onboarding-checklists'
     },
-    { 
-      label: t('Toggle Status'), 
-      icon: 'Lock', 
-      action: 'toggle-status', 
+    {
+      label: t('Toggle Status'),
+      icon: 'Lock',
+      action: 'toggle-status',
       className: 'text-amber-500',
       requiredPermission: 'edit-onboarding-checklists'
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-onboarding-checklists'
     }
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses'), disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   const defaultOptions = [
-    { value: '_empty_', label: t('All') },
+    { value: '_empty_', label: t('All'), disabled: true },
     { value: 'true', label: t('Default') },
     { value: 'false', label: t('Custom') }
   ];
 
   return (
-    <PageTemplate 
-      title={t("Onboarding Checklists")} 
+    <PageTemplate
+      title={t("Onboarding Checklists")}
       url="/hr/recruitment/onboarding-checklists"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -329,7 +323,8 @@ export default function OnboardingChecklists() {
               type: 'select',
               value: statusFilter,
               onChange: setStatusFilter,
-              options: statusOptions
+              options: statusOptions,
+              searchable: true
             },
             {
               name: 'is_default',
@@ -337,7 +332,8 @@ export default function OnboardingChecklists() {
               type: 'select',
               value: defaultFilter,
               onChange: setDefaultFilter,
-              options: defaultOptions
+              options: defaultOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -348,8 +344,8 @@ export default function OnboardingChecklists() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.recruitment.onboarding-checklists.index'), { 
-              page: 1, 
+            router.get(route('hr.recruitment.onboarding-checklists.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -394,27 +390,27 @@ export default function OnboardingChecklists() {
         onSubmit={handleFormSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'name', 
-              label: t('Checklist Name'), 
-              type: 'text', 
-              required: true 
+            {
+              name: 'name',
+              label: t('Checklist Name'),
+              type: 'text',
+              required: true
             },
-            { 
-              name: 'description', 
-              label: t('Description'), 
-              type: 'textarea' 
+            {
+              name: 'description',
+              label: t('Description'),
+              type: 'textarea'
             },
-            { 
-              name: 'is_default', 
-              label: t('Set as Default'), 
+            {
+              name: 'is_default',
+              label: t('Set as Default'),
               type: 'checkbox',
               helpText: t('Only one checklist can be set as default')
             },
-            { 
-              name: 'status', 
-              label: t('Status'), 
-              type: 'select', 
+            {
+              name: 'status',
+              label: t('Status'),
+              type: 'select',
               required: true,
               options: statusOptions.filter(opt => opt.value !== '_empty_')
             }

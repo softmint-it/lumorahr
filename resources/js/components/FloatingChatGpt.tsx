@@ -4,10 +4,12 @@ import { ChatGptModal } from '@/components/chatgpt';
 import { Button } from '@/components/ui/button';
 import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
+import { useLayout } from '@/contexts/LayoutContext';
 
 export function FloatingChatGpt() {
   const { t } = useTranslation();
   const { auth } = usePage().props as any;
+  const { position } = useLayout();
   const [isOpen, setIsOpen] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   
@@ -55,7 +57,7 @@ export function FloatingChatGpt() {
   return (
     <>
       <div 
-        className="fixed bottom-6 rtl:left-6 ltr:right-6 z-[9999]"
+        className={`fixed bottom-6 z-[9999] ${position === 'right' ? 'left-6' : 'right-6'}`}
         onClickCapture={(e) => {
           e.preventDefault();
           e.stopPropagation();

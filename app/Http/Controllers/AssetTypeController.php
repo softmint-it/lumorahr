@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AssetType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -14,29 +15,41 @@ class AssetTypeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = AssetType::withPermissionCheck()->withCount('assets');
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-asset-types')) {
+            $query = AssetType::withCount('assets')->where(function ($q) {
+                if (Auth::user()->can('manage-any-asset-types')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-asset-types')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('name', 'asc');
+            }
+
+            $assetTypes = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/assets/types/index', [
+                'assetTypes' => $assetTypes,
+                'filters' => $request->all(['search', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('name', 'asc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $assetTypes = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/assets/types/index', [
-            'assetTypes' => $assetTypes,
-            'filters' => $request->all(['search', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     /**

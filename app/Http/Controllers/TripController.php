@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\User;
 use App\Models\Trip;
 use App\Models\TripExpense;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
@@ -17,51 +19,98 @@ class TripController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Trip::withPermissionCheck()->with(['employee', 'approver']);
+        if (Auth::user()->can('manage-trips')) {
+            $query = Trip::with(['employee', 'approver'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-trips')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-trips')) {
+                    $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->whereHas('employee', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('employee_id', 'like', '%' . $request->search . '%');
-            })
-            ->orWhere('purpose', 'like', '%' . $request->search . '%')
-            ->orWhere('destination', 'like', '%' . $request->search . '%')
-            ->orWhere('description', 'like', '%' . $request->search . '%');
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->whereHas('employee', function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('employee_id', 'like', '%' . $request->search . '%');
+                })
+                    ->orWhere('purpose', 'like', '%' . $request->search . '%')
+                    ->orWhere('destination', 'like', '%' . $request->search . '%')
+                    ->orWhere('description', 'like', '%' . $request->search . '%');
+            }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id)) {
-            $query->where('employee_id', $request->employee_id);
-        }
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id)) {
+                $query->where('employee_id', $request->employee_id);
+            }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
 
-        // Handle date range filter
-        if ($request->has('date_from') && !empty($request->date_from)) {
-            $query->whereDate('start_date', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && !empty($request->date_to)) {
-            $query->whereDate('end_date', '<=', $request->date_to);
-        }
+            // Handle date range filter
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->whereDate('start_date', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->whereDate('end_date', '<=', $request->date_to);
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $trips = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::with('employee')
+                ->where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'employee_id' => $user->employee->employee_id ?? ''
+                    ];
+                });
+
+            return Inertia::render('hr/trips/index', [
+                'trips' => $trips,
+                'employees' => $this->getFilteredEmployees(),
+                'filters' => $request->all(['search', 'employee_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('id', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-trips') && !Auth::user()->can('manage-any-trips')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
+            });
         }
 
-        $trips = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::with('employee')
-            ->where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
             ->whereIn('created_by', getCompanyAndUsersId())
             ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')
             ->get()
             ->map(function ($user) {
@@ -71,14 +120,8 @@ class TripController extends Controller
                     'employee_id' => $user->employee->employee_id ?? ''
                 ];
             });
-
-        return Inertia::render('hr/trips/index', [
-            'trips' => $trips,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'employee_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+        return $employees;
     }
-
     /**
      * Store a newly created resource in storage.
      */
@@ -189,7 +232,7 @@ class TripController extends Controller
         // Update status if provided and different from current
         if ($request->has('status') && $request->status !== $trip->status) {
             $tripData['status'] = $request->status;
-            
+
             // If status is being set to ongoing, completed, or cancelled, set approved_by and approved_at
             if (in_array($request->status, ['ongoing', 'completed', 'cancelled']) && !$trip->approved_by) {
                 $tripData['approved_by'] = auth()->id();
@@ -325,11 +368,11 @@ class TripController extends Controller
         }
 
         $filePath = getStorageFilePath($trip->documents);
-        
+
         if (!file_exists($filePath)) {
             return redirect()->back()->with('error', 'Document file not found');
         }
-        
+
         return response()->download($filePath);
     }
 
@@ -370,11 +413,11 @@ class TripController extends Controller
             'receipt' => 'nullable|string',
             'is_reimbursable' => 'nullable|boolean',
         ]);
-        
+
         // Validate date range separately to avoid type conversion issues
         $expenseDate = $request->expense_date;
         if ($expenseDate < $trip->start_date->format('Y-m-d') || $expenseDate > $trip->end_date->format('Y-m-d')) {
-            return redirect()->back()->withErrors(['expense_date' => 'The expense date must be between trip start and end dates.'])->withInput();  
+            return redirect()->back()->withErrors(['expense_date' => 'The expense date must be between trip start and end dates.'])->withInput();
         }
 
         if ($validator->fails()) {
@@ -430,11 +473,11 @@ class TripController extends Controller
             'is_reimbursable' => 'nullable|boolean',
             'status' => 'nullable|string|in:pending,approved,rejected',
         ]);
-        
+
         // Validate date range separately to avoid type conversion issues
         $expenseDate = $request->expense_date;
         if ($expenseDate < $trip->start_date->format('Y-m-d') || $expenseDate > $trip->end_date->format('Y-m-d')) {
-            return redirect()->back()->withErrors(['expense_date' => 'The expense date must be between trip start and end dates.'])->withInput();  
+            return redirect()->back()->withErrors(['expense_date' => 'The expense date must be between trip start and end dates.'])->withInput();
         }
 
         if ($validator->fails()) {
@@ -509,11 +552,11 @@ class TripController extends Controller
         }
 
         $filePath = getStorageFilePath($expense->receipt);
-        
+
         if (!file_exists($filePath)) {
             return redirect()->back()->with('error', 'Receipt file not found');
         }
-        
+
         return response()->download($filePath);
     }
 }

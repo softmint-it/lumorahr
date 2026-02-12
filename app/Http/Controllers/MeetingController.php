@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\Meeting;
 use App\Models\MeetingType;
 use App\Models\MeetingRoom;
@@ -10,57 +11,100 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class MeetingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Meeting::withPermissionCheck()->with(['type', 'room', 'organizer']);
+        if (Auth::user()->can('manage-meetings')) {
+            $query = Meeting::with(['type', 'room', 'organizer'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-meetings')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-meetings')) {
+                    $q->where('created_by', Auth::id())->orWhere('organizer_id', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
 
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('type_id') && !empty($request->type_id) && $request->type_id !== 'all') {
+                $query->where('type_id', $request->type_id);
+            }
+
+            if ($request->has('organizer_id') && !empty($request->organizer_id) && $request->organizer_id !== 'all') {
+                $query->where('organizer_id', $request->organizer_id);
+            }
+
+            $query->orderBy('id', 'desc');
+            $meetings = $query->paginate($request->per_page ?? 10);
+
+            $meetingTypes = MeetingType::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get();
+
+            $meetingRooms = MeetingRoom::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name', 'type')
+                ->get();
+
+            $employees = User::whereIn('created_by', getCompanyAndUsersId())
+                ->where('type', 'employee')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('meetings/meetings/index', [
+                'meetings' => $meetings,
+                'meetingTypes' => $meetingTypes,
+                'meetingRooms' => $meetingRooms,
+                'employees' => $this->getFilteredEmployees(),
+                'filters' => $request->all(['search', 'status', 'type_id', 'organizer_id', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-meetings') && !Auth::user()->can('manage-any-meetings')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('type_id') && !empty($request->type_id) && $request->type_id !== 'all') {
-            $query->where('type_id', $request->type_id);
-        }
-
-        if ($request->has('organizer_id') && !empty($request->organizer_id) && $request->organizer_id !== 'all') {
-            $query->where('organizer_id', $request->organizer_id);
-        }
-
-        $query->orderBy('id', 'desc');
-        $meetings = $query->paginate($request->per_page ?? 10);
-
-        $meetingTypes = MeetingType::whereIn('created_by', getCompanyAndUsersId())
+        $employees = User::emp()
+            ->with('employee')
+            ->whereIn('created_by', getCompanyAndUsersId())
             ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')
-            ->get();
-
-        $meetingRooms = MeetingRoom::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name', 'type')
-            ->get();
-
-        $employees = User::whereIn('created_by', getCompanyAndUsersId())
-            ->where('type', 'employee')
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('meetings/meetings/index', [
-            'meetings' => $meetings,
-            'meetingTypes' => $meetingTypes,
-            'meetingRooms' => $meetingRooms,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'status', 'type_id', 'organizer_id', 'per_page']),
-        ]);
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
 
     public function store(Request $request)

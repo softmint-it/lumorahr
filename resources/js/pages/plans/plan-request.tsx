@@ -15,7 +15,7 @@ import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 
 export default function PlanRequestsPage() {
   const { t } = useTranslation();
-  const { flash, planRequests, filters: pageFilters = {}, auth } = usePage().props as any;
+  const { flash, planRequests, filters: pageFilters = {}, auth, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
   
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
@@ -27,18 +27,22 @@ export default function PlanRequestsPage() {
   useEffect(() => {
     const initialFilters: Record<string, any> = {};
     planRequestsConfig.filters?.forEach(filter => {
-      initialFilters[filter.key] = pageFilters[filter.key] || 'all';
+      initialFilters[filter.key] = pageFilters[filter.key] || '';
     });
     setFilterValues(initialFilters);
   }, []);
 
   const handleAction = (action: string, item: any) => {
     if (action === 'approve') {
-      toast.loading(t('Approving plan request...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Approving plan request...'));
+      }
       
       router.post(route("plan-requests.approve", item.id), {}, {
         onSuccess: (page) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -46,7 +50,9 @@ export default function PlanRequestsPage() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(errors);
           } else {
@@ -55,11 +61,15 @@ export default function PlanRequestsPage() {
         }
       });
     } else if (action === 'reject') {
-      toast.loading(t('Rejecting plan request...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Rejecting plan request...'));
+      }
       
       router.post(route("plan-requests.reject", item.id), {}, {
         onSuccess: (page) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -67,7 +77,9 @@ export default function PlanRequestsPage() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(errors);
           } else {

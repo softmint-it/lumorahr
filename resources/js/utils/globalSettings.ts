@@ -11,6 +11,7 @@ declare global {
             language: string;
             emailVerification: boolean;
             formatDateTime: (date: string | Date, includeTime?: boolean) => string | null;
+            formatDateTimeSimple: (date: string | Date, includeTime?: boolean) => string | null;
             formatCurrency: (amount: number | string, options?: { showSymbol?: boolean, showCode?: boolean }) => string;
             formatTime: (time: string) => string;
             currencySettings: {
@@ -210,6 +211,57 @@ export function initializeGlobalSettings(settings: Record<string, any>) {
                 return convertPhpTimeFormat(timeFormat, dateObj);
             } catch (error) {
                 return time;
+            }
+        },
+        formatDateTimeSimple: (date: string | Date, includeTime: boolean = true) => {
+            if (!date) return null;
+
+            try {
+                const dateObj = typeof date === 'string' ? new Date(date) : date;
+                
+                let phpFormat = settings.dateFormat ?? 'D, M j, Y';
+
+                if (includeTime) {
+                    const timeFormat = settings.timeFormat ?? 'H:i';
+                    phpFormat = `${phpFormat} ${timeFormat}`;
+                }
+
+                function convertPhpFormat(phpFormat: string, dateObj: Date): string {
+                    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+                    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+                    return phpFormat.replace(/[a-zA-Z]/g, (match) => {
+                        switch (match) {
+                            case 'D': return daysShort[dateObj.getDay()];
+                            case 'l': return days[dateObj.getDay()];
+                            case 'M': return monthsShort[dateObj.getMonth()];
+                            case 'F': return months[dateObj.getMonth()];
+                            case 'j': return dateObj.getDate().toString();
+                            case 'd': return String(dateObj.getDate()).padStart(2, '0');
+                            case 'Y': return dateObj.getFullYear().toString();
+                            case 'y': return dateObj.getFullYear().toString().slice(-2);
+                            case 'm': return String(dateObj.getMonth() + 1).padStart(2, '0');
+                            case 'n': return (dateObj.getMonth() + 1).toString();
+                            case 'G': return String(dateObj.getHours());
+                            case 'H': return String(dateObj.getHours()).padStart(2, '0');
+                            case 'g': return String(dateObj.getHours() % 12 || 12);
+                            case 'h': return String(dateObj.getHours() % 12 || 12).padStart(2, '0');
+                            case 'i': return String(dateObj.getMinutes()).padStart(2, '0');
+                            case 's': return String(dateObj.getSeconds()).padStart(2, '0');
+                            case 'a': return dateObj.getHours() >= 12 ? 'pm' : 'am';
+                            case 'A': return dateObj.getHours() >= 12 ? 'PM' : 'AM';
+                            default: return match;
+                        }
+                    });
+                }
+
+                return convertPhpFormat(phpFormat, dateObj);
+            } catch (error) {
+                return date.toString();
             }
         }
     };

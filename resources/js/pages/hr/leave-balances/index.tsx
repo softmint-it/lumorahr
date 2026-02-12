@@ -353,7 +353,7 @@ export default function LeaveBalances() {
 
   return (
     <PageTemplate
-      title={t("Leave Balance Management")}
+      title={t("Leave Balances")}
       url="/hr/leave-balances"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

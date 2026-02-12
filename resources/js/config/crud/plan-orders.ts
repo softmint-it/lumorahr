@@ -57,15 +57,12 @@ export const planOrdersConfig: CrudConfig = {
       { 
         key: 'status', 
         label: t('Status'), 
-        render: (value) => {
-          const statusMap = {
-            pending: { label: t('Pending'), className: 'bg-yellow-100 text-yellow-800' },
-            approved: { label: t('Approved'), className: 'bg-green-100 text-green-800' },
-            rejected: { label: t('Rejected'), className: 'bg-red-100 text-red-800' }
-          };
-          const status = statusMap[value as keyof typeof statusMap] || statusMap.pending;
-          return status.label;
-        }
+        render: columnRenderers.status({
+          'pending': 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20',
+          'approved': 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20',
+          'rejected': 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20',
+          'cancelled': 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20'
+        })
       }
     ],
     actions: [

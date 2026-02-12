@@ -92,7 +92,7 @@ export default function RolesPage() {
 
   const breadcrumbs = [
     { title: t('Dashboard'), href: route('dashboard') },
-    { title: t('User Management'), href: route('roles.index') },
+    { title: t('Staff'), href: route('roles.index') },
     { title: t('Roles') }
   ];
 

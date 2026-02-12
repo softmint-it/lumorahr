@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveType;
 use App\Models\LeavePolicy;
@@ -15,69 +16,109 @@ class LeaveBalanceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = LeaveBalance::withPermissionCheck()
-            ->with(['employee', 'leaveType', 'leavePolicy', 'creator']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('employee', function ($subQ) use ($request) {
-                    $subQ->where('name', 'like', '%' . $request->search . '%');
-                })
-                ->orWhereHas('leaveType', function ($subQ) use ($request) {
-                    $subQ->where('name', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-leave-balances')) {
+            $query = LeaveBalance::with(['employee', 'leaveType', 'leavePolicy', 'creator'])
+                ->where(function ($q) {
+                    if (Auth::user()->can('manage-any-leave-balances')) {
+                        $q->whereIn('created_by',  getCompanyAndUsersId());
+                    } elseif (Auth::user()->can('manage-own-leave-balances')) {
+                        $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id());
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
                 });
+
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->whereHas('employee', function ($subQ) use ($request) {
+                        $subQ->where('name', 'like', '%' . $request->search . '%');
+                    })
+                        ->orWhereHas('leaveType', function ($subQ) use ($request) {
+                            $subQ->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+            // Handle leave type filter
+            if ($request->has('leave_type_id') && !empty($request->leave_type_id) && $request->leave_type_id !== 'all') {
+                $query->where('leave_type_id', $request->leave_type_id);
+            }
+
+            // Handle year filter
+            if ($request->has('year') && !empty($request->year) && $request->year !== 'all') {
+                $query->where('year', $request->year);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $leaveBalances = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name']);
+
+            // Get leave types for filter dropdown
+            $leaveTypes = LeaveType::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->get(['id', 'name', 'color']);
+
+            // Get years for filter
+            $years = LeaveBalance::whereIn('created_by', getCompanyAndUsersId())
+                ->distinct()
+                ->pluck('year')
+                ->sort()
+                ->values();
+
+            return Inertia::render('hr/leave-balances/index', [
+                'leaveBalances' => $leaveBalances,
+                'employees' => $this->getFilteredEmployees(),
+                'leaveTypes' => $leaveTypes,
+                'years' => $years,
+                'filters' => $request->all(['search', 'employee_id', 'leave_type_id', 'year', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-leave-balances') && !Auth::user()->can('manage-any-leave-balances')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Handle leave type filter
-        if ($request->has('leave_type_id') && !empty($request->leave_type_id) && $request->leave_type_id !== 'all') {
-            $query->where('leave_type_id', $request->leave_type_id);
-        }
-
-        // Handle year filter
-        if ($request->has('year') && !empty($request->year) && $request->year !== 'all') {
-            $query->where('year', $request->year);
-        }
-
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $leaveBalances = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
             ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name']);
-
-        // Get leave types for filter dropdown
-        $leaveTypes = LeaveType::whereIn('created_by', getCompanyAndUsersId())
             ->where('status', 'active')
-            ->get(['id', 'name', 'color']);
-
-        // Get years for filter
-        $years = LeaveBalance::whereIn('created_by', getCompanyAndUsersId())
-            ->distinct()
-            ->pluck('year')
-            ->sort()
-            ->values();
-
-        return Inertia::render('hr/leave-balances/index', [
-            'leaveBalances' => $leaveBalances,
-            'employees' => $employees,
-            'leaveTypes' => $leaveTypes,
-            'years' => $years,
-            'filters' => $request->all(['search', 'employee_id', 'leave_type_id', 'year', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
 
     public function store(Request $request)

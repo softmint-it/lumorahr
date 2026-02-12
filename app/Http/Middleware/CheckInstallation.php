@@ -14,15 +14,17 @@ class CheckInstallation
     public function handle(Request $request, Closure $next)
     {
         // Skip check for installer routes, API routes, and static assets
-        if ($request->is('install/*') ||
-        $request->is('update/*') ||
-        $request->is('css/*') ||
-        $request->is('js/*') ||
-        $request->is('images/*') ||
-        $request->is('installer/*')) {
+        if (
+            $request->is('install/*') ||
+            $request->is('update/*') ||
+            $request->is('css/*') ||
+            $request->is('js/*') ||
+            $request->is('images/*') ||
+            $request->is('installer/*')
+        ) {
             return $next($request);
         }
-        
+
         // Check only on dashboard, login, register routes
         if (!$request->is('/*') && !$request->is('dashboard*') && !$request->is('login') && !$request->is('register')) {
             return $next($request);
@@ -34,9 +36,17 @@ class CheckInstallation
         }
 
         // If logged in as superadmin and migrations needed, redirect to /update
-        if (auth()->check() && auth()->user()->hasRole('superadmin') && $this->needsMigration()) {
-            return redirect('/update');
+        if (isSaas()) {
+            if (auth()->check() && auth()->user()->hasRole('superadmin') && $this->needsMigration()) {
+                return redirect('/update');
+            }
+        } else {
+            if (auth()->check() && auth()->user()->hasRole('company') && $this->needsMigration()) {
+                return redirect('/update');
+            }
+            
         }
+
 
         return $next($request);
     }

@@ -216,6 +216,67 @@ const getImagePath = (path: string, pageProps?: any): string => {
 //   }
 // };
 
+/**
+ * Get company ID based on user type
+ */
+const getCompanyId = (auth: any): number => {
+  if (!auth?.user) return 0;
+  
+  const userType = auth.user.type || auth.user.role;
+  
+  if (userType === 'superadmin' || userType === 'company') {
+    return auth.user.id;
+  }
+  
+  return auth.user.created_by || 0;
+};
+
+/**
+ * Check if application is in demo mode
+ */
+const isDemoMode = (props?: any): boolean => {
+  try {
+    const pageProps = props || (typeof window !== 'undefined' && (window as any).page?.props);
+    const isDemo = pageProps?.globalSettings?.is_demo;
+    return isDemo === true || isDemo === '1' || isDemo === 1;
+  } catch {
+    return false;
+  }
+};
+
+const isSaaS = (props?: any): boolean => {
+  try {
+    const pageProps = props || (typeof window !== 'undefined' && (window as any).page?.props);
+    const isSaasValue = pageProps?.globalSettings?.is_saas;
+    return isSaasValue === true || isSaasValue === '1' || isSaasValue === 1;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Set cookie
+ */
+const setCookie = (name: string, value: string, days: number = 365): void => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+};
+
+/**
+ * Get cookie
+ */
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
 export {
   // formatDate,
   // formatTime,
@@ -225,5 +286,9 @@ export {
   // getCurrencySymbol,
   // getAdminCurrencySymbol
   getImagePath,
-
+  getCompanyId,
+  isDemoMode,
+  isSaaS,
+  setCookie,
+  getCookie,
 }

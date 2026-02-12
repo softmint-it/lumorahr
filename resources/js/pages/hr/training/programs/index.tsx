@@ -294,24 +294,6 @@ export default function TrainingPrograms() {
       key: 'employee_trainings_count', 
       label: t('Employees'),
       render: (value) => value || '0'
-    },
-    { 
-      key: 'materials', 
-      label: t('Materials'),
-      render: (value, row) => value && value.trim() !== '' ? (
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex items-center text-blue-500"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAction('download-materials', row);
-          }}
-        >
-          <Download className="h-4 w-4 mr-1" />
-          {t('Download')}
-        </Button>
-      ) : '-'
     }
   ];
 
@@ -379,7 +361,8 @@ export default function TrainingPrograms() {
               type: 'select',
               value: selectedType,
               onChange: setSelectedType,
-              options: trainingTypeOptions
+              options: trainingTypeOptions,
+              searchable : true,
             },
             {
               name: 'status',
@@ -387,21 +370,8 @@ export default function TrainingPrograms() {
               type: 'select',
               value: selectedStatus,
               onChange: setSelectedStatus,
-              options: statusOptions
-            },
-            {
-              name: 'is_mandatory',
-              label: t('Mandatory Only'),
-              type: 'checkbox',
-              value: isMandatory,
-              onChange: setIsMandatory
-            },
-            {
-              name: 'is_self_enrollment',
-              label: t('Self-Enrollment Only'),
-              type: 'checkbox',
-              value: isSelfEnrollment,
-              onChange: setIsSelfEnrollment
+              options: statusOptions,
+              searchable : true,
             }
           ]}
           showFilters={showFilters}
@@ -474,6 +444,7 @@ export default function TrainingPrograms() {
               label: t('Training Type'), 
               type: 'select',
               required: true,
+              searchable: true,
               options: (trainingTypes || []).map((type: any) => ({
                 value: type.id.toString(),
                 label: `${type.name} (${type.branch?.name || 'No Branch'} - ${type.departments?.map((d: any) => d.name).join(', ') || 'No Departments'})`

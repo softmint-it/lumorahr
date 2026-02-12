@@ -16,14 +16,25 @@ class Candidate extends BaseModel
         'last_name',
         'email',
         'phone',
+        'gender',
+        'branch_id',
+        'department_id',
+        'date_of_birth',
+        'address',
+        'city',
+        'state',
+        'zip_code',
+        'country',
         'current_company',
         'current_position',
         'experience_years',
         'current_salary',
         'expected_salary',
+        'final_salary',
         'notice_period',
         'resume_path',
         'cover_letter_path',
+        'coverletter_message',
         'skills',
         'education',
         'portfolio_url',
@@ -31,13 +42,22 @@ class Candidate extends BaseModel
         'referral_employee_id',
         'status',
         'application_date',
+        'rating',
+        'is_archive',
+        'is_employee',
+        'custom_question',
+        'terms_condition_check',
         'created_by'
     ];
 
     protected $casts = [
         'application_date' => 'date',
+        'date_of_birth' => 'date',
         'current_salary' => 'decimal:2',
         'expected_salary' => 'decimal:2',
+        'custom_question' => 'array',
+        'is_archive' => 'boolean',
+        'is_employee' => 'boolean',
     ];
 
     public function job()
@@ -53,6 +73,26 @@ class Candidate extends BaseModel
     public function referralEmployee()
     {
         return $this->belongsTo(User::class, 'referral_employee_id');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(JobLocation::class, 'location_id');
+    }
+
+    public function jobType()
+    {
+        return $this->belongsTo(JobType::class, 'job_type_id');
     }
 
     public function creator()

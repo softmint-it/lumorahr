@@ -18,7 +18,6 @@ export function CreateLanguageModal({ open, onOpenChange, onSuccess }: CreateLan
     const { t } = useTranslation();
     const { props } = usePage();
     const isDemo = (props as any).globalSettings?.is_demo || false;
-    console.log('globalSettings' ,  isDemo);
     
     const [formData, setFormData] = useState({
         code: '',

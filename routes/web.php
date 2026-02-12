@@ -1,95 +1,89 @@
 <?php
 
+use App\Http\Controllers\AamarpayPaymentController;
+use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AssetTypeController;
+use App\Http\Controllers\AuthorizeNetPaymentController;
+use App\Http\Controllers\AwardController;
+use App\Http\Controllers\AwardTypeController;
+use App\Http\Controllers\BankPaymentController;
+use App\Http\Controllers\BenefitPaymentController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CareerController;
+use App\Http\Controllers\CashfreeController;
+use App\Http\Controllers\CinetPayPaymentController;
+use App\Http\Controllers\CoinGatePaymentController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\CookieConsentController;
+use App\Http\Controllers\CouponController;
+use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EasebuzzPaymentController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeGoalController;
+use App\Http\Controllers\EmployeeReviewController;
+use App\Http\Controllers\EmployeeTrainingController;
+use App\Http\Controllers\EmployeeTransferController;
+use App\Http\Controllers\FedaPayPaymentController;
+use App\Http\Controllers\FlutterwavePaymentController;
+use App\Http\Controllers\GoalTypeController;
+use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\HrDocumentController;
+use App\Http\Controllers\ImpersonateController;
+use App\Http\Controllers\IyzipayPaymentController;
+use App\Http\Controllers\KhaltiPaymentController;
+use App\Http\Controllers\LandingPage\CustomPageController;
+use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\MediaController;
+use App\Http\Controllers\MercadoPagoController;
+use App\Http\Controllers\MidtransPaymentController;
+use App\Http\Controllers\MolliePaymentController;
+use App\Http\Controllers\NepalstePaymentController;
+use App\Http\Controllers\OzowPaymentController;
+use App\Http\Controllers\PaiementPaymentController;
+use App\Http\Controllers\PayfastPaymentController;
+use App\Http\Controllers\PayHerePaymentController;
+use App\Http\Controllers\PaymentWallPaymentController;
+use App\Http\Controllers\PayPalPaymentController;
+use App\Http\Controllers\PaystackPaymentController;
+use App\Http\Controllers\PayTabsPaymentController;
+use App\Http\Controllers\PayTRPaymentController;
+use App\Http\Controllers\PerformanceIndicatorCategoryController;
+use App\Http\Controllers\PerformanceIndicatorController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlanOrderController;
 use App\Http\Controllers\PlanRequestController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\ReferralController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\CouponController;
-use App\Http\Controllers\CurrencyController;
-use App\Http\Controllers\ImpersonateController;
-use App\Http\Controllers\TranslationController;
-use App\Http\Controllers\LandingPageController;
-use App\Http\Controllers\LandingPage\CustomPageController;
-use App\Http\Controllers\LanguageController;
-use App\Http\Controllers\MediaController;
-use App\Http\Controllers\RazorpayController;
-use App\Http\Controllers\MercadoPagoController;
-use App\Http\Controllers\StripePaymentController;
-use App\Http\Controllers\PayPalPaymentController;
-use App\Http\Controllers\BankPaymentController;
-use App\Http\Controllers\PaystackPaymentController;
-use App\Http\Controllers\FlutterwavePaymentController;
-use App\Http\Controllers\PayTabsPaymentController;
-use App\Http\Controllers\SkrillPaymentController;
-use App\Http\Controllers\CoinGatePaymentController;
-use App\Http\Controllers\PayfastPaymentController;
-use App\Http\Controllers\TapPaymentController;
-use App\Http\Controllers\XenditPaymentController;
-use App\Http\Controllers\PayTRPaymentController;
-use App\Http\Controllers\MolliePaymentController;
-use App\Http\Controllers\ToyyibPayPaymentController;
-use App\Http\Controllers\CashfreeController;
-use App\Http\Controllers\IyzipayPaymentController;
-use App\Http\Controllers\BenefitPaymentController;
-use App\Http\Controllers\OzowPaymentController;
-use App\Http\Controllers\EasebuzzPaymentController;
-use App\Http\Controllers\KhaltiPaymentController;
-use App\Http\Controllers\AuthorizeNetPaymentController;
-use App\Http\Controllers\FedaPayPaymentController;
-use App\Http\Controllers\AwardTypeController;
-use App\Http\Controllers\AwardController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\RazorpayController;
+use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\ResignationController;
+use App\Http\Controllers\ReviewCycleController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SkrillPaymentController;
+use App\Http\Controllers\SSPayPaymentController;
+use App\Http\Controllers\StripePaymentController;
+use App\Http\Controllers\TapPaymentController;
 use App\Http\Controllers\TerminationController;
-use App\Http\Controllers\WarningController;
-use App\Http\Controllers\TripController;
-use App\Http\Controllers\ComplaintController;
-use App\Http\Controllers\EmployeeTransferController;
-use App\Http\Controllers\HolidayController;
-use App\Http\Controllers\AnnouncementController;
-use App\Http\Controllers\AssetTypeController;
-use App\Http\Controllers\AssetController;
-use App\Http\Controllers\TrainingTypeController;
+use App\Http\Controllers\ToyyibPayPaymentController;
+use App\Http\Controllers\TrainingAssessmentController;
 use App\Http\Controllers\TrainingProgramController;
 use App\Http\Controllers\TrainingSessionController;
-use App\Http\Controllers\TrainingAssessmentController;
-use App\Http\Controllers\EmployeeTrainingController;
-use App\Http\Controllers\PayHerePaymentController;
-use App\Http\Controllers\CinetPayPaymentController;
-use App\Http\Controllers\PaiementPaymentController;
-use App\Http\Controllers\NepalstePaymentController;
+use App\Http\Controllers\TrainingTypeController;
+use App\Http\Controllers\TranslationController;
+use App\Http\Controllers\TripController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\WarningController;
+use App\Http\Controllers\XenditPaymentController;
 use App\Http\Controllers\YooKassaPaymentController;
-use App\Http\Controllers\AamarpayPaymentController;
-use App\Http\Controllers\MidtransPaymentController;
-use App\Http\Controllers\PaymentWallPaymentController;
-use App\Http\Controllers\SSPayPaymentController;
-use App\Http\Controllers\PublicFormController;
-use App\Http\Controllers\BranchController;
-use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\CookieConsentController;
-
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\HrDocumentController;
-use App\Http\Controllers\PerformanceIndicatorCategoryController;
-use App\Http\Controllers\PerformanceIndicatorController;
-use App\Http\Controllers\GoalTypeController;
-use App\Http\Controllers\EmployeeGoalController;
-use App\Http\Controllers\ReviewCycleController;
-use App\Http\Controllers\EmployeeReviewController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
-// Route::get('/', [LandingPageController::class, 'show'])->name('home');
-
-Route::middleware(['auth', 'verified', 'setting'])->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('home');
-});
+Route::get('/', [LandingPageController::class, 'show'])->name('home');
 
 // Public form submission routes
 
@@ -152,7 +146,16 @@ Route::get('/page/{slug}', [CustomPageController::class, 'show'])->name('custom-
 Route::get('/translations/{locale}', [TranslationController::class, 'getTranslations'])->name('translations');
 Route::get('/refresh-language/{locale}', [TranslationController::class, 'refreshLanguage'])->name('refresh-language');
 Route::get('/initial-locale', [TranslationController::class, 'getInitialLocale'])->name('initial-locale');
+Route::post('/change-language', [TranslationController::class, 'changeLanguage'])->name('change-language');
 
+// Career Pages (Public Routes
+// Career Pages (Public Routes with Multi-tenant support)
+Route::middleware(['career.shared'])->prefix('{userSlug?}/career')->name('career.')->group(function () {
+    Route::get('/', [CareerController::class, 'index'])->name('index');
+    Route::get('/jobs/{jobCode}', [CareerController::class, 'show'])->name('job-details');
+    Route::get('/apply/{jobCode}', [CareerController::class, 'showApplicationForm'])->name('apply');
+    Route::post('/apply/{jobCode}', [CareerController::class, 'submitApplication'])->name('job.submit');
+});
 
 // Email Templates routes (no middleware for testing)
 Route::get('email-templates', [\App\Http\Controllers\EmailTemplateController::class, 'index'])->name('email-templates.index');
@@ -169,7 +172,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         Route::post('plans/trial', [PlanController::class, 'startTrial'])->name('plans.trial');
         Route::post('plans/subscribe', [PlanController::class, 'subscribe'])->name('plans.subscribe');
         Route::post('plans/coupons/validate', [CouponController::class, 'validate'])->name('coupons.validate');
-
 
         // Payment routes - accessible without plan check
         Route::post('payments/stripe', [StripePaymentController::class, 'processPayment'])->name('stripe.payment');
@@ -266,8 +268,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             return Inertia::render('media-library');
         })->name('media-library');
 
-
-
         // Media Library API routes
         Route::get('api/media', [MediaController::class, 'index'])->middleware('permission:manage-media')->name('api.media.index');
         Route::post('api/media/batch', [MediaController::class, 'batchStore'])->middleware('permission:create-media')->name('api.media.batch');
@@ -315,7 +315,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::put('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('permission:toggle-status-users')->name('users.toggle-status');
         });
 
-
         // HR Module routes
         // Branch routes
         Route::middleware('permission:manage-branches')->group(function () {
@@ -334,10 +333,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::delete('hr/departments/{department}', [DepartmentController::class, 'destroy'])->middleware('permission:delete-departments')->name('hr.departments.destroy');
             Route::put('hr/departments/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->middleware('permission:edit-departments')->name('hr.departments.toggle-status');
         });
-
-
-
-
 
         // Designation routes
         Route::middleware('permission:manage-designations')->group(function () {
@@ -394,7 +389,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::get('hr/awards/{award}/download-certificate', [AwardController::class, 'downloadCertificate'])->middleware('permission:view-awards')->name('hr.awards.download-certificate');
             Route::get('hr/awards/{award}/download-photo', [AwardController::class, 'downloadPhoto'])->middleware('permission:view-awards')->name('hr.awards.download-photo');
         });
-
 
         // Promotion Routes
         Route::middleware('permission:manage-promotions')->group(function () {
@@ -633,7 +627,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::put('hr/performance/review-cycles/{reviewCycle}/toggle-status', [ReviewCycleController::class, 'toggleStatus'])->middleware('permission:edit-review-cycles')->name('hr.performance.review-cycles.toggle-status');
         });
 
-
         // Employee Reviews
         Route::middleware('permission:manage-employee-reviews')->group(function () {
             Route::get('hr/performance/employee-reviews', [EmployeeReviewController::class, 'index'])->name('hr.performance.employee-reviews.index');
@@ -688,7 +681,10 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         // Job Postings Routes
         Route::middleware('permission:manage-job-postings')->group(function () {
             Route::get('hr/recruitment/job-postings', [\App\Http\Controllers\JobPostingController::class, 'index'])->name('hr.recruitment.job-postings.index');
+            Route::get('hr/recruitment/job-postings/create', [\App\Http\Controllers\JobPostingController::class, 'create'])->middleware('permission:create-job-postings')->name('hr.recruitment.job-postings.create');
             Route::post('hr/recruitment/job-postings', [\App\Http\Controllers\JobPostingController::class, 'store'])->middleware('permission:create-job-postings')->name('hr.recruitment.job-postings.store');
+            Route::get('hr/recruitment/job-postings/{jobPosting}', [\App\Http\Controllers\JobPostingController::class, 'show'])->middleware('permission:view-job-postings')->name('hr.recruitment.job-postings.show');
+            Route::get('hr/recruitment/job-postings/{jobPosting}/edit', [\App\Http\Controllers\JobPostingController::class, 'edit'])->middleware('permission:edit-job-postings')->name('hr.recruitment.job-postings.edit');
             Route::put('hr/recruitment/job-postings/{jobPosting}', [\App\Http\Controllers\JobPostingController::class, 'update'])->middleware('permission:edit-job-postings')->name('hr.recruitment.job-postings.update');
             Route::delete('hr/recruitment/job-postings/{jobPosting}', [\App\Http\Controllers\JobPostingController::class, 'destroy'])->middleware('permission:delete-job-postings')->name('hr.recruitment.job-postings.destroy');
             Route::put('hr/recruitment/job-postings/{jobPosting}/publish', [\App\Http\Controllers\JobPostingController::class, 'publish'])->middleware('permission:publish-job-postings')->name('hr.recruitment.job-postings.publish');
@@ -707,10 +703,15 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         // Candidates Routes
         Route::middleware('permission:manage-candidates')->group(function () {
             Route::get('hr/recruitment/candidates', [\App\Http\Controllers\CandidateController::class, 'index'])->name('hr.recruitment.candidates.index');
-            Route::post('hr/recruitment/candidates', [\App\Http\Controllers\CandidateController::class, 'store'])->middleware('permission:create-candidates')->name('hr.recruitment.candidates.store');
-            Route::put('hr/recruitment/candidates/{candidate}', [\App\Http\Controllers\CandidateController::class, 'update'])->middleware('permission:edit-candidates')->name('hr.recruitment.candidates.update');
+            Route::get('hr/recruitment/candidates/{candidate}', [\App\Http\Controllers\CandidateController::class, 'show'])->middleware('permission:view-candidates')->name('hr.recruitment.candidates.show');
+            // Route::post('hr/recruitment/candidates', [\App\Http\Controllers\CandidateController::class, 'store'])->middleware('permission:create-candidates')->name('hr.recruitment.candidates.store');
+            // Route::put('hr/recruitment/candidates/{candidate}', [\App\Http\Controllers\CandidateController::class, 'update'])->middleware('permission:edit-candidates')->name('hr.recruitment.candidates.update');
             Route::delete('hr/recruitment/candidates/{candidate}', [\App\Http\Controllers\CandidateController::class, 'destroy'])->middleware('permission:delete-candidates')->name('hr.recruitment.candidates.destroy');
             Route::put('hr/recruitment/candidates/{candidate}/status', [\App\Http\Controllers\CandidateController::class, 'updateStatus'])->middleware('permission:edit-candidates')->name('hr.recruitment.candidates.update-status');
+            
+            // Convert to Employee Routes
+            Route::get('hr/recruitment/candidates/{candidate}/convert-to-employee', [\App\Http\Controllers\CandidateController::class, 'convertToEmployee'])->middleware('permission:create-employees')->name('hr.recruitment.candidates.convert-to-employee');
+            Route::post('hr/recruitment/candidates/store-employee', [\App\Http\Controllers\CandidateController::class, 'storeEmployee'])->middleware('permission:create-employees')->name('hr.recruitment.candidates.store-employee');
         });
 
         // Interview Types Routes
@@ -750,6 +751,14 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::get('hr/recruitment/interview-feedback/get-interviewers/{interview}', [\App\Http\Controllers\InterviewFeedbackController::class, 'getInterviewers'])->name('hr.recruitment.interview-feedback.get-interviewers');
         });
 
+        // Custom Questions Routes
+        Route::middleware('permission:manage-custom-questions')->group(function () {
+            Route::get('hr/recruitment/custom-questions', [\App\Http\Controllers\CustomQuestionController::class, 'index'])->name('hr.recruitment.custom-questions.index');
+            Route::post('hr/recruitment/custom-questions', [\App\Http\Controllers\CustomQuestionController::class, 'store'])->middleware('permission:create-custom-questions')->name('hr.recruitment.custom-questions.store');
+            Route::put('hr/recruitment/custom-questions/{customQuestion}', [\App\Http\Controllers\CustomQuestionController::class, 'update'])->middleware('permission:edit-custom-questions')->name('hr.recruitment.custom-questions.update');
+            Route::delete('hr/recruitment/custom-questions/{customQuestion}', [\App\Http\Controllers\CustomQuestionController::class, 'destroy'])->middleware('permission:delete-custom-questions')->name('hr.recruitment.custom-questions.destroy');
+        });
+
         // Candidate Assessments Routes
         Route::middleware('permission:manage-candidate-assessments')->group(function () {
             Route::get('hr/recruitment/candidate-assessments', [\App\Http\Controllers\CandidateAssessmentController::class, 'index'])->name('hr.recruitment.candidate-assessments.index');
@@ -772,10 +781,13 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         // Offers Routes
         Route::middleware('permission:manage-offers')->group(function () {
             Route::get('hr/recruitment/offers', [\App\Http\Controllers\OfferController::class, 'index'])->name('hr.recruitment.offers.index');
+            Route::get('hr/recruitment/offers/{offer}', [\App\Http\Controllers\OfferController::class, 'show'])->middleware('permission:view-offers')->name('hr.recruitment.offers.show');
             Route::post('hr/recruitment/offers', [\App\Http\Controllers\OfferController::class, 'store'])->middleware('permission:create-offers')->name('hr.recruitment.offers.store');
             Route::put('hr/recruitment/offers/{offer}', [\App\Http\Controllers\OfferController::class, 'update'])->middleware('permission:edit-offers')->name('hr.recruitment.offers.update');
             Route::delete('hr/recruitment/offers/{offer}', [\App\Http\Controllers\OfferController::class, 'destroy'])->middleware('permission:delete-offers')->name('hr.recruitment.offers.destroy');
             Route::put('hr/recruitment/offers/{offer}/status', [\App\Http\Controllers\OfferController::class, 'updateStatus'])->middleware('permission:edit-offers')->name('hr.recruitment.offers.update-status');
+            Route::get('hr/recruitment/offers/candidate/{candidateId}/job', [\App\Http\Controllers\OfferController::class, 'getCandidateJob'])->name('hr.recruitment.offers.candidate-job');
+            Route::get('hr/recruitment/offers/job/{jobId}/departments', [\App\Http\Controllers\OfferController::class, 'getJobDepartments'])->name('hr.recruitment.offers.job-departments');
         });
 
         // Onboarding Checklists Routes
@@ -799,10 +811,11 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         // Candidate Onboarding Routes
         Route::middleware('permission:manage-candidate-onboarding')->group(function () {
             Route::get('hr/recruitment/candidate-onboarding', [\App\Http\Controllers\CandidateOnboardingController::class, 'index'])->name('hr.recruitment.candidate-onboarding.index');
+            Route::get('hr/recruitment/candidate-onboarding/{candidateOnboarding}', [\App\Http\Controllers\CandidateOnboardingController::class, 'show'])->middleware('permission:view-candidate-onboarding')->name('hr.recruitment.candidate-onboarding.show');
             Route::post('hr/recruitment/candidate-onboarding', [\App\Http\Controllers\CandidateOnboardingController::class, 'store'])->middleware('permission:create-candidate-onboarding')->name('hr.recruitment.candidate-onboarding.store');
             Route::put('hr/recruitment/candidate-onboarding/{candidateOnboarding}', [\App\Http\Controllers\CandidateOnboardingController::class, 'update'])->middleware('permission:edit-candidate-onboarding')->name('hr.recruitment.candidate-onboarding.update');
             Route::delete('hr/recruitment/candidate-onboarding/{candidateOnboarding}', [\App\Http\Controllers\CandidateOnboardingController::class, 'destroy'])->middleware('permission:delete-candidate-onboarding')->name('hr.recruitment.candidate-onboarding.destroy');
-            Route::put('hr/recruitment/candidate-onboarding/{candidateOnboarding}/status', [\App\Http\Controllers\CandidateOnboardingController::class, 'updateStatus'])->middleware('permission:edit-candidate-onboarding')->name('hr.recruitment.candidate-onboarding.update-status');
+            Route::put('hr/recruitment/candidate-onboarding/{candidateOnboarding}/status', [\App\Http\Controllers\CandidateOnboardingController::class, 'updateStatus'])->middleware('permission:manage-candidate-onboarding-status')->name('hr.recruitment.candidate-onboarding.update-status');
         });
 
         // Meeting Types Routes
@@ -859,8 +872,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::put('meetings/action-items/{actionItem}/progress', [\App\Http\Controllers\ActionItemController::class, 'updateProgress'])->middleware('permission:edit-action-items')->name('meetings.action-items.update-progress');
         });
 
-
-
         // Contract Types Routes
         Route::middleware('permission:manage-contract-types')->group(function () {
             Route::get('hr/contracts/contract-types', [\App\Http\Controllers\ContractTypeController::class, 'index'])->name('hr.contracts.contract-types.index');
@@ -878,8 +889,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::delete('hr/contracts/employee-contracts/{employeeContract}', [\App\Http\Controllers\EmployeeContractController::class, 'destroy'])->middleware('permission:delete-employee-contracts')->name('hr.contracts.employee-contracts.destroy');
             Route::put('hr/contracts/employee-contracts/{employeeContract}/status', [\App\Http\Controllers\EmployeeContractController::class, 'updateStatus'])->middleware('permission:approve-employee-contracts')->name('hr.contracts.employee-contracts.update-status');
         });
-
-
 
         // Contract Renewals Routes
         Route::middleware('permission:manage-contract-renewals')->group(function () {
@@ -920,8 +929,6 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::get('hr/documents/hr-documents/{hrDocument}/download', [HrDocumentController::class, 'download'])->middleware('permission:view-hr-documents')->name('hr.documents.hr-documents.download');
             Route::put('hr/documents/hr-documents/{hrDocument}/status', [\App\Http\Controllers\HrDocumentController::class, 'updateStatus'])->middleware('permission:edit-hr-documents')->name('hr.documents.hr-documents.update-status');
         });
-
-
 
         // Document Acknowledgments Routes
         Route::middleware('permission:manage-document-acknowledgments')->group(function () {
@@ -1065,15 +1072,16 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         Route::middleware('permission:manage-payslips')->group(function () {
             Route::get('hr/payslips', [\App\Http\Controllers\PayslipController::class, 'index'])->name('hr.payslips.index');
             Route::post('hr/payslips/generate', [\App\Http\Controllers\PayslipController::class, 'generate'])->middleware('permission:create-payslips')->name('hr.payslips.generate');
-            Route::post('hr/payslips/bulk-generate', [\App\Http\Controllers\PayslipController::class, 'bulkGenerate'])->middleware('permission:create-payslips')->name('hr.payslips.bulk-generate');
+            Route::post('hr/payslips/bulk-generate', [\App\Http\Controllers\PayslipController::class, 'bulkGene rate'])->middleware('permission:create-payslips')->name('hr.payslips.bulk-generate');
             Route::get('hr/payslips/{payslip}/download', [\App\Http\Controllers\PayslipController::class, 'download'])->middleware('permission:download-payslips')->name('hr.payslips.download');
         });
 
-
-
-
-
-
+        // Biometric Attendance routes
+        Route::middleware('permission:manage-biometric-attendance')->group(function () {
+            Route::get('hr/biometric-attendance', [\App\Http\Controllers\BiometricAttendanceController::class, 'index'])->name('hr.biometric-attendance.index');
+            Route::get('hr/biometric-attendance/{employeeCode}/{date}', [\App\Http\Controllers\BiometricAttendanceController::class, 'show'])->name('hr.biometric-attendance.show');
+            Route::post('hr/biometric-attendance/{id}/sync', [\App\Http\Controllers\BiometricAttendanceController::class, 'sync'])->name('hr.biometric-attendance.sync');
+        });
 
         // Plans management routes (admin only)
         Route::middleware('permission:manage-plans')->group(function () {
@@ -1098,7 +1106,7 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         })->name('plan-requests.index');
 
         // Companies routes
-        Route::middleware(['checksaas','permission:manage-companies'])->group(function () {
+        Route::middleware(['checksaas', 'permission:manage-companies'])->group(function () {
             Route::get('companies', [CompanyController::class, 'index'])->middleware('permission:manage-companies')->name('companies.index');
             Route::post('companies', [CompanyController::class, 'store'])->middleware('permission:create-companies')->name('companies.store');
             Route::put('companies/{company}', [CompanyController::class, 'update'])->middleware('permission:edit-companies')->name('companies.update');
@@ -1109,9 +1117,8 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
             Route::put('companies/{company}/upgrade-plan', [CompanyController::class, 'upgradePlan'])->middleware('permission:upgrade-plan-companies')->name('companies.upgrade-plan');
         });
 
-
         // Coupons routes
-        Route::middleware(['checksaas','permission:manage-coupons'])->group(function () {
+        Route::middleware(['checksaas', 'permission:manage-coupons'])->group(function () {
             Route::get('coupons', [CouponController::class, 'index'])->middleware('permission:manage-coupons')->name('coupons.index');
             Route::get('coupons/{coupon}', [CouponController::class, 'show'])->middleware('permission:view-coupons')->name('coupons.show');
             Route::post('coupons', [CouponController::class, 'store'])->middleware('permission:create-coupons')->name('coupons.store');
@@ -1121,16 +1128,14 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         });
 
         // Plan Requests routes
-        Route::middleware(['checksaas','permission:manage-plan-requests'])->group(function () {
+        Route::middleware(['checksaas', 'permission:manage-plan-requests'])->group(function () {
             Route::get('plan-requests', [PlanRequestController::class, 'index'])->middleware('permission:manage-plan-requests')->name('plan-requests.index');
             Route::post('plan-requests/{planRequest}/approve', [PlanRequestController::class, 'approve'])->middleware('permission:approve-plan-requests')->name('plan-requests.approve');
             Route::post('plan-requests/{planRequest}/reject', [PlanRequestController::class, 'reject'])->middleware('permission:reject-plan-requests')->name('plan-requests.reject');
         });
 
-
-
         // Referral routes
-        Route::middleware(['checksaas','permission:manage-referral'])->group(function () {
+        Route::middleware(['checksaas', 'permission:manage-referral'])->group(function () {
             Route::get('referral', [ReferralController::class, 'index'])->middleware('permission:manage-referral')->name('referral.index');
             Route::get('referral/referred-users', [ReferralController::class, 'getReferredUsers'])->middleware('permission:manage-users-referral')->name('referral.referred-users');
             Route::post('referral/settings', [ReferralController::class, 'updateSettings'])->middleware('permission:manage-setting-referral')->name('referral.settings.update');
@@ -1154,6 +1159,7 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
         Route::get('manage-language/{lang?}', [LanguageController::class, 'managePage'])->middleware('permission:manage-language')->name('manage-language');
         Route::get('language/load', [LanguageController::class, 'load'])->name('language.load');
         Route::match(['POST', 'PATCH'], 'language/save', [LanguageController::class, 'save'])->middleware('permission:edit-language')->name('language.save');
+        Route::post('languages/change', [LanguageController::class, 'changeLanguage'])->name('languages.change');
         Route::post('/languages/create', [LanguageController::class, 'createLanguage'])->name('languages.create');
         Route::delete('/languages/{languageCode}', [LanguageController::class, 'deleteLanguage'])->name('languages.delete');
         Route::patch('/languages/{languageCode}/toggle', [LanguageController::class, 'toggleLanguageStatus'])->name('languages.toggle');
@@ -1168,7 +1174,7 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
                 'index' => 'landing-page.custom-pages.index',
                 'store' => 'landing-page.custom-pages.store',
                 'update' => 'landing-page.custom-pages.update',
-                'destroy' => 'landing-page.custom-pages.destroy'
+                'destroy' => 'landing-page.custom-pages.destroy',
             ]);
         });
 
@@ -1186,8 +1192,8 @@ Route::middleware(['auth', 'verified', 'setting'])->group(function () {
     }); // End plan.access middleware group
 });
 
-require __DIR__ . '/settings.php';
-require __DIR__ . '/auth.php';
+require __DIR__.'/settings.php';
+require __DIR__.'/auth.php';
 
 Route::match(['GET', 'POST'], 'payments/easebuzz/success', [EasebuzzPaymentController::class, 'success'])->name('easebuzz.success');
 Route::post('payments/easebuzz/callback', [EasebuzzPaymentController::class, 'callback'])->name('easebuzz.callback');

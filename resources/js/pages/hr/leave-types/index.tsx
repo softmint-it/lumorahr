@@ -277,7 +277,7 @@ export default function LeaveTypes() {
       key: 'created_at',
       label: t('Created At'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -315,14 +315,14 @@ export default function LeaveTypes() {
 
   // Prepare status options for filter
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses'), disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   return (
     <PageTemplate
-      title={t("Leave Type Management")}
+      title={t("Leave Types")}
       url="/hr/leave-types"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

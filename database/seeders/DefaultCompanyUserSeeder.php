@@ -5,9 +5,9 @@ namespace Database\Seeders;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Faker\Factory as Faker;
 
 class DefaultCompanyUserSeeder extends Seeder
 {
@@ -18,6 +18,7 @@ class DefaultCompanyUserSeeder extends Seeder
 
         if ($companies->isEmpty()) {
             $this->command->warn('No company users found. Please run CompanySeeder first.');
+
             return;
         }
 
@@ -61,28 +62,28 @@ class DefaultCompanyUserSeeder extends Seeder
             $roles = [
                 ['role' => 'manager', 'count' => 2],
                 ['role' => 'hr', 'count' => 2],
-                ['role' => 'employee', 'count' => 10]
+                ['role' => 'employee', 'count' => 10],
             ];
-        } elseif ($isSaas && !$isDemo) {
+        } elseif ($isSaas && ! $isDemo) {
             // SaaS + Non-Demo: 1 manager, 1 HR, 0 employees
             $roles = [
                 ['role' => 'manager', 'count' => 1],
                 ['role' => 'hr', 'count' => 1],
-                ['role' => 'employee', 'count' => 0]
+                ['role' => 'employee', 'count' => 0],
             ];
-        } elseif (!$isSaas && $isDemo) {
+        } elseif (! $isSaas && $isDemo) {
             // Non-SaaS + Demo: 2 managers, 2 HR, 10 employees
             $roles = [
                 ['role' => 'manager', 'count' => 2],
                 ['role' => 'hr', 'count' => 2],
-                ['role' => 'employee', 'count' => 10]
+                ['role' => 'employee', 'count' => 10],
             ];
         } else {
             // Non-SaaS + Non-Demo: 1 manager, 1 HR, 0 employees
             $roles = [
                 ['role' => 'manager', 'count' => 1],
                 ['role' => 'hr', 'count' => 1],
-                ['role' => 'employee', 'count' => 0]
+                ['role' => 'employee', 'count' => 0],
             ];
         }
 
@@ -151,40 +152,47 @@ class DefaultCompanyUserSeeder extends Seeder
             'edit-media-directories',
             'delete-media-directories',
 
-
             // Employee permissions
             'manage-employees',
+            'manage-own-employees',
             'view-employees',
 
             // Award permissions
             'manage-awards',
+            'manage-own-awards',
             'view-awards',
 
             // Promotion permissions
             'manage-promotions',
+            'manage-own-promotions',
             'view-promotions',
 
             // Resignation permissions
             'manage-resignations',
             'view-resignations',
+            'manage-own-resignations',
             'create-resignations',
             'edit-resignations',
             'delete-resignations',
 
             // Termination permissions
             'manage-terminations',
+            'manage-own-terminations',
             'view-terminations',
 
             // Warning permissions
             'manage-warnings',
+            'manage-own-warnings',
             'view-warnings',
 
             // Trip permissions
             'manage-trips',
+            'manage-own-trips',
             'view-trips',
 
             // Complaint permissions
             'manage-complaints',
+            'manage-own-complaints',
             'view-complaints',
             'create-complaints',
             'edit-complaints',
@@ -192,18 +200,22 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // Employee Transfer permissions
             'manage-employee-transfers',
+            'manage-own-employee-transfers',
             'view-employee-transfers',
 
             // Holiday permissions
             'manage-holidays',
+            'manage-any-holidays',
             'view-holidays',
 
             // Announcement permissions
             'manage-announcements',
+            'manage-any-announcements',
             'view-announcements',
 
             // Asset Type permissions
             'manage-asset-types',
+            'manage-any-asset-types',
             'view-asset-types',
 
             // Asset permissions
@@ -212,61 +224,71 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // Training Program permissions
             'manage-training-programs',
+            'manage-any-training-programs',
             'view-training-programs',
 
             // Training Session permissions
             'manage-training-sessions',
+            'manage-own-training-sessions',
             'view-training-sessions',
             'manage-attendance',
 
             // Employee Training permissions
             'manage-employee-trainings',
+            'manage-own-employee-trainings',
             'view-employee-trainings',
             'assign-trainings',
             'manage-assessments',
             'record-assessment-results',
 
-
             // Performance Indicators
             'manage-performance-indicators',
+            'manage-own-performance-indicators',
             'view-performance-indicators',
-
 
             // Employee Goals
             'manage-employee-goals',
+            'manage-own-employee-goals',
             'view-employee-goals',
 
             // Review Cycles
             'manage-review-cycles',
+            'manage-own-review-cycles',
             'view-review-cycles',
 
             // Employee Reviews
-
             'manage-employee-reviews',
+            'manage-own-employee-reviews',
             'view-employee-reviews',
 
             // Job Requisitions management
             'manage-job-requisitions',
+            'manage-    -job-requisitions',
             'view-job-requisitions',
 
             // Job Locations management
             'manage-job-locations',
+            'manage-any-job-locations',
             'view-job-locations',
 
             // Job Postings management
             'manage-job-postings',
+            'manage-any-job-postings',
             'view-job-postings',
 
             // Interview Rounds management
             'manage-interview-rounds',
+            'manage-any-interview-rounds',
             'view-interview-rounds',
 
             // Interviews management
             'manage-interviews',
+            'manage-own-interviews',
             'view-interviews',
 
             // Interview Feedback management
             'manage-interview-feedback',
+            'manage-own-interview-feedback',
             'view-interview-feedback',
             'create-interview-feedback',
             'edit-interview-feedback',
@@ -274,6 +296,7 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // Candidate Assessments management
             'manage-candidate-assessments',
+            'manage-own-candidate-assessments',
             'view-candidate-assessments',
             'create-candidate-assessments',
             'edit-candidate-assessments',
@@ -281,30 +304,35 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // Candidate Onboarding management
             'manage-candidate-onboarding',
+            'manage-own-candidate-onboarding',
+            'manage-candidate-onboarding-status',
             'view-candidate-onboarding',
-
 
             // Meetings management
             'manage-meetings',
+            'manage-own-meetings',
             'view-meetings',
 
             // Meeting Attendees management
             'manage-meeting-attendees',
+            'manage-any-meeting-attendees',
             'view-meeting-attendees',
             'edit-meeting-attendees',
 
             // Meeting Minutes management
             'manage-meeting-minutes',
+            'manage-own-meeting-minutes',
             'view-meeting-minutes',
 
             // Action Items management
             'manage-action-items',
+            'manage-own-action-items',
             'view-action-items',
 
             // Employee Contracts management
             'manage-employee-contracts',
+            'manage-own-employee-contracts',
             'view-employee-contracts',
-
 
             // Contract Renewals management
             'manage-contract-renewals',
@@ -312,17 +340,21 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // HR Documents management
             'manage-hr-documents',
+            'manage-any-hr-documents',
             'view-hr-documents',
 
             // Document Acknowledgments management
             'manage-document-acknowledgments',
+            'manage-own-document-acknowledgments',
             'view-document-acknowledgments',
 
             // Leave Policies management
             'manage-leave-policies',
+            'manage-any-leave-policies',
 
             // Leave Applications management
             'manage-leave-applications',
+            'manage-own-leave-applications',
             'view-leave-applications',
             'create-leave-applications',
             'edit-leave-applications',
@@ -330,18 +362,22 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // Leave Balances management
             'manage-leave-balances',
+            'manage-own-leave-balances',
             'view-leave-balances',
 
             // Shifts management
             'manage-shifts',
+            'manage-any-shifts',
             'view-shifts',
 
             // Attendance Policies management
             'manage-attendance-policies',
+            'manage-any-attendance-policies',
             'view-attendance-policies',
 
             // Attendance Records management
             'manage-attendance-records',
+            'manage-own-attendance-records',
             'view-attendance-records',
             'create-attendance-records',
             'edit-attendance-records',
@@ -350,6 +386,7 @@ class DefaultCompanyUserSeeder extends Seeder
 
             // Attendance Regularizations management
             'manage-attendance-regularizations',
+            'manage-own-attendance-regularizations',
             'view-attendance-regularizations',
             'create-attendance-regularizations',
             'edit-attendance-regularizations',
@@ -362,20 +399,24 @@ class DefaultCompanyUserSeeder extends Seeder
             'create-time-entries',
             'edit-time-entries',
 
-
             // Employee Salaries management
             'manage-employee-salaries',
+            'manage-own-employee-salaries',
             'view-employee-salaries',
 
             // Payslips management
             'manage-payslips',
+            'manage-own-payslips',
             'download-payslips',
+
+            // career page
+            'manage-career-page',
         ];
     }
 
     private function getManagerPermissions(): array
     {
-        return  [
+        return [
             'manage-dashboard',
             'view-dashboard',
 
@@ -456,7 +497,6 @@ class DefaultCompanyUserSeeder extends Seeder
             'create-award-types',
             'edit-award-types',
             'delete-award-types',
-
 
             // Award management
             'manage-awards',
@@ -709,7 +749,8 @@ class DefaultCompanyUserSeeder extends Seeder
             'manage-candidates',
             'manage-any-candidates',
             'view-candidates',
-            'create-candidates',
+            'convert-to-employee',
+            // 'create-candidates',
             'edit-candidates',
             'delete-candidates',
 
@@ -789,6 +830,7 @@ class DefaultCompanyUserSeeder extends Seeder
             // Candidate Onboarding management
             'manage-candidate-onboarding',
             'manage-any-candidate-onboarding',
+            'manage-candidate-onboarding-status',
             'view-candidate-onboarding',
             'create-candidate-onboarding',
             'edit-candidate-onboarding',
@@ -1026,6 +1068,9 @@ class DefaultCompanyUserSeeder extends Seeder
             'create-payslips',
             'download-payslips',
             'send-payslips',
+
+            // career page
+            'manage-career-page',
         ];
     }
 

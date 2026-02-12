@@ -369,7 +369,8 @@ export default function TrainingTypes() {
               type: 'select',
               value: selectedBranch,
               onChange: setSelectedBranch,
-              options: branchOptions
+              options: branchOptions,
+              searchable:true,
             },
             {
               name: 'department_id',
@@ -377,7 +378,8 @@ export default function TrainingTypes() {
               type: 'select',
               value: selectedDepartment,
               onChange: setSelectedDepartment,
-              options: departmentOptions
+              options: departmentOptions,
+              searchable:true,
             }
           ]}
           showFilters={showFilters}
@@ -453,6 +455,7 @@ export default function TrainingTypes() {
               label: t('Branch'), 
               type: 'select',
               required: true,
+              searchable:true,
               options: branchOptions.filter(opt => opt.value !== '_none_')
             }
           ],

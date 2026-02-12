@@ -28,7 +28,7 @@ class LeaveTypeSeeder extends Seeder
                 'description' => 'Yearly vacation leave for rest and recreation',
                 'max_days_per_year' => 21,
                 'is_paid' => true,
-                'color' => '#10B981',
+                'color' => '#10b77f',
                 'status' => 'active'
             ],
             [

@@ -152,7 +152,6 @@ class StorageConfigService
                 }
             }
 
-
             $storageType = $settings['storage_type'] ?? 'local';
             $diskName = match ($storageType) {
                 'local' => 'public',

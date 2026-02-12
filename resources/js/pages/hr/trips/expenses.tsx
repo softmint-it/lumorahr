@@ -164,7 +164,7 @@ export default function TripExpenses() {
     { 
       key: 'expense_date', 
       label: t('Date'),
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'amount', 
@@ -285,11 +285,11 @@ export default function TripExpenses() {
             </div>
             <div>
               <div className="text-sm font-medium text-gray-500">{t('Start Date')}</div>
-              <div>{trip.start_date ? (window.appSettings?.formatDateTime(trip.start_date,false) || new Date(trip.start_date).toLocaleString()) : '-'}</div>
+              <div>{trip.start_date ? (window.appSettings?.formatDateTimeSimple(trip.start_date,false) || new Date(trip.start_date).toLocaleString()) : '-'}</div>
             </div>
             <div>
               <div className="text-sm font-medium text-gray-500">{t('End Date')}</div>
-              <div>{trip.end_date ? (window.appSettings?.formatDateTime(trip.end_date,false) || new Date(trip.end_date).toLocaleString()) : '-'}</div>
+              <div>{trip.end_date ? (window.appSettings?.formatDateTimeSimple(trip.end_date,false) || new Date(trip.end_date).toLocaleString()) : '-'}</div>
             </div>
             <div>
               <div className="text-sm font-medium text-gray-500">{t('Status')}</div>

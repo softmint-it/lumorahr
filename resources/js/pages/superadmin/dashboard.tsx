@@ -19,10 +19,10 @@ interface SuperAdminDashboardData {
   };
   recentActivity: Array<{
     id: number;
-    type: string;
-    message: string;
-    time: string;
-    status: 'success' | 'warning' | 'error';
+    name: string;
+    email: string;
+    registered_at: string;
+    status: string;
   }>;
   topPlans: Array<{
     name: string;
@@ -71,12 +71,7 @@ export default function SuperAdminDashboard({ dashboardData }: { dashboardData: 
     monthlyGrowth: 15.2
   };
 
-  const recentActivity = dashboardData?.recentActivity || [
-    { id: 1, type: 'company', message: 'New company registered: TechCorp Inc.', time: '2 hours ago', status: 'success' },
-    { id: 2, type: 'plan', message: 'Plan upgrade request from ABC Ltd.', time: '4 hours ago', status: 'warning' },
-    { id: 3, type: 'payment', message: 'Payment received: $299 from XYZ Corp', time: '6 hours ago', status: 'success' },
-    { id: 4, type: 'domain', message: 'Domain request pending approval', time: '8 hours ago', status: 'warning' },
-  ];
+  const recentActivity = dashboardData?.recentActivity || [];
 
   const topPlans = dashboardData?.topPlans || [
     { name: 'Professional', subscribers: 45, revenue: 13500 },
@@ -185,27 +180,28 @@ export default function SuperAdminDashboard({ dashboardData }: { dashboardData: 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                {t('Recent Activity')}
+                <Building2 className="h-5 w-5" />
+                {t('Recently Registered Companies')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${
-                      activity.status === 'success' ? 'bg-green-500' :
-                      activity.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{activity.message}</p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                {recentActivity.length > 0 ? (
+                  recentActivity.map((company) => (
+                    <div key={company.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="w-2 h-2 rounded-full mt-2 bg-green-500" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{company.name}</p>
+                        <p className="text-xs text-muted-foreground">{company.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">{company.registered_at}</p>
+                      </div>
                     </div>
-                    <Badge variant={activity.status === 'success' ? 'default' : 'secondary'}>
-                      {activity.type}
-                    </Badge>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">{t('No companies registered yet')}</p>
+                )}
               </div>
             </CardContent>
           </Card>

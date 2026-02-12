@@ -20,7 +20,7 @@ export default function Promotions() {
   const { t } = useTranslation();
   const { auth, promotions, employees, designations, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   // State
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [selectedEmployee, setSelectedEmployee] = useState(pageFilters.employee_id || '');
@@ -34,29 +34,29 @@ export default function Promotions() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  
+
   // Check if any filters are active
   const hasActiveFilters = () => {
     return selectedEmployee !== '' || selectedDesignation !== '' || selectedStatus !== 'all' || dateFrom !== '' || dateTo !== '' || searchTerm !== '';
   };
-  
+
   // Count active filters
   const activeFilterCount = () => {
-    return (selectedEmployee !== '' ? 1 : 0) + 
-           (selectedDesignation !== '' ? 1 : 0) + 
-           (selectedStatus !== 'all' ? 1 : 0) + 
-           (dateFrom !== '' ? 1 : 0) + 
-           (dateTo !== '' ? 1 : 0) + 
-           (searchTerm !== '' ? 1 : 0);
+    return (selectedEmployee !== '' ? 1 : 0) +
+      (selectedDesignation !== '' ? 1 : 0) +
+      (selectedStatus !== 'all' ? 1 : 0) +
+      (dateFrom !== '' ? 1 : 0) +
+      (dateTo !== '' ? 1 : 0) +
+      (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.promotions.index'), { 
+    router.get(route('hr.promotions.index'), {
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -67,13 +67,13 @@ export default function Promotions() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.promotions.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.promotions.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -84,10 +84,10 @@ export default function Promotions() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
         setFormMode('view');
@@ -108,16 +108,16 @@ export default function Promotions() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
     const data = formData;
-    
+
     if (formMode === 'create') {
       toast.loading(t('Creating promotion...'));
 
@@ -142,7 +142,7 @@ export default function Promotions() {
       });
     } else if (formMode === 'edit') {
       toast.loading(t('Updating promotion...'));
-      
+
       router.put(route('hr.promotions.update', currentItem.id), data, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
@@ -164,10 +164,10 @@ export default function Promotions() {
       });
     }
   };
-  
+
   const handleStatusUpdate = (status: string) => {
     toast.loading(t('Updating promotion status...'));
-    
+
     router.put(route('hr.promotions.update-status', currentItem.id), { status }, {
       onSuccess: (page) => {
         setIsStatusModalOpen(false);
@@ -188,10 +188,10 @@ export default function Promotions() {
       }
     });
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting promotion...'));
-    
+
     router.delete(route('hr.promotions.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
@@ -212,7 +212,7 @@ export default function Promotions() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setSelectedEmployee('');
@@ -221,7 +221,7 @@ export default function Promotions() {
     setDateFrom('');
     setDateTo('');
     setShowFilters(false);
-    
+
     router.get(route('hr.promotions.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -230,7 +230,7 @@ export default function Promotions() {
 
   // Define page actions
   const pageActions = [];
-  
+
   // Add the "Add New Promotion" button if user has permission
   if (hasPermission(permissions, 'create-promotions')) {
     pageActions.push({
@@ -249,9 +249,9 @@ export default function Promotions() {
 
   // Define table columns
   const columns = [
-    { 
-      key: 'employee.name', 
-      label: t('Employee'), 
+    {
+      key: 'employee.name',
+      label: t('Employee'),
       render: (_, row) => (
         <div>
           <div className="font-medium">{row.employee?.name || '-'}</div>
@@ -259,39 +259,39 @@ export default function Promotions() {
         </div>
       )
     },
-    { 
-      key: 'previous_designation', 
+    {
+      key: 'previous_designation',
       label: t('Previous Designation'),
       render: (value) => value || '-'
     },
-    { 
-      key: 'designation.name', 
+    {
+      key: 'designation.name',
       label: t('New Designation'),
       render: (_, row) => row.designation?.name || '-'
     },
-    { 
-      key: 'promotion_date', 
+    {
+      key: 'promotion_date',
       label: t('Promotion Date'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
-    { 
-      key: 'effective_date', 
+    {
+      key: 'effective_date',
       label: t('Effective Date'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
-    { 
-      key: 'salary_adjustment', 
+    {
+      key: 'salary_adjustment',
       label: t('Salary Adjustment'),
-      render: (value) => value ?  window.appSettings.formatCurrency(value)  : '-'
+      render: (value) => value ? window.appSettings.formatCurrency(value) : '-'
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => {
         let badgeClass = '';
-        switch(value) {
+        switch (value) {
           case 'pending':
             badgeClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
             break;
@@ -304,7 +304,7 @@ export default function Promotions() {
           default:
             badgeClass = 'bg-gray-100 text-gray-800 border-gray-200';
         }
-        
+
         return (
           <Badge className={`${badgeClass} capitalize`}>
             {value}
@@ -312,13 +312,13 @@ export default function Promotions() {
         );
       }
     },
-    { 
-      key: 'document', 
+    {
+      key: 'document',
       label: t('Document'),
       render: (value, row) => (
         <div>
           {value && value.trim() !== '' && (
-            <span 
+            <span
               className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 cursor-pointer"
               onClick={() => handleAction('download-document', row)}
             >
@@ -332,31 +332,31 @@ export default function Promotions() {
 
   // Define table actions
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-promotions'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
       requiredPermission: 'edit-promotions'
     },
-    { 
-      label: t('Update Status'), 
-      icon: 'RefreshCw', 
-      action: 'update-status', 
+    {
+      label: t('Update Status'),
+      icon: 'RefreshCw',
+      action: 'update-status',
       className: 'text-green-500',
       requiredPermission: 'edit-promotions'
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-promotions'
     }
@@ -389,8 +389,8 @@ export default function Promotions() {
   ];
 
   return (
-    <PageTemplate 
-      title={t("Promotions")} 
+    <PageTemplate
+      title={t("Promotions")}
       url="/hr/promotions"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -403,21 +403,23 @@ export default function Promotions() {
           onSearchChange={setSearchTerm}
           onSearch={handleSearch}
           filters={[
-            {
+            ...(hasPermission(permissions, 'manage-any-promotions') ? [{
               name: 'employee_id',
               label: t('Employee'),
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
-            },
+              options: employeeOptions,
+              searchable: true,
+            }] : []),
             {
               name: 'designation_id',
               label: t('Designation'),
               type: 'select',
               value: selectedDesignation,
               onChange: setSelectedDesignation,
-              options: designationOptions
+              options: designationOptions,
+              searchable: true,
             },
             {
               name: 'status',
@@ -450,8 +452,8 @@ export default function Promotions() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.promotions.index'), { 
-              page: 1, 
+            router.get(route('hr.promotions.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               employee_id: selectedEmployee || undefined,
@@ -502,56 +504,58 @@ export default function Promotions() {
         onSubmit={handleFormSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'employee_id', 
-              label: t('Employee'), 
-              type: 'select', 
+            {
+              name: 'employee_id',
+              label: t('Employee'),
+              type: 'select',
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: employeeOptions.filter(opt => opt.value !== ''),
+              searchable: true
             },
-            { 
-              name: 'previous_designation', 
-              label: t('Previous Designation'), 
-              type: 'text', 
-              required: true 
+            {
+              name: 'previous_designation',
+              label: t('Previous Designation'),
+              type: 'text',
+              required: true
             },
-            { 
-              name: 'designation_id', 
-              label: t('New Designation'), 
-              type: 'select', 
+            {
+              name: 'designation_id',
+              label: t('New Designation'),
+              type: 'select',
               required: true,
+              searchable: true,
               options: (designations || []).map((des: any) => ({
                 value: des.id.toString(),
                 label: `${des.name} - ${des.department?.name || ''} (${des.department?.branch?.name || ''})`
               }))
             },
-            { 
-              name: 'promotion_date', 
-              label: t('Promotion Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'promotion_date',
+              label: t('Promotion Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'effective_date', 
-              label: t('Effective Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'effective_date',
+              label: t('Effective Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'salary_adjustment', 
-              label: t('Salary Adjustment'), 
+            {
+              name: 'salary_adjustment',
+              label: t('Salary Adjustment'),
               type: 'number',
               min: 0,
               step: 0.01
             },
-            { 
-              name: 'reason', 
-              label: t('Reason for Promotion'), 
-              type: 'textarea' 
+            {
+              name: 'reason',
+              label: t('Reason for Promotion'),
+              type: 'textarea'
             },
-            { 
-              name: 'document', 
-              label: t('Document'), 
+            {
+              name: 'document',
+              label: t('Document'),
               type: 'custom',
               render: (field, formData, handleChange) => (
                 <MediaPicker
@@ -561,9 +565,9 @@ export default function Promotions() {
                 />
               )
             },
-            { 
-              name: 'status', 
-              label: t('Status'), 
+            {
+              name: 'status',
+              label: t('Status'),
               type: 'select',
               options: [
                 { value: 'pending', label: t('Pending') },
@@ -602,9 +606,9 @@ export default function Promotions() {
         onSubmit={(data) => handleStatusUpdate(data.status)}
         formConfig={{
           fields: [
-            { 
-              name: 'status', 
-              label: t('Status'), 
+            {
+              name: 'status',
+              label: t('Status'),
               type: 'select',
               required: true,
               options: [

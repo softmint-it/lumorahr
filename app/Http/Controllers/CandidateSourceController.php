@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CandidateSource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -11,26 +12,38 @@ class CandidateSourceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = CandidateSource::withPermissionCheck();
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-candidate-sources')) {
+            $query = CandidateSource::where(function ($q) {
+                if (Auth::user()->can('manage-any-candidate-sources')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-candidate-sources')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            $query->orderBy('created_at', 'desc');
+            $candidateSources = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/recruitment/candidate-sources/index', [
+                'candidateSources' => $candidateSources,
+                'filters' => $request->all(['search', 'status', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        $query->orderBy('created_at', 'desc');
-        $candidateSources = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/recruitment/candidate-sources/index', [
-            'candidateSources' => $candidateSources,
-            'filters' => $request->all(['search', 'status', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

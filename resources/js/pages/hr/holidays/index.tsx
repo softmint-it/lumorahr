@@ -296,16 +296,16 @@ export default function Holidays() {
         if (row.end_date && row.start_date !== row.end_date) {
           return (
             <div>
-              <div>{window.appSettings?.formatDateTime(row.start_date, false) || new Date(row.start_date).toLocaleDateString()}</div>
+              <div>{window.appSettings?.formatDateTimeSimple(row.start_date, false) || new Date(row.start_date).toLocaleDateString()}</div>
               <div className="text-xs text-gray-500">to</div>
-              <div>{window.appSettings?.formatDateTime(row.end_date, false) || new Date(row.end_date).toLocaleDateString()}</div>
+              <div>{window.appSettings?.formatDateTimeSimple(row.end_date, false) || new Date(row.end_date).toLocaleDateString()}</div>
               <div className="text-xs text-gray-500">
                 ({differenceInDays(new Date(row.end_date), new Date(row.start_date)) + 1} days)
               </div>
             </div>
           );
         }
-        return window.appSettings?.formatDateTime(row.start_date, false) || new Date(row.start_date).toLocaleDateString();
+        return window.appSettings?.formatDateTimeSimple(row.start_date, false) || new Date(row.start_date).toLocaleDateString();
       }
     },
     { 
@@ -394,11 +394,6 @@ export default function Holidays() {
           </div>
         );
       }
-    },
-    { 
-      key: 'description', 
-      label: t('Description'),
-      render: (value) => value || '-'
     }
   ];
 
@@ -606,12 +601,6 @@ export default function Holidays() {
               type: 'textarea' 
             },
             { 
-              name: 'is_recurring', 
-              label: t('Recurring Annual Holiday'), 
-              type: 'checkbox',
-              helpText: t('This holiday repeats every year on the same date')
-            },
-            { 
               name: 'is_paid', 
               label: t('Paid Holiday'), 
               type: 'checkbox',
@@ -634,6 +623,8 @@ export default function Holidays() {
         }}
         initialData={currentItem ? {
           ...currentItem,
+          start_date: currentItem.start_date ? currentItem.start_date.split('T')[0] : '',
+          end_date: currentItem.end_date ? currentItem.end_date.split('T')[0] : '',
           branch_ids: currentItem.branches?.map((branch: any) => branch.id.toString())
         } : null}
         title={

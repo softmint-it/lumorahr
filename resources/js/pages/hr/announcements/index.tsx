@@ -314,11 +314,11 @@ export default function Announcements() {
     { 
       key: 'date_range', 
       label: t('Date Range'),
-      sortable: true,
+      sortable: false,
       render: (_, row) => {
         
-        const startDate = row.start_date ? (window.appSettings?.formatDateTime(row.start_date,false) || new Date(row.start_date).toLocaleString()) : '-'
-        const endDate = row.end_date ? (window.appSettings?.formatDateTime(row.end_date,false) || new Date(row.end_date).toLocaleString()) : '-'
+        const startDate = row.start_date ? (window.appSettings?.formatDateTimeSimple(row.start_date,false) || new Date(row.start_date).toLocaleString()) : '-'
+        const endDate = row.end_date ? (window.appSettings?.formatDateTimeSimple(row.end_date,false) || new Date(row.end_date).toLocaleString()) : '-'
         
         // Determine status based on dates
         const today = new Date();

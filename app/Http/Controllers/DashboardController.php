@@ -2,6 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
+use App\Models\AttendanceRecord;
+use App\Models\Branch;
+use App\Models\Candidate;
+use App\Models\Department;
+use App\Models\Employee;
+use App\Models\JobPosting;
+use App\Models\LeaveApplication;
+use App\Models\LeaveType;
+use App\Models\Meeting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\User;
@@ -104,14 +114,22 @@ class DashboardController extends Controller
                 'pendingRequests' => $pendingRequests,
                 'monthlyGrowth' => $monthlyGrowth,
             ],
-            'recentActivity' => [
-                ['id' => 1, 'type' => 'company', 'message' => 'New company registered', 'time' => '2 hours ago', 'status' => 'success'],
-                ['id' => 2, 'type' => 'plan', 'message' => 'Plan upgrade request', 'time' => '4 hours ago', 'status' => 'warning'],
-                ['id' => 3, 'type' => 'payment', 'message' => 'Payment received', 'time' => '6 hours ago', 'status' => 'success'],
-            ],
+            'recentActivity' => User::where('type', 'company')
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get(['id', 'name', 'email', 'created_at'])
+                ->map(function ($company) {
+                    return [
+                        'id' => $company->id,
+                        'name' => $company->name,
+                        'email' => $company->email,
+                        'registered_at' => $company->created_at->diffForHumans(),
+                        'status' => 'active'
+                    ];
+                }),
             'topPlans' => Plan::withCount('users')
                 ->orderBy('users_count', 'desc')
-                ->take(3)
+                ->take(5)
                 ->get()
                 ->map(function ($plan) {
                     return [
@@ -140,29 +158,29 @@ class DashboardController extends Controller
 
         // Core HR Statistics
         $totalEmployees = User::where('type', 'employee')->whereIn('created_by', $companyUserIds)->count();
-        $totalBranches = \App\Models\Branch::whereIn('created_by', $companyUserIds)->count();
-        $totalDepartments = \App\Models\Department::whereIn('created_by', $companyUserIds)->count();
+        $totalBranches = Branch::whereIn('created_by', $companyUserIds)->count();
+        $totalDepartments = Department::whereIn('created_by', $companyUserIds)->count();
 
         // Monthly Statistics
-        $newEmployeesThisMonth = \App\Models\Employee::whereIn('created_by', $companyUserIds)
+        $newEmployeesThisMonth = Employee::whereIn('created_by', $companyUserIds)
             ->whereMonth('created_at', now()->month)->count();
-        $jobPostsThisMonth = \App\Models\JobPosting::whereIn('created_by', $companyUserIds)
+        $jobPostsThisMonth = JobPosting::whereIn('created_by', $companyUserIds)
             ->whereMonth('created_at', now()->month)->count();
-        $candidatesThisMonth = \App\Models\Candidate::whereIn('created_by', $companyUserIds)
+        $candidatesThisMonth = Candidate::whereIn('created_by', $companyUserIds)
             ->whereMonth('created_at', now()->month)->count();
 
         // Attendance Statistics
-        $presentToday = \App\Models\AttendanceRecord::whereIn('created_by', $companyUserIds)
+        $presentToday = AttendanceRecord::whereIn('created_by', $companyUserIds)
             ->whereDate('date', today())->where('status', 'present')->count();
 
         $attendanceRate = $totalEmployees > 0 ? round(($presentToday / $totalEmployees) * 100, 1) : 0;
 
         // Leave Statistics
-        $pendingLeaves = \App\Models\LeaveApplication::whereIn('created_by', $companyUserIds)
+        $pendingLeaves = LeaveApplication::whereIn('created_by', $companyUserIds)
             ->where('status', 'pending')->count();
 
 
-        $onLeaveToday = \App\Models\LeaveApplication::whereIn('created_by', $companyUserIds)
+        $onLeaveToday = LeaveApplication::whereIn('created_by', $companyUserIds)
             ->where('status', 'approved');
 
         if (config('app.is_demo') == true) {
@@ -172,18 +190,15 @@ class DashboardController extends Controller
                 ->whereDate('end_date', '>=', today())->count();
         }
 
-
-
-
         // Recruitment Statistics
-        $activeJobPostings = \App\Models\JobPosting::whereIn('created_by', $companyUserIds)
+        $activeJobPostings = JobPosting::whereIn('created_by', $companyUserIds)
             ->where('status', 'Published')->count();
-        $totalCandidates = \App\Models\Candidate::whereIn('created_by', $companyUserIds)->count();
+        $totalCandidates = Candidate::whereIn('created_by', $companyUserIds)->count();
 
         // Department Distribution for Chart
-        $predefinedColors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#D946EF'];
+        $predefinedColors = ['#4F46E5', '#10b77f', '#F59E0B', '#EF4444', '#3B82F6', '#D946EF'];
 
-        $departmentStats = \App\Models\Department::whereIn('created_by', $companyUserIds)
+        $departmentStats = Department::whereIn('created_by', $companyUserIds)
             ->withCount('employees')
             ->with('branch')
             ->orderBy('employees_count', 'desc')
@@ -207,7 +222,7 @@ class DashboardController extends Controller
         $hiringTrend = [];
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
-            $count = \App\Models\Employee::whereIn('created_by', $companyUserIds)
+            $count = Employee::whereIn('created_by', $companyUserIds)
                 ->whereMonth('created_at', $month->month)
                 ->whereYear('created_at', $month->year)
                 ->count();
@@ -218,7 +233,7 @@ class DashboardController extends Controller
         }
 
         // Candidate Status Distribution for Chart
-        $candidateStatusStats = \App\Models\Candidate::whereIn('created_by', $companyUserIds)
+        $candidateStatusStats = Candidate::whereIn('created_by', $companyUserIds)
             ->selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->get()
@@ -228,7 +243,7 @@ class DashboardController extends Controller
                     'Screening' => '#06B6D4',
                     'Interview' => '#6366F1',
                     'Offer' => '#F59E0B',
-                    'Hired' => '#10B981',
+                    'Hired' => '#10b77f',
                     'Rejected' => '#EF4444'
                 ];
                 return [
@@ -240,7 +255,7 @@ class DashboardController extends Controller
 
 
         // Leave Types for Chart
-        $leaveTypesStats = \App\Models\LeaveType::whereIn('created_by', $companyUserIds)
+        $leaveTypesStats = LeaveType::whereIn('created_by', $companyUserIds)
             ->get()
             ->map(function ($leaveType) {
                 return [
@@ -251,21 +266,38 @@ class DashboardController extends Controller
             });
 
         // Employee Growth Chart (Monthly for current year)
-        $employeeGrowthChart = [];
-        for ($month = 1; $month <= 12; $month++) {
-            $count = User::where('type', 'employee')
-                ->whereIn('created_by', $companyUserIds)
-                ->whereMonth('created_at', $month)
-                ->whereYear('created_at', now()->year)
-                ->count();
-            $employeeGrowthChart[] = [
-                'month' => date('F', mktime(0, 0, 0, $month, 1)),
-                'employees' => $count
+        if (isDemo()) {
+            $employeeGrowthChart = [
+                ['month' => 'January', 'employees' => 15],
+                ['month' => 'February', 'employees' => 5],
+                ['month' => 'March', 'employees' => 22],
+                ['month' => 'April', 'employees' => 10],
+                ['month' => 'May', 'employees' => 28],
+                ['month' => 'June', 'employees' => 32],
+                ['month' => 'July', 'employees' => 35],
+                ['month' => 'August', 'employees' => 50],
+                ['month' => 'September', 'employees' => 42],
+                ['month' => 'October', 'employees' => 45],
+                ['month' => 'November', 'employees' => 48],
+                ['month' => 'December', 'employees' => 52]
             ];
+        } else {
+            $employeeGrowthChart = [];
+            for ($month = 1; $month <= 12; $month++) {
+                $count = User::where('type', 'employee')
+                    ->whereIn('created_by', $companyUserIds)
+                    ->whereMonth('created_at', $month)
+                    ->whereYear('created_at', now()->year)
+                    ->count();
+                $employeeGrowthChart[] = [
+                    'month' => date('F', mktime(0, 0, 0, $month, 1)),
+                    'employees' => $count
+                ];
+            }
         }
 
         // Recent Activities
-        $recentLeaves = \App\Models\LeaveApplication::whereIn('created_by', $companyUserIds)
+        $recentLeaves = LeaveApplication::whereIn('created_by', $companyUserIds)
             ->with(['employee', 'leaveType']);
         if (config('app.is_demo') == true) {
             $recentLeaves = $recentLeaves->whereIn('status', ['approved', 'absent'])->get();
@@ -279,20 +311,20 @@ class DashboardController extends Controller
 
 
 
-        $recentCandidates = \App\Models\Candidate::whereIn('created_by', $companyUserIds)
+        $recentCandidates = Candidate::whereIn('created_by', $companyUserIds)
             ->with(['job'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
         // Recent Announcements
-        $recentAnnouncements = \App\Models\Announcement::whereIn('created_by', $companyUserIds)
+        $recentAnnouncements = Announcement::whereIn('created_by', $companyUserIds)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
         // Recent Meetings
-        $recentMeetings = \App\Models\Meeting::whereIn('created_by', $companyUserIds)
+        $recentMeetings = Meeting::whereIn('created_by', $companyUserIds)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -395,7 +427,7 @@ class DashboardController extends Controller
             $employeeShift = \App\Models\Shift::find($employee->shift_id);
         }
 
-        // Auto clock out previous days if not clocked out
+        // Auto clock out previous days like yesterday and alll thing if not clocked out
         $previousAttendance = \App\Models\AttendanceRecord::where('employee_id', $user->id)
             ->where('date', '<', \Carbon\Carbon::today())
             ->whereNotNull('clock_in')
@@ -457,18 +489,41 @@ class DashboardController extends Controller
         ]);
     }
 
+    // private function getCompanyUserIds()
+    // {
+    //     $user = auth()->user();
+    //     if ($user->type === 'company') {
+    //         $companyUserIds = User::where('created_by', $user->id)->pluck('id')->toArray();
+    //         $companyUserIds[] = $user->id;
+    //         return $companyUserIds;
+    //     } else {
+    //         $userCreatedBy = User::where('id', $user->created_by)->value('id');
+    //         $companyUserIds = User::where('created_by', $userCreatedBy)->pluck('id')->toArray();
+    //         $companyUserIds[] = $userCreatedBy;
+    //         return $companyUserIds;
+    //     }
+    // }
+
+
     private function getCompanyUserIds()
     {
         $user = auth()->user();
         if ($user->type === 'company') {
-            $companyUserIds = User::where('created_by', $user->id)->pluck('id')->toArray();
-            $companyUserIds[] = $user->id;
-            return $companyUserIds;
+            $companyId = getCompanyId($user->id);
+            if ($companyId) {
+                $allUsers = getAllCompanyUsers($companyId);
+                $allUsers[] = $companyId; // Include company itself
+                return array_unique($allUsers);
+            }
+            return [];
         } else {
-            $userCreatedBy = User::where('id', $user->created_by)->value('id');
-            $companyUserIds = User::where('created_by', $userCreatedBy)->pluck('id')->toArray();
-            $companyUserIds[] = $userCreatedBy;
-            return $companyUserIds;
+            $companyId = getCompanyId($user->id);
+            if ($companyId) {
+                $allUsers = getAllCompanyUsers($companyId);
+                $allUsers[] = $companyId; // Include company itself
+                return array_unique($allUsers);
+            }
+            return [];
         }
     }
 }

@@ -14,7 +14,7 @@ import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 
 export default function Branches() {
   const { t } = useTranslation();
-  const { auth, branches, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, branches, filters: pageFilters = {}, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
 
   // State
@@ -89,12 +89,16 @@ export default function Branches() {
 
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
-      toast.loading(t('Creating branch...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Creating branch...'));
+      }
 
       router.post(route('hr.branches.store'), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -102,7 +106,9 @@ export default function Branches() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -111,12 +117,16 @@ export default function Branches() {
         }
       });
     } else if (formMode === 'edit') {
-      toast.loading(t('Updating branch...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Updating branch...'));
+      }
 
       router.put(route('hr.branches.update', currentItem.id), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -124,7 +134,9 @@ export default function Branches() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -136,12 +148,16 @@ export default function Branches() {
   };
 
   const handleDeleteConfirm = () => {
-    toast.loading(t('Deleting branch...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting branch...'));
+    }
 
     router.delete(route('hr.branches.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -149,7 +165,9 @@ export default function Branches() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -161,7 +179,9 @@ export default function Branches() {
 
   const handleToggleStatus = (branch: any) => {
     const newStatus = branch.status === 'active' ? 'inactive' : 'active';
-    toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} branch...`);
+    if (!globalSettings?.is_demo) {
+      toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} branch...`);
+    }
 
     router.put(route('hr.branches.toggle-status', branch.id), {}, {
       onSuccess: (page) => {
@@ -262,7 +282,7 @@ export default function Branches() {
       key: 'created_at',
       label: t('Created At'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -300,7 +320,7 @@ export default function Branches() {
 
   return (
     <PageTemplate
-      title={t("Branch Management")}
+      title={t("Branches")}
       url="/hr/branches"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

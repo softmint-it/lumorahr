@@ -288,7 +288,7 @@ export default function ActionItems() {
           <div>
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4 text-gray-500" />
-              {window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()}
+              {window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()}
             </div>
             {daysRemaining !== null && (
               <div className={`text-xs ${daysRemaining < 0 ? 'text-red-600' : daysRemaining <= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
@@ -371,7 +371,7 @@ export default function ActionItems() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true},
     { value: 'Not Started', label: t('Not Started') },
     { value: 'In Progress', label: t('In Progress') },
     { value: 'Completed', label: t('Completed') },
@@ -379,7 +379,7 @@ export default function ActionItems() {
   ];
 
   const priorityOptions = [
-    { value: '_empty_', label: t('All Priorities') },
+    { value: '_empty_', label: t('All Priorities') , disabled: true },
     { value: 'Low', label: t('Low') },
     { value: 'Medium', label: t('Medium') },
     { value: 'High', label: t('High') },
@@ -387,7 +387,7 @@ export default function ActionItems() {
   ];
 
   const assigneeOptions = [
-    { value: '_empty_', label: t('All Assignees') },
+    { value: '_empty_', label: t('All Assignees')  , disabled: true},
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -395,7 +395,7 @@ export default function ActionItems() {
   ];
 
   const meetingOptions = [
-    { value: '_empty_', label: t('All Meetings') },
+    { value: '_empty_', label: t('All Meetings') , disabled: true},
     ...(meetings || []).map((meeting: any) => ({
       value: meeting.id.toString(),
       label: `${meeting.title} - ${format(new Date(meeting.meeting_date), 'MMM dd, yyyy')}`
@@ -454,7 +454,8 @@ export default function ActionItems() {
               type: 'select',
               value: assigneeFilter,
               onChange: setAssigneeFilter,
-              options: assigneeOptions
+              options: assigneeOptions,
+              searchable  : true
             },
             {
               name: 'meeting_id',
@@ -462,7 +463,8 @@ export default function ActionItems() {
               type: 'select',
               value: meetingFilter,
               onChange: setMeetingFilter,
-              options: meetingOptions
+              options: meetingOptions,
+              searchable  : true
             }
           ]}
           showFilters={showFilters}
@@ -526,7 +528,8 @@ export default function ActionItems() {
               label: t('Meeting'), 
               type: 'select', 
               required: true,
-              options: meetingSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: meetingSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'title', 
@@ -545,7 +548,8 @@ export default function ActionItems() {
               label: t('Assign To'), 
               type: 'select', 
               required: true,
-              options: employeeSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: employeeSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'due_date', 
@@ -577,7 +581,10 @@ export default function ActionItems() {
           ],
           modalSize: 'xl'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          due_date: currentItem.due_date ? window.appSettings.formatDateTimeSimple(currentItem.due_date, false) : currentItem.due_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add Action Item')

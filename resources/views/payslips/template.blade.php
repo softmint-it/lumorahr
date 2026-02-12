@@ -111,8 +111,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="company-name">{{ config('app.name', 'HRMGo SaaS') }}</div>
-            <div class="payslip-title">Salary Slip for {{ $payrollEntry->payrollRun->pay_period_start->format('F Y') }}</div>
+            <div class="company-name">                
+                {{ isset($companySettings['titleText']) ? $companySettings['titleText'] : config('app.name', 'HRMGo SaaS') }}
+            </div>
+            <div class="payslip-title">Salary Slip for {{ $payrollEntry->payrollRun->pay_period_start->format('F Y') }}
+            </div>
         </div>
 
         <!-- Employee Information -->
@@ -127,17 +130,18 @@
                     <td><strong>Employee Name:</strong></td>
                     <td>{{ $payrollEntry->employee->name }}</td>
                     <td><strong>Employee ID:</strong></td>
-                    <td>#{{ $payrollEntry->employee->id }}</td>
+                    <td>{{ $employeeData->employee_id ?? $payrollEntry->employee->id }}</td>
                 </tr>
                 <tr>
                     <td><strong>Email:</strong></td>
                     <td>{{ $payrollEntry->employee->email }}</td>
                     <td><strong>Pay Period:</strong></td>
-                    <td>{{ $payrollEntry->payrollRun->pay_period_start->format('d M Y') }} - {{ $payrollEntry->payrollRun->pay_period_end->format('d M Y') }}</td>
+                    <td>{{ $payrollEntry->payrollRun->pay_period_start->format('d M Y') }} -
+                        {{ $payrollEntry->payrollRun->pay_period_end->format('d M Y') }}</td>
                 </tr>
                 <tr>
                     <td><strong>Basic Salary:</strong></td>
-                    <td>Rs.{{ number_format($payrollEntry->basic_salary, 2) }}</td>
+                    <td>{{ formatCurrency($payrollEntry->basic_salary) }}</td>
                     <td><strong>Generated On:</strong></td>
                     <td>{{ now()->format('d M Y') }}</td>
                 </tr>
@@ -158,12 +162,14 @@
                         <td><strong>Present:</strong> {{ $payrollEntry->present_days }}</td>
                         <td><strong>Paid Leave:</strong> {{ $payrollEntry->paid_leave_days }}</td>
                         <td><strong>Unpaid Leave:</strong> {{ $payrollEntry->unpaid_leave_days }}<br>
-                            <small style="color: #6c757d; font-size: 10px;">(Unpaid Leaves + Half Days + Absent)</small></td>
+                            <small style="color: #6c757d; font-size: 10px;">(Unpaid Leaves + Half Days + Absent)</small>
+                        </td>
                         <td><strong>Half Days:</strong> {{ $payrollEntry->half_days }}</td>
                         <td><strong>Absent:</strong> {{ $payrollEntry->absent_days }}</td>
                     </tr>
                     <tr>
-                        <td colspan="6"><strong>Overtime Hours:</strong> {{ number_format($payrollEntry->overtime_hours, 1) }}h</td>
+                        <td colspan="6"><strong>Overtime Hours:</strong>
+                            {{ number_format($payrollEntry->overtime_hours, 1) }}h</td>
                     </tr>
                 </tbody>
             </table>
@@ -193,14 +199,15 @@
                     <tr style="background-color: #e9ecef;">
                         <td><strong>Per Day Salary</strong></td>
                         <td>Basic Salary / Working Days</td>
-                        <td class="amount">Rs.{{ number_format($payrollEntry->basic_salary, 2) }} / {{ $payrollEntry->working_days }}</td>
-                        <td class="amount"><strong>Rs.{{ number_format($perDaySalary, 2) }}</strong></td>
+                        <td class="amount">{{ formatCurrency($payrollEntry->basic_salary) }} /
+                            {{ $payrollEntry->working_days }}</td>
+                        <td class="amount"><strong>{{ formatCurrency($perDaySalary) }}</strong></td>
                     </tr>
                     <tr class="total-row">
                         <td><strong>Total Unpaid Leave Deduction</strong></td>
                         <td><strong>Absent + Half Days + Unpaid Leave</strong></td>
                         <td><strong>Total Deduction</strong></td>
-                        <td class="amount"><strong>Rs.{{ number_format($unpaidLeaveDeduction, 2) }}</strong></td>
+                        <td class="amount"><strong>{{ formatCurrency($unpaidLeaveDeduction) }}</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -214,9 +221,9 @@
                 </tr>
                 <tr>
                     <th class="earnings-header">Earnings</th>
-                    <th class="earnings-header amount">Amount (Rs.)</th>
+                    <th class="earnings-header amount">Amount</th>
                     <th class="deductions-header">Deductions</th>
-                    <th class="deductions-header amount">Amount (Rs.)</th>
+                    <th class="deductions-header amount">Amount</th>
                 </tr>
             </thead>
             <tbody>
@@ -246,24 +253,24 @@
                     <tr>
                         <td>{{ $earningsKeys[$i] ?? '' }}</td>
                         <td class="amount">
-                            {{ isset($earningsKeys[$i]) ? number_format($earnings[$earningsKeys[$i]], 2) : '' }}</td>
+                            {{ isset($earningsKeys[$i]) ? formatCurrency($earnings[$earningsKeys[$i]]) : '' }}</td>
                         <td>{{ $deductionsKeys[$i] ?? '' }}</td>
                         <td class="amount">
-                            {{ isset($deductionsKeys[$i]) ? number_format($deductions[$deductionsKeys[$i]], 2) : '' }}
+                            {{ isset($deductionsKeys[$i]) ? formatCurrency($deductions[$deductionsKeys[$i]]) : '' }}
                         </td>
                     </tr>
                 @endfor
 
                 <tr class="total-row">
                     <td><strong>Total Earnings</strong></td>
-                    <td class="amount"><strong>{{ number_format($totalEarnings, 2) }}</strong></td>
+                    <td class="amount"><strong>{{ formatCurrency($totalEarnings) }}</strong></td>
                     <td><strong>Total Deductions</strong></td>
-                    <td class="amount"><strong>{{ number_format($totalDeductions, 2) }}</strong></td>
+                    <td class="amount"><strong>{{ formatCurrency($totalDeductions) }}</strong></td>
                 </tr>
 
                 <tr class="net-salary-row">
                     <td colspan="3"><strong>NET SALARY (Take Home)</strong></td>
-                    <td class="amount"><strong>Rs.{{ number_format($payrollEntry->net_pay, 2) }}</strong></td>
+                    <td class="amount"><strong>{{ formatCurrency($payrollEntry->net_pay) }}</strong></td>
                 </tr>
             </tbody>
         </table>

@@ -334,7 +334,7 @@ export default function Warnings() {
       key: 'warning_date', 
       label: t('Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'status', 
@@ -425,7 +425,7 @@ export default function Warnings() {
 
   // Prepare employee options for filter
   const employeeOptions = [
-    { value: '', label: t('All Employees') },
+    { value: '', label: t('All Employees'), disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: `${emp.name} (${emp.employee_id})`
@@ -434,7 +434,7 @@ export default function Warnings() {
 
   // Prepare warning type options for filter
   const warningTypeOptions = [
-    { value: '', label: t('All Types') },
+    { value: '', label: t('All Types'), disabled: true },
     ...(warningTypes || []).map((type: string) => ({
       value: type,
       label: type
@@ -443,7 +443,7 @@ export default function Warnings() {
 
   // Prepare severity options for filter
   const severityOptions = [
-    { value: '', label: t('All Severities') },
+    { value: '', label: t('All Severities'), disabled: true },
     { value: 'verbal', label: t('Verbal') },
     { value: 'written', label: t('Written') },
     { value: 'final', label: t('Final') }
@@ -451,7 +451,7 @@ export default function Warnings() {
 
   // Prepare status options for filter
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses'), disabled: true },
     { value: 'draft', label: t('Draft') },
     { value: 'issued', label: t('Issued') },
     { value: 'acknowledged', label: t('Acknowledged') },
@@ -491,7 +491,8 @@ export default function Warnings() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'warning_type',
@@ -499,7 +500,8 @@ export default function Warnings() {
               type: 'select',
               value: selectedWarningType,
               onChange: setSelectedWarningType,
-              options: warningTypeOptions
+              options: warningTypeOptions,
+              searchable: true
             },
             {
               name: 'severity',
@@ -507,7 +509,8 @@ export default function Warnings() {
               type: 'select',
               value: selectedSeverity,
               onChange: setSelectedSeverity,
-              options: severityOptions
+              options: severityOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -515,7 +518,8 @@ export default function Warnings() {
               type: 'select',
               value: selectedStatus,
               onChange: setSelectedStatus,
-              options: statusOptions
+              options: statusOptions,
+              searchable: true
             },
             {
               name: 'date_from',
@@ -598,13 +602,15 @@ export default function Warnings() {
               label: t('Employee'), 
               type: 'select', 
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: employeeOptions.filter(opt => opt.value !== ''),
+              searchable: true,
             },
             { 
               name: 'warning_by', 
               label: t('Warning By'), 
               type: 'select', 
               required: true,
+              searchable: true,
               options: managers?.map((manager: any) => ({
                 value: manager.id.toString(),
                 label: manager.name
@@ -615,7 +621,8 @@ export default function Warnings() {
               label: t('Warning Type'), 
               type: 'select', 
               required: true,
-              options: warningTypeFormOptions
+              options: warningTypeFormOptions,
+              searchable: true,
             },
             { 
               name: 'subject', 
@@ -722,7 +729,8 @@ export default function Warnings() {
         }}
         initialData={currentItem ? {
           ...currentItem,
-          has_improvement_plan: currentItem.has_improvement_plan === 1 || currentItem.has_improvement_plan === true || currentItem.has_improvement_plan === '1'
+          has_improvement_plan: currentItem.has_improvement_plan === 1 || currentItem.has_improvement_plan === true || currentItem.has_improvement_plan === '1',
+          warning_date: currentItem.warning_date ? window.appSettings.formatDateTimeSimple(currentItem.warning_date, false) : currentItem.warning_date
         } : null}
         title={
           formMode === 'create'

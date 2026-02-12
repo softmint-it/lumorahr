@@ -14,56 +14,67 @@ class PayslipController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Payslip::withPermissionCheck()
-            ->with(['employee', 'payrollEntry.payrollRun', 'creator']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('payslip_number', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('employee', function ($subQ) use ($request) {
-                        $subQ->where('name', 'like', '%' . $request->search . '%');
-                    });
+        if (Auth::user()->can('manage-payslips')) {
+            $query = Payslip::with(['employee', 'payrollEntry.payrollRun', 'creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-payslips')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-payslips')) {
+                    $q->orWhere('employee_id', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('payslip_number', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('employee', function ($subQ) use ($request) {
+                            $subQ->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
 
-        // Handle date range filter
-        if ($request->has('date_from') && !empty($request->date_from)) {
-            $query->where('pay_period_start', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && !empty($request->date_to)) {
-            $query->where('pay_period_end', '<=', $request->date_to);
-        }
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle date range filter
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->where('pay_period_start', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->where('pay_period_end', '<=', $request->date_to);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('pay_date', 'desc');
+            }
+
+            $payslips = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name']);
+
+            return Inertia::render('hr/payslips/index', [
+                'payslips' => $payslips,
+                'employees' => $employees,
+                'filters' => $request->all(['search', 'employee_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('pay_date', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $payslips = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::where('type', 'employee')
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name']);
-
-        return Inertia::render('hr/payslips/index', [
-            'payslips' => $payslips,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'employee_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     public function generate(Request $request)
@@ -110,7 +121,6 @@ class PayslipController extends Controller
                 // Generate PDF
                 $payslip->generatePDF();
                 $generatedCount++;
-
             } catch (\Exception $e) {
                 $errors[] = "Failed to generate payslip for entry ID {$entryId}: " . $e->getMessage();
             }
@@ -152,7 +162,7 @@ class PayslipController extends Controller
     }
 
     public function bulkGenerate(Request $request)
-    {  
+    {
         $validated = $request->validate([
             'payroll_run_id' => 'required|exists:payroll_runs,id',
         ]);
@@ -193,7 +203,6 @@ class PayslipController extends Controller
             }
 
             return redirect()->back()->with('success', __('Generated :count payslips successfully.', ['count' => $generatedCount]));
-
         } catch (\Exception $e) {
             return redirect()->back()->with('error', __('Failed to generate payslips: :message', ['message' => $e->getMessage()]));
         }

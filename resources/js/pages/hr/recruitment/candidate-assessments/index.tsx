@@ -251,7 +251,7 @@ export default function CandidateAssessments() {
       key: 'assessment_date', 
       label: t('Date'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -280,14 +280,14 @@ export default function CandidateAssessments() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses')  ,disabled: true},
     { value: 'Pass', label: t('Pass') },
     { value: 'Fail', label: t('Fail') },
     { value: 'Pending', label: t('Pending') }
   ];
 
   const candidateOptions = [
-    { value: '_empty_', label: t('All Candidates') },
+    { value: '_empty_', label: t('All Candidates') , disabled: true},
     ...(candidates || []).map((candidate: any) => ({
       value: candidate.id.toString(),
       label: `${candidate.first_name} ${candidate.last_name}`
@@ -337,7 +337,8 @@ export default function CandidateAssessments() {
               type: 'select',
               value: candidateFilter,
               onChange: setCandidateFilter,
-              options: candidateOptions
+              options: candidateOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -399,7 +400,8 @@ export default function CandidateAssessments() {
               label: t('Candidate'), 
               type: 'select', 
               required: true,
-              options: candidateSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: candidateSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'assessment_name', 
@@ -432,7 +434,8 @@ export default function CandidateAssessments() {
               type: 'select', 
               required: true,
               options: employeeOptions,
-              placeholder: t('Select Employee')
+              placeholder: t('Select Employee'),
+              searchable: true
             },
             { 
               name: 'assessment_date', 
@@ -448,7 +451,10 @@ export default function CandidateAssessments() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          assessment_date: currentItem.assessment_date ? window.appSettings.formatDateTimeSimple(currentItem.assessment_date, false) : currentItem.assessment_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Assessment')

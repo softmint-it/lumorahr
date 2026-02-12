@@ -373,13 +373,13 @@ export default function Transfers() {
       key: 'transfer_date',
       label: t('Transfer Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
     {
       key: 'effective_date',
       label: t('Effective Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
     {
       key: 'status',
@@ -462,7 +462,7 @@ export default function Transfers() {
 
   // Prepare employee options for filter
   const employeeOptions = [
-    { value: '_none_', label: t('All Employees') },
+    { value: '_none_', label: t('All Employees'), disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: `${emp.name} (${emp.employee_id})`
@@ -471,7 +471,7 @@ export default function Transfers() {
 
   // Prepare branch options for filter
   const branchOptions = [
-    { value: '_none_', label: t('All Branches') },
+    { value: '_none_', label: t('All Branches'), disabled: true },
     ...(branches || []).map((branch: any) => ({
       value: branch.id.toString(),
       label: branch.name
@@ -480,7 +480,7 @@ export default function Transfers() {
 
   // Prepare department options for filter
   const departmentOptions = [
-    { value: '_none_', label: t('All Departments') },
+    { value: '_none_', label: t('All Departments'), disabled: true },
     ...(departments || []).map((dept: any) => ({
       value: dept.id.toString(),
       label: dept.name
@@ -516,7 +516,8 @@ export default function Transfers() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'branch_id',
@@ -524,7 +525,8 @@ export default function Transfers() {
               type: 'select',
               value: selectedBranch,
               onChange: setSelectedBranch,
-              options: branchOptions
+              options: branchOptions,
+              searchable: true
             },
             {
               name: 'department_id',
@@ -532,7 +534,8 @@ export default function Transfers() {
               type: 'select',
               value: selectedDepartment,
               onChange: setSelectedDepartment,
-              options: departmentOptions
+              options: departmentOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -623,12 +626,14 @@ export default function Transfers() {
               label: t('Employee'),
               type: 'select',
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '_none_')
+              options: employeeOptions.filter(opt => opt.value !== '_none_'),
+              searchable: true,
             },
 
             {
               name: 'to_branch_id',
               type: 'dependent-dropdown',
+              // searchable:true,
               dependentConfig: [
                 {
                   name: 'to_branch_id',
@@ -729,7 +734,11 @@ export default function Transfers() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          transfer_date: currentItem.transfer_date ? window.appSettings.formatDateTimeSimple(currentItem.transfer_date, false) : currentItem.transfer_date,
+          effective_date: currentItem.effective_date ? window.appSettings.formatDateTimeSimple(currentItem.effective_date, false) : currentItem.effective_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Transfer')

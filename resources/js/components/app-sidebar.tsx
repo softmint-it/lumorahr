@@ -7,7 +7,7 @@ import { useSidebarSettings } from '@/contexts/SidebarContext';
 import { useBrand } from '@/contexts/BrandContext';
 import { type NavItem } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, ShoppingBag, Users, Tag, FileIcon, Settings, BarChart, Barcode, FileText, Briefcase, CheckSquare, Calendar, CreditCard, Ticket, Gift, DollarSign, MessageSquare, CalendarDays, Palette, Image, Mail, Mail as VCard, ChevronDown, Building2, Globe, Clock, Timer, Coins } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, ShoppingBag, Users, Tag, FileIcon, Settings, BarChart, Barcode, FileText, Briefcase, CheckSquare, Calendar, CreditCard, Ticket, Gift, DollarSign, MessageSquare, CalendarDays, Palette, Image, Mail, Mail as VCard, ChevronDown, Building2, Globe, Clock, Timer, Coins, Fingerprint } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import AppLogo from './app-logo';
@@ -16,11 +16,12 @@ import { useTranslation } from 'react-i18next';
 import { hasPermission } from '@/utils/authorization';
 import { toast } from '@/components/custom-toast';
 import { getImagePath } from '@/utils/helpers';
+import { getCompanyId } from '@/utils/helpers';
 
 
 export function AppSidebar() {
     const { t, i18n } = useTranslation();
-    const { auth, globalSettings } = usePage().props as any;
+    const { auth, globalSettings, companySlug } = usePage().props as any;
     const userRole = auth.user?.type || auth.user?.role;
     const permissions = auth?.permissions || [];
     const isSaas = globalSettings?.is_saas;
@@ -391,7 +392,7 @@ export function AppSidebar() {
 
         if (trainingChildren.length > 0) {
             hrChildren.push({
-                title: t('Training Management'),
+                title: t('Training'),
                 children: trainingChildren
             });
         }
@@ -418,12 +419,12 @@ export function AppSidebar() {
             });
         }
 
-        if (hasPermission(permissions, 'manage-job-requisitions')) {
-            recruitmentChildren.push({
-                title: t('Job Requisitions'),
-                href: route('hr.recruitment.job-requisitions.index')
-            });
-        }
+        // if (hasPermission(permissions, 'manage-job-requisitions')) {
+        //     recruitmentChildren.push({
+        //         title: t('Job Requisitions'),
+        //         href: route('hr.recruitment.job-requisitions.index')
+        //     });
+        // }
 
         if (hasPermission(permissions, 'manage-job-types')) {
             recruitmentChildren.push({
@@ -436,6 +437,13 @@ export function AppSidebar() {
             recruitmentChildren.push({
                 title: t('Job Locations'),
                 href: route('hr.recruitment.job-locations.index')
+            });
+        }
+
+        if (hasPermission(permissions, 'manage-custom-questions')) {
+            recruitmentChildren.push({
+                title: t('Custom Questions'),
+                href: route('hr.recruitment.custom-questions.index')
             });
         }
 
@@ -488,6 +496,8 @@ export function AppSidebar() {
             });
         }
 
+
+
         if (hasPermission(permissions, 'manage-candidate-assessments')) {
             recruitmentChildren.push({
                 title: t('Candidate Assessments'),
@@ -530,6 +540,17 @@ export function AppSidebar() {
             });
         }
 
+        // Add Career menu item
+        if (hasPermission(permissions, 'manage-career-page')) {
+            if (companySlug) {
+                recruitmentChildren.push({
+                    title: t('Career'),
+                    href: route('career.index', companySlug),
+                    target: '_blank'
+                });
+            }
+        }
+
         if (recruitmentChildren.length > 0) {
             items.push({
                 title: t('Recruitment'),
@@ -557,12 +578,12 @@ export function AppSidebar() {
 
 
 
-        if (hasPermission(permissions, 'manage-contract-renewals')) {
-            contractChildren.push({
-                title: t('Contract Renewals'),
-                href: route('hr.contracts.contract-renewals.index')
-            });
-        }
+        // if (hasPermission(permissions, 'manage-contract-renewals')) {
+        //     contractChildren.push({
+        //         title: t('Contract Renewals'),
+        //         href: route('hr.contracts.contract-renewals.index')
+        //     });
+        // }
 
         if (hasPermission(permissions, 'manage-contract-templates')) {
             contractChildren.push({
@@ -768,11 +789,21 @@ export function AppSidebar() {
 
         if (attendanceChildren.length > 0) {
             items.push({
-                title: t('Attendance Management'),
+                title: t('Attendance'),
                 icon: Clock,
                 children: attendanceChildren
             });
         }
+
+        // Biometric Attendance 
+        if (hasPermission(permissions, 'manage-biometric-attendance')) {
+            items.push({
+                title: t('Biometric Attendance'),
+                href: route('hr.biometric-attendance.index'),
+                icon: Fingerprint,
+            });
+        }
+
 
         // Time Tracking as separate menu
         const timeTrackingChildren = [];
@@ -959,7 +990,7 @@ export function AppSidebar() {
                 <div className="flex justify-center items-center p-2">
                     <Link href={getFirstAvailableHref()} prefetch className="flex items-center justify-center">
                         {/* Logo for expanded sidebar */}
-                        <div className="h-12 group-data-[collapsible=icon]:hidden flex items-center">
+                        <div className="group-data-[collapsible=icon]:hidden flex items-center">
                             {(() => {
                                 const isDark = document.documentElement.classList.contains('dark');
                                 const currentLogo = isDark ? logoLight : logoDark;
@@ -970,12 +1001,12 @@ export function AppSidebar() {
                                         key={`${currentLogo}-${Date.now()}`}
                                         src={displayUrl}
                                         alt="Logo"
-                                        className="h-9 w-auto max-w-[180px] transition-all duration-200"
+                                        className="w-auto transition-all duration-200"
                                         onError={() => updateBrandSettings({ [isDark ? 'logoLight' : 'logoDark']: '' })}
                                     />
                                 ) : (
                                     <div className="h-12 text-inherit font-semibold flex items-center text-lg tracking-tight">
-                                        LumoraHR
+                                        WorkDo
                                     </div>
                                 );
                             })()}

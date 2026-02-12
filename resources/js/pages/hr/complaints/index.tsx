@@ -16,7 +16,7 @@ import MediaPicker from '@/components/MediaPicker';
 
 export default function Complaints() {
   const { t } = useTranslation();
-  const { auth, complaints, employees, hrPersonnel, complaintTypes, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, complaints, complainants, againstEmployees, hrPersonnel, complaintTypes, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
   
   // State
@@ -130,7 +130,7 @@ export default function Complaints() {
   };
   
   const handleAddNew = () => {
-    setCurrentItem(null);
+    setCurrentItem({ employee_id: auth?.user?.id?.toString() });
     setFormMode('create');
     setIsFormModalOpen(true);
   };
@@ -410,7 +410,7 @@ export default function Complaints() {
       key: 'complaint_date', 
       label: t('Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'status', 
@@ -510,10 +510,19 @@ export default function Complaints() {
     }
   ];
 
-  // Prepare employee options for filter
-  const employeeOptions = [
-    { value: '', label: t('All Employees') },
-    ...(employees || []).map((emp: any) => ({
+  // Prepare complainant options for filter
+  const complainantOptions = [
+    { value: '', label: t('All Employees'), disabled: true },
+    ...(complainants || []).map((emp: any) => ({
+      value: emp.id.toString(),
+      label: `${emp.name} (${emp.employee_id})`
+    }))
+  ];
+
+  // Prepare against employee options for filter
+  const againstEmployeeOptions = [
+    { value: '', label: t('All Employees'), disabled: true },
+    ...(againstEmployees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: `${emp.name} (${emp.employee_id})`
     }))
@@ -521,7 +530,7 @@ export default function Complaints() {
 
   // Prepare complaint type options for filter
   const complaintTypeOptions = [
-    { value: '', label: t('All Types') },
+    { value: '', label: t('All Types'), disabled: true },
     ...(complaintTypes || []).map((type: string) => ({
       value: type,
       label: type
@@ -572,7 +581,8 @@ export default function Complaints() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: complainantOptions,
+              searchable : true
             },
             {
               name: 'against_employee_id',
@@ -580,7 +590,8 @@ export default function Complaints() {
               type: 'select',
               value: selectedAgainstEmployee,
               onChange: setSelectedAgainstEmployee,
-              options: employeeOptions
+              options: againstEmployeeOptions,
+              searchable: true
             },
             {
               name: 'complaint_type',
@@ -588,7 +599,8 @@ export default function Complaints() {
               type: 'select',
               value: selectedComplaintType,
               onChange: setSelectedComplaintType,
-              options: complaintTypeOptions
+              options: complaintTypeOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -679,20 +691,44 @@ export default function Complaints() {
               label: t('Complainant'), 
               type: 'select', 
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: complainantOptions.filter(opt => opt.value !== ''),
+              searchable: true  
             },
             { 
               name: 'against_employee_id', 
               label: t('Against'), 
               type: 'select',
-              options: [{ value: '_none_', label: t('Not Specified') }, ...employeeOptions.filter(opt => opt.value !== '')]
+              options: [{ value: '_none_', label: t('Not Specified') }, ...againstEmployeeOptions.filter(opt => opt.value !== '')],
+              searchable: true,
+              conditional: (mode, formData) => {
+                // Filter out the selected complainant from against employee options
+                const filteredOptions = againstEmployeeOptions.filter(opt => opt.value !== formData.employee_id && opt.value !== '');
+                return true;
+              },
+              render: (field, formData, handleChange) => {
+                const filteredOptions = [{ value: '_none_', label: t('Not Specified') }, ...againstEmployeeOptions.filter(opt => opt.value !== formData.employee_id && opt.value !== '')];
+                return (
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    value={formData[field.name] || ''}
+                    onChange={(e) => handleChange(field.name, e.target.value)}
+                  >
+                    {filteredOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                );
+              }
             },
             { 
               name: 'complaint_type', 
               label: t('Complaint Type'), 
               type: 'select', 
               required: true,
-              options: complaintTypeFormOptions
+              options: complaintTypeFormOptions,
+              searchable: true  
             },
             { 
               name: 'subject', 
@@ -794,7 +830,10 @@ export default function Complaints() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          complaint_date: currentItem.complaint_date ? window.appSettings.formatDateTimeSimple(currentItem.complaint_date, false) : currentItem.complaint_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Complaint')
@@ -847,8 +886,8 @@ export default function Complaints() {
               required: true,
               options: hrPersonnel?.map((user: any) => ({
                 value: user.id.toString(),
-                label: user.name
-              })) || [],
+                label: user.name + ' (' + user.type + ')'
+              })) || [], 
               defaultValue: currentItem?.assigned_to
             },
             { 

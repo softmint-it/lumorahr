@@ -238,7 +238,7 @@ export default function DocumentTypes() {
             key: 'created_at',
             label: t('Created At'),
             sortable: true,
-            render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+            render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
         }
     ];
 
@@ -296,7 +296,7 @@ export default function DocumentTypes() {
 
     return (
         <PageTemplate
-            title={t("Document Type Management")}
+            title={t("Document Types")}
             url="/hr/document-types"
             actions={pageActions}
             breadcrumbs={breadcrumbs}

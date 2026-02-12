@@ -6,6 +6,7 @@ use App\Models\JobRequisition;
 use App\Models\JobCategory;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -13,43 +14,55 @@ class JobRequisitionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = JobRequisition::withPermissionCheck()->with(['jobCategory', 'department.branch', 'creator']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('requisition_code', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-job-requisitions')) {
+            $query = JobRequisition::with(['jobCategory', 'department.branch', 'creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-job-requisitions')) {
+                    $q->whereIn('created_by', getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-job-requisitions')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%')
+                        ->orWhere('requisition_code', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('priority') && !empty($request->priority) && $request->priority !== 'all') {
+                $query->where('priority', $request->priority);
+            }
+
+            $query->orderBy('id', 'desc');
+            $jobRequisitions = $query->paginate($request->per_page ?? 10);
+
+            $jobCategories = JobCategory::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get();
+
+            $departments = Department::with('branch')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name', 'branch_id')
+                ->get();
+
+            return Inertia::render('hr/recruitment/job-requisitions/index', [
+                'jobRequisitions' => $jobRequisitions,
+                'jobCategories' => $jobCategories,
+                'departments' => $departments,
+                'filters' => $request->all(['search', 'status', 'priority', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('priority') && !empty($request->priority) && $request->priority !== 'all') {
-            $query->where('priority', $request->priority);
-        }
-
-        $query->orderBy('id', 'desc');
-        $jobRequisitions = $query->paginate($request->per_page ?? 10);
-
-        $jobCategories = JobCategory::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get();
-
-        $departments = Department::with('branch')
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name', 'branch_id')
-            ->get();
-
-        return Inertia::render('hr/recruitment/job-requisitions/index', [
-            'jobRequisitions' => $jobRequisitions,
-            'jobCategories' => $jobCategories,
-            'departments' => $departments,
-            'filters' => $request->all(['search', 'status', 'priority', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)
@@ -126,9 +139,18 @@ class JobRequisitionController extends Controller
         }
 
         $jobRequisition->update($request->only([
-            'title', 'job_category_id', 'department_id', 'positions_count',
-            'budget_min', 'budget_max', 'skills_required', 'education_required',
-            'experience_required', 'description', 'responsibilities', 'priority'
+            'title',
+            'job_category_id',
+            'department_id',
+            'positions_count',
+            'budget_min',
+            'budget_max',
+            'skills_required',
+            'education_required',
+            'experience_required',
+            'description',
+            'responsibilities',
+            'priority'
         ]));
 
         return redirect()->back()->with('success', __('Job requisition updated successfully'));

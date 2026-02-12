@@ -28,7 +28,11 @@ export const planRequestsConfig: CrudConfig = {
       { 
         key: 'status', 
         label: t('Status'), 
-        render: columnRenderers.status()
+        render: columnRenderers.status({
+          'pending': 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20',
+          'approved': 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20',
+          'rejected': 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+        })
       },
       { 
         key: 'created_at', 

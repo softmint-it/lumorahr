@@ -312,7 +312,7 @@ export default function DocumentAcknowledgments() {
           <div>
             <div className="flex items-center gap-1">
               <Calendar className="h-4 w-4 text-gray-500" />
-              {value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'}
+              {value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'}
             </div>
             {daysInfo && (
               <div className={`text-xs ${
@@ -335,7 +335,7 @@ export default function DocumentAcknowledgments() {
         if (!value) return '-';
         return (
           <div>
-            <div className="text-sm">{value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'}</div>
+            <div className="text-sm">{value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'}</div>
           </div>
         );
       }
@@ -349,7 +349,7 @@ export default function DocumentAcknowledgments() {
       key: 'assigned_at', 
       label: t('Assigned'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -386,7 +386,7 @@ export default function DocumentAcknowledgments() {
   ];
 
   const documentOptions = [
-    { value: '_empty_', label: t('All Documents') },
+    { value: '_empty_', label: t('All Documents'), disabled:true },
     ...(documents || []).map((doc: any) => ({
       value: doc.id.toString(),
       label: doc.title
@@ -394,7 +394,7 @@ export default function DocumentAcknowledgments() {
   ];
 
   const userOptions = [
-    { value: '_empty_', label: t('All Users') },
+    { value: '_empty_', label: t('All Users'), disabled:true },
     ...(users || []).map((user: any) => ({
       value: user.id.toString(),
       label: user.name
@@ -402,7 +402,7 @@ export default function DocumentAcknowledgments() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses'), disabled:true },
     { value: 'Pending', label: t('Pending') },
     { value: 'Acknowledged', label: t('Acknowledged') },
     { value: 'Overdue', label: t('Overdue') },
@@ -427,7 +427,7 @@ export default function DocumentAcknowledgments() {
 
   return (
     <PageTemplate 
-      title={t("Document Acknowledgments")} 
+      title={t("Acknowledgments")} 
       url="/hr/documents/document-acknowledgments"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -445,7 +445,8 @@ export default function DocumentAcknowledgments() {
               type: 'select',
               value: documentFilter,
               onChange: setDocumentFilter,
-              options: documentOptions
+              options: documentOptions,
+              searchable  : true
             },
             {
               name: 'user_id',
@@ -453,7 +454,8 @@ export default function DocumentAcknowledgments() {
               type: 'select',
               value: userFilter,
               onChange: setUserFilter,
-              options: userOptions
+              options: userOptions,
+              searchable  : true
             },
             {
               name: 'status',
@@ -524,14 +526,16 @@ export default function DocumentAcknowledgments() {
               label: t('Document'), 
               type: 'select', 
               required: true,
-              options: documentSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: documentSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable  : true
             },
             { 
               name: 'user_id', 
               label: t('User'), 
               type: 'select', 
               required: true,
-              options: userSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: userSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable  : true
             },
             { 
               name: 'due_date', 
@@ -559,7 +563,8 @@ export default function DocumentAcknowledgments() {
         initialData={currentItem ? {
           ...currentItem,
           document_id: currentItem.document_id?.toString(),
-          user_id: currentItem.user_id?.toString()
+          user_id: currentItem.user_id?.toString(),
+          due_date: currentItem.due_date ? window.appSettings.formatDateTimeSimple(currentItem.due_date, false) : currentItem.due_date
         } : null}
         title={
           formMode === 'create'

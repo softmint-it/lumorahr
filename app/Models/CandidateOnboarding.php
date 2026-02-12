@@ -13,6 +13,7 @@ class CandidateOnboarding extends BaseModel
 
     protected $fillable = [
         'candidate_id',
+        'employee_id',
         'checklist_id',
         'start_date',
         'buddy_employee_id',
@@ -27,6 +28,11 @@ class CandidateOnboarding extends BaseModel
     public function candidate()
     {
         return $this->belongsTo(Candidate::class);
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(User::class, 'employee_id');
     }
 
     public function checklist()

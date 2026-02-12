@@ -265,13 +265,13 @@ export default function Resignations() {
       key: 'resignation_date', 
       label: t('Resignation Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'last_working_day', 
       label: t('Last Working Day'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'notice_period', 
@@ -389,7 +389,8 @@ export default function Resignations() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable : true,
             },
             {
               name: 'status',
@@ -478,7 +479,8 @@ export default function Resignations() {
               label: t('Employee'), 
               type: 'select', 
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: employeeOptions.filter(opt => opt.value !== ''),
+              searchable : true,
             },
             { 
               name: 'resignation_date', 
@@ -553,7 +555,11 @@ export default function Resignations() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          resignation_date: currentItem.resignation_date ? window.appSettings.formatDateTimeSimple(currentItem.resignation_date, false) : currentItem.resignation_date,
+          last_working_day: currentItem.last_working_day ? window.appSettings.formatDateTimeSimple(currentItem.last_working_day, false) : currentItem.last_working_day
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Resignation')

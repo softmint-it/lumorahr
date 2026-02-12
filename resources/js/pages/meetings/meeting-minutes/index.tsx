@@ -231,7 +231,7 @@ export default function MeetingMinutes() {
         <div>
           <div className="font-medium">{row.meeting?.title}</div>
           <div className="text-xs text-gray-500">
-            {row.meeting?.meeting_date ? window.appSettings?.formatDateTime(row.meeting?.meeting_date, false) || new Date(row.meeting?.meeting_date).toLocaleDateString() : '-'}
+            {row.meeting?.meeting_date ? window.appSettings?.formatDateTimeSimple(row.meeting?.meeting_date, false) || new Date(row.meeting?.meeting_date).toLocaleDateString() : '-'}
           </div>
         </div>
       )
@@ -272,7 +272,7 @@ export default function MeetingMinutes() {
       key: 'recorded_at', 
       label: t('Recorded At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -301,7 +301,7 @@ export default function MeetingMinutes() {
   ];
 
   const typeOptions = [
-    { value: '_empty_', label: t('All Types') },
+    { value: '_empty_', label: t('All Types') , disabled: true},
     { value: 'Discussion', label: t('Discussion') },
     { value: 'Decision', label: t('Decision') },
     { value: 'Action Item', label: t('Action Item') },
@@ -309,7 +309,7 @@ export default function MeetingMinutes() {
   ];
 
   const meetingOptions = [
-    { value: '_empty_', label: t('All Meetings') },
+    { value: '_empty_', label: t('All Meetings') , disabled: true},
     ...(meetings || []).map((meeting: any) => ({
       value: meeting.id.toString(),
       label: `${meeting.title} - ${format(new Date(meeting.meeting_date), 'MMM dd, yyyy')}`
@@ -317,7 +317,7 @@ export default function MeetingMinutes() {
   ];
 
   const recorderOptions = [
-    { value: '_empty_', label: t('All Recorders') },
+    { value: '_empty_', label: t('All Recorders'), disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -368,7 +368,8 @@ export default function MeetingMinutes() {
               type: 'select',
               value: meetingFilter,
               onChange: setMeetingFilter,
-              options: meetingOptions
+              options: meetingOptions,
+              searchable: true
             },
             {
               name: 'recorded_by',
@@ -376,7 +377,8 @@ export default function MeetingMinutes() {
               type: 'select',
               value: recorderFilter,
               onChange: setRecorderFilter,
-              options: recorderOptions
+              options: recorderOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -439,7 +441,8 @@ export default function MeetingMinutes() {
               label: t('Meeting'), 
               type: 'select', 
               required: true,
-              options: meetingSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: meetingSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'topic', 
@@ -466,7 +469,8 @@ export default function MeetingMinutes() {
               label: t('Recorded By'), 
               type: 'select', 
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '_empty_')
+              options: employeeOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'recorded_date', 

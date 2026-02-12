@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\SalaryComponent;
 use App\Models\User;
@@ -13,88 +14,193 @@ class EmployeeSalaryController extends Controller
 {
     public function index(Request $request)
     {
-        // Auto-create salary records for employees who don't have one
-        $companyEmployees = User::where('type', 'employee')
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->get();
+        if (Auth::user()->can('manage-employee-salaries')) {
+            // Auto-create salary records for employees who don't have one
+            $companyEmployees = User::with('employee')
+                ->where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->get();
+            // if (Auth::user()->can('manage-any-employee-salaries')) {
+            //     foreach ($companyEmployees as $employee) {
+            //         $exists = EmployeeSalary::where('employee_id', $employee->id)->exists();
+            //         if (!$exists) {
+            //             EmployeeSalary::create([
+            //                 'employee_id' => $employee->id,
+            //                 'basic_salary' => $employee->employee?->base_salary ?? 0,
+            //                 'components' => null,
+            //                 'is_active' => true,
+            //                 'created_by' => creatorId(),
+            //             ]);
+            //         } else {
+            //             if (is_null($employee->employee->base_salary)) {
+            //                 // If base salary is null in employee table then it will update the employee salary in employee table
+            //                 $getEmployeeBaseSalary = EmployeeSalary::where('employee_id', $employee->employee->user_id)->first();
+            //                 if ($getEmployeeBaseSalary) {
+            //                     $employee->employee->base_salary = $getEmployeeBaseSalary->basic_salary;
+            //                     $employee->employee->save();
+            //                 }
+            //             } else {
+            //                 // If salary update on employee table it will automatically affect on Employee salary table
+            //                 $getEmployeeBaseSalary = EmployeeSalary::where('employee_id', $employee->employee->user_id)->first();
+            //                 if ($getEmployeeBaseSalary) {
+            //                     $getEmployeeBaseSalary->basic_salary = $employee->employee->base_salary;
+            //                     $getEmployeeBaseSalary->save();
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-        foreach ($companyEmployees as $employee) {
-            $exists = EmployeeSalary::where('employee_id', $employee->id)->exists();
-            if (!$exists) {
-                EmployeeSalary::create([
-                    'employee_id' => $employee->id,
-                    'basic_salary' => 0,
-                    'components' => null,
-                    'is_active' => true,
-                    'created_by' => creatorId(),
-                ]);
+            if (Auth::user()->can('manage-any-employee-salaries')) {
+                foreach ($companyEmployees as $employee) {
+
+                    // Safety check: employee relation must exist
+                    if (!isset($employee->employee)) {
+                        continue;
+                    }
+
+                    $employeeModel = $employee->employee;
+
+                    // Fetch salary record once
+                    $employeeSalary = EmployeeSalary::where('employee_id', $employee->id)->first();
+
+                    // If salary record does not exist → create
+                    if (!$employeeSalary) {
+
+                        EmployeeSalary::create([
+                            'employee_id' => $employee->id,
+                            'basic_salary' => $employeeModel->base_salary ?? 0,
+                            'components' => null,
+                            'is_active' => true,
+                            'created_by' => creatorId(),
+                        ]);
+
+                        continue;
+                    }
+
+                    // If base_salary is NULL in employee table → update employee table
+                    if (is_null($employeeModel->base_salary)) {
+
+                        if (!is_null($employeeSalary->basic_salary)) {
+                            $employeeModel->base_salary = $employeeSalary->basic_salary;
+                            $employeeModel->save();
+                        }
+
+                    }
+                    // If base_salary exists → update salary table
+                    else {
+
+                        if ($employeeSalary->basic_salary != $employeeModel->base_salary) {
+                            $employeeSalary->basic_salary = $employeeModel->base_salary;
+                            $employeeSalary->save();
+                        }
+                    }
+                }
             }
-        }
 
-        $query = EmployeeSalary::withPermissionCheck()
-            ->with(['employee', 'creator']);
+            $query = EmployeeSalary::with(['employee', 'creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-employee-salaries')) {
+                    $q->whereIn('created_by', getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-employee-salaries')) {
+                    $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id())->where('is_active', 1);
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('employee', function ($subQ) use ($request) {
-                    $subQ->where('name', 'like', '%' . $request->search . '%');
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->whereHas('employee', function ($subQ) use ($request) {
+                        $subQ->where('name', 'like', '%' . $request->search . '%');
+                    });
                 });
+            }
+
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+
+
+            // Handle active status filter
+            if ($request->has('is_active') && !empty($request->is_active) && $request->is_active !== 'all') {
+                $query->where('is_active', $request->is_active === 'active');
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $employeeSalaries = $query->paginate($request->per_page ?? 10);
+
+            // Load component names and types for each salary record
+            $employeeSalaries->getCollection()->transform(function ($salary) {
+                if ($salary->components) {
+                    $components = SalaryComponent::whereIn('id', $salary->components)
+                        ->get(['id', 'name', 'type']);
+                    $salary->component_names = $components->pluck('name')->toArray();
+                    $salary->component_types = $components->pluck('type')->toArray();
+                } else {
+                    $salary->component_names = [];
+                    $salary->component_types = [];
+                }
+                return $salary;
+            });
+
+
+            // Get employees for filter dropdown
+            $employees = User::where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name']);
+
+            // Get salary components for form
+            $salaryComponents = SalaryComponent::where('status', 'active')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name', 'type', 'calculation_type', 'default_amount', 'percentage_of_basic']);
+
+            return Inertia::render('hr/employee-salaries/index', [
+                'employeeSalaries' => $employeeSalaries,
+                'employees' => $this->getFilteredEmployees(),
+                'salaryComponents' => $salaryComponents,
+                'filters' => $request->all(['search', 'employee_id', 'is_active', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-employee-salaries') && !Auth::user()->can('manage-any-employee-salaries')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-
-
-        // Handle active status filter
-        if ($request->has('is_active') && !empty($request->is_active) && $request->is_active !== 'all') {
-            $query->where('is_active', $request->is_active === 'active');
-        }
-
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
-        } else {
-            $query->orderBy('id', 'desc');
-        }
-
-        $employeeSalaries = $query->paginate($request->per_page ?? 10);
-
-        // Load component names and types for each salary record
-        $employeeSalaries->getCollection()->transform(function ($salary) {
-            if ($salary->components) {
-                $components = SalaryComponent::whereIn('id', $salary->components)
-                    ->get(['id', 'name', 'type']);
-                $salary->component_names = $components->pluck('name')->toArray();
-                $salary->component_types = $components->pluck('type')->toArray();
-            } else {
-                $salary->component_names = [];
-                $salary->component_types = [];
-            }
-            return $salary;
-        });
-
-
-        // Get employees for filter dropdown
-        $employees = User::where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
             ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name']);
-
-        // Get salary components for form
-        $salaryComponents = SalaryComponent::where('status', 'active')
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name', 'type', 'calculation_type', 'default_amount', 'percentage_of_basic']);
-
-        return Inertia::render('hr/employee-salaries/index', [
-            'employeeSalaries' => $employeeSalaries,
-            'employees' => $employees,
-            'salaryComponents' => $salaryComponents,
-            'filters' => $request->all(['search', 'employee_id', 'is_active', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+            ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
 
     public function store(Request $request)
@@ -194,42 +300,56 @@ class EmployeeSalaryController extends Controller
 
     public function showPayroll($employeeSalaryId)
     {
-        try {
-            $employeeSalary = EmployeeSalary::where('id', $employeeSalaryId)
-                ->whereIn('created_by', getCompanyAndUsersId())
-                ->with('employee')
-                ->first();
+        if (Auth::user()->can('manage-employee-salaries')) {
+            try {
+                // $employeeSalary = EmployeeSalary::where('id', $employeeSalaryId)
+                //     ->whereIn('created_by', getCompanyAndUsersId())
+                //     ->with('employee')
+                //     ->first();
 
-            if (!$employeeSalary) {
+                $employeeSalary = EmployeeSalary::with(['employee'])->where(function ($q) {
+                    if (Auth::user()->can('manage-any-employee-salaries')) {
+                        $q->whereIn('created_by', getCompanyAndUsersId());
+                    } elseif (Auth::user()->can('manage-own-employee-salaries')) {
+                        $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id())->where('is_active', 1);
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                })->first();
+
+                if (!$employeeSalary) {
+                    return redirect()->route('hr.employee-salaries.index')
+                        ->with('error', __('Employee salary record not found.'));
+                }
+
+                // Get payroll runs for this employee
+                $payrollRuns = \App\Models\PayrollRun::whereIn('created_by', getCompanyAndUsersId())
+                    ->whereHas('payrollEntries', function ($query) use ($employeeSalary) {
+                        $query->where('employee_id', $employeeSalary->employee_id);
+                    })
+                    ->orderBy('pay_period_end', 'desc')
+                    ->get(['id', 'title', 'pay_period_start', 'pay_period_end', 'status']);
+
+                if ($payrollRuns->isEmpty()) {
+                    return redirect()->route('hr.employee-salaries.index')
+                        ->with('error', __('No payroll runs found for this employee.'));
+                }
+
+                // Get the latest payroll run
+                $latestPayrollRun = $payrollRuns->first();
+
+                return Inertia::render('hr/employee-salaries/payroll-calculation', [
+                    'employeeSalary' => $employeeSalary,
+                    'payrollRuns' => $payrollRuns,
+                    'selectedPayrollRun' => $latestPayrollRun,
+                    'payrollData' => $this->getPayrollCalculationData($employeeSalary, $latestPayrollRun)
+                ]);
+            } catch (\Exception $e) {
                 return redirect()->route('hr.employee-salaries.index')
-                    ->with('error', __('Employee salary record not found.'));
+                    ->with('error', __('Failed to load payroll calculation.'));
             }
-
-            // Get payroll runs for this employee
-            $payrollRuns = \App\Models\PayrollRun::whereIn('created_by', getCompanyAndUsersId())
-                ->whereHas('payrollEntries', function($query) use ($employeeSalary) {
-                    $query->where('employee_id', $employeeSalary->employee_id);
-                })
-                ->orderBy('pay_period_end', 'desc')
-                ->get(['id', 'title', 'pay_period_start', 'pay_period_end', 'status']);
-
-            if ($payrollRuns->isEmpty()) {
-                return redirect()->route('hr.employee-salaries.index')
-                    ->with('error', __('No payroll runs found for this employee.'));
-            }
-
-            // Get the latest payroll run
-            $latestPayrollRun = $payrollRuns->first();
-
-            return Inertia::render('hr/employee-salaries/payroll-calculation', [
-                'employeeSalary' => $employeeSalary,
-                'payrollRuns' => $payrollRuns,
-                'selectedPayrollRun' => $latestPayrollRun,
-                'payrollData' => $this->getPayrollCalculationData($employeeSalary, $latestPayrollRun)
-            ]);
-        } catch (\Exception $e) {
-            return redirect()->route('hr.employee-salaries.index')
-                ->with('error', __('Failed to load payroll calculation.'));
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
     }
 
@@ -276,9 +396,9 @@ class EmployeeSalaryController extends Controller
 
         // Get attendance records for the payroll period
         $attendanceRecords = \App\Models\AttendanceRecord::where('employee_id', $employeeSalary->employee_id)
-        ->whereBetween('date', [$payrollRun->pay_period_start, $payrollRun->pay_period_end])
-        ->orderBy('date')
-        ->get();
+            ->whereBetween('date', [$payrollRun->pay_period_start, $payrollRun->pay_period_end])
+            ->orderBy('date')
+            ->get();
 
         // Calculate attendance summary from payroll entry
         $attendanceSummary = [

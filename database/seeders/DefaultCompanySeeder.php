@@ -116,6 +116,7 @@ class DefaultCompanySeeder extends Seeder
                     'plan_id' => config('app.is_demo') ? $plans->random()->id : $plans->first()->id,
                     'referral_code' => rand(100000, 999999),
                     'created_at' => now(),
+                    'created_by' => 1,
                 ]);
 
                 // Assign company role

@@ -263,7 +263,7 @@ export default function PerformanceIndicators() {
       key: 'created_at', 
       label: t('Created At'), 
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     }
   ];
 
@@ -317,7 +317,7 @@ export default function PerformanceIndicators() {
 
   return (
     <PageTemplate 
-      title={t("Performance Indicators")} 
+      title={t("Indicators")} 
       url="/hr/performance/indicators"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -336,7 +336,8 @@ export default function PerformanceIndicators() {
               type: 'select',
               value: selectedCategory,
               onChange: setSelectedCategory,
-              options: categoryOptions
+              options: categoryOptions,
+              searchable: true  
             },
             {
               name: 'status',
@@ -410,6 +411,7 @@ export default function PerformanceIndicators() {
               label: t('Category'), 
               type: 'select', 
               required: true,
+              searchable: true,
               options: categories.map((category: any) => ({
                 value: category.id.toString(),
                 label: category.name

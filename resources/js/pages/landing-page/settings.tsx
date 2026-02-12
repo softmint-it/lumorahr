@@ -23,6 +23,7 @@ import LivePreview from './components/LivePreview';
 import { defaultLandingPageSections } from './templates/default-sections';
 import { useBrand } from '@/contexts/BrandContext';
 import { THEME_COLORS } from '@/hooks/use-appearance';
+import { getImagePath } from '@/utils/helpers';
 
 
 
@@ -54,20 +55,21 @@ export default function LandingPageSettings() {
   const isSaas = globalSettings?.is_saas;
   const brandColor = themeColor === 'custom' ? customColor : THEME_COLORS[themeColor as keyof typeof THEME_COLORS];
   const [activeTab, setActiveTab] = useState<'setup' | 'layout' | 'content' | 'social' | 'engagement'>('setup');
-  const [activeSection, setActiveSection] = useState<'general' | 'header' | 'hero' | 'features' | 'screenshots' | 'whychooseus'  | 'about' | 'team' | 'testimonials' | 'plans' | 'faq' | 'newsletter' | 'contact' | 'footer' | 'order' | 'advanced'>('general');
+  const [activeSection, setActiveSection] = useState<'general' | 'header' | 'hero' | 'features' | 'screenshots' | 'whychooseus' | 'about' | 'team' | 'testimonials' | 'plans' | 'faq' | 'newsletter' | 'contact' | 'footer' | 'order' | 'advanced'>('general');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper to get full URL for images
   const getImageUrl = (path: string) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `${window.appSettings.imageUrl}${path}`;
+    if (path.startsWith('/screenshots/')) return `${window.appSettings.imageUrl}${path}`;
+    return getImagePath(path);
   };
-  
+
   // Helper function for consistent dark mode styling
   const sectionClasses = "bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm";
   const headingClasses = "text-lg font-semibold text-gray-900 dark:text-gray-100";
   const subheadingClasses = "text-sm text-gray-500 dark:text-gray-400";
-  
+
   // Helper function to convert full URL to relative path for database storage
   const convertToRelativePath = (url: string): string => {
     if (!url) return url;
@@ -75,27 +77,27 @@ export default function LandingPageSettings() {
     const storageIndex = url.indexOf('/storage/');
     return storageIndex !== -1 ? url.substring(storageIndex) : url;
   };
-  
+
   // Helper function to convert relative path to full URL for display
   const getDisplayUrl = (path: string): string => {
-    if (!path) return path;
-    if (path.startsWith('http')) return path;
-    return `${window.appSettings.imageUrl}${path}`;
+    if (!path) return null;
+    if (path.startsWith('/screenshots/')) return `${window.appSettings.imageUrl}${path}`;
+    return getImagePath(path);
   };
-  
+
   const { data, setData, post, processing, errors } = useForm<Settings>({
     company_name: settings.company_name,
     contact_email: settings.contact_email,
     contact_phone: settings.contact_phone,
     contact_address: settings.contact_address,
-    config_sections: settings.config_sections && settings.config_sections.sections && settings.config_sections.sections.length > 0 
+    config_sections: settings.config_sections && settings.config_sections.sections && settings.config_sections.sections.length > 0
       ? {
-          sections: settings.config_sections.sections || [],
-          theme: settings.config_sections.theme || defaultLandingPageSections.theme,
-          seo: settings.config_sections.seo || defaultLandingPageSections.seo,
-          section_order: settings.config_sections.section_order || defaultLandingPageSections.section_order,
-          section_visibility: settings.config_sections.section_visibility || defaultLandingPageSections.section_visibility
-        }
+        sections: settings.config_sections.sections || [],
+        theme: settings.config_sections.theme || defaultLandingPageSections.theme,
+        seo: settings.config_sections.seo || defaultLandingPageSections.seo,
+        section_order: settings.config_sections.section_order || defaultLandingPageSections.section_order,
+        section_visibility: settings.config_sections.section_visibility || defaultLandingPageSections.section_visibility
+      }
       : defaultLandingPageSections
   });
 
@@ -106,13 +108,13 @@ export default function LandingPageSettings() {
   const updateSectionData = (key: string, updates: any) => {
     const sections = [...(data.config_sections?.sections || [])];
     const sectionIndex = sections.findIndex(section => section.key === key);
-    
+
     if (sectionIndex >= 0) {
       sections[sectionIndex] = { ...sections[sectionIndex], ...updates };
     } else {
       sections.push({ key, ...updates });
     }
-    
+
     setData('config_sections', {
       ...data.config_sections,
       sections
@@ -172,16 +174,16 @@ export default function LandingPageSettings() {
 
   const saveSettings = () => {
     setIsLoading(true);
-    
+
     // Debug: Log the data being sent
-    
+
     router.post(route('landing-page.settings.update'), data, {
       preserveScroll: true,
       onSuccess: (page) => {
         setIsLoading(false);
         const successMessage = page.props.flash?.success || t('Landing page settings saved successfully');
         const errorMessage = page.props.flash?.error;
-        
+
         if (successMessage && !errorMessage) {
           toast.success(successMessage);
         } else if (errorMessage) {
@@ -197,8 +199,8 @@ export default function LandingPageSettings() {
   };
 
   return (
-    <PageTemplate 
-      title={t("Landing Page Settings")} 
+    <PageTemplate
+      title={t("Landing Page Settings")}
       url="/landing-page/settings"
       breadcrumbs={[
         { title: t('Dashboard'), href: route('dashboard') },
@@ -244,11 +246,10 @@ export default function LandingPageSettings() {
                     setActiveTab(tab.key as any);
                     setActiveSection(tab.sections[0] as any);
                   }}
-                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === tab.key
-                      ? 'border-transparent text-white dark:text-white'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === tab.key
+                    ? 'border-transparent text-white dark:text-white'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                    }`}
                   style={activeTab === tab.key ? {
                     backgroundColor: brandColor,
                     borderBottomColor: brandColor
@@ -299,7 +300,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500 dark:text-gray-400">{t('Basic company details for your landing page')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="company_name" className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -322,7 +323,7 @@ export default function LandingPageSettings() {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_email">{t('Contact Email')}</Label>
                       <Input
@@ -334,7 +335,7 @@ export default function LandingPageSettings() {
                         placeholder={t('support@company.com')}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_phone">{t('Contact Phone')}</Label>
                       <Input
@@ -345,7 +346,7 @@ export default function LandingPageSettings() {
                         placeholder={t('+1 (555) 123-4567')}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_address">{t('Contact Address')}</Label>
                       <Input
@@ -357,7 +358,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 p-4 bg-gradient-to-r rounded-lg border" style={{ backgroundColor: brandColor + '10', borderColor: brandColor + '30' }}>
                     <h4 className="text-sm font-medium mb-3" style={{ color: brandColor }}>{t('Theme Colors')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -378,7 +379,7 @@ export default function LandingPageSettings() {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <Label htmlFor="general_secondary_color">{t('Secondary Color')}</Label>
                         <div className="flex gap-2">
@@ -396,21 +397,21 @@ export default function LandingPageSettings() {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <Label htmlFor="general_accent_color">{t('Accent Color')}</Label>
                         <div className="flex gap-2">
                           <Input
                             id="general_accent_color"
                             type="color"
-                            value={data.config_sections?.theme?.accent_color || '#10b981'}
+                            value={data.config_sections?.theme?.accent_color || '#10b77f'}
                             onChange={(e) => updateThemeData({ accent_color: e.target.value })}
                             className="w-16 h-10 p-1"
                           />
                           <Input
-                            value={data.config_sections?.theme?.accent_color || '#10b981'}
+                            value={data.config_sections?.theme?.accent_color || '#10b77f'}
                             onChange={(e) => updateThemeData({ accent_color: e.target.value })}
-                            placeholder="#10b981"
+                            placeholder="#10b77f"
                           />
                         </div>
                       </div>
@@ -419,7 +420,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Header Section */}
             {activeSection === 'header' && (
               <div className="space-y-6">
@@ -442,7 +443,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -457,7 +458,7 @@ export default function LandingPageSettings() {
                         {t('Make header background transparent')}
                       </p>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="header_background_color">{t('Background Color')}</Label>
                       <div className="flex gap-2">
@@ -477,7 +478,7 @@ export default function LandingPageSettings() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="header_text_color">{t('Text Color')}</Label>
                       <div className="flex gap-2">
@@ -495,7 +496,7 @@ export default function LandingPageSettings() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="header_button_style">{t('Button Style')}</Label>
                       <select
@@ -536,7 +537,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="hero_layout">{t('Layout Style')}</Label>
@@ -552,7 +553,7 @@ export default function LandingPageSettings() {
                         <option value="centered">Centered Content</option>
                       </select>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="hero_height">{t('Section Height')}</Label>
                       <Input
@@ -580,7 +581,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Main headline and supporting text')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="hero_title" className="text-sm font-medium text-gray-900 flex items-center gap-2">
@@ -602,7 +603,7 @@ export default function LandingPageSettings() {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="hero_subtitle" className="text-sm font-medium text-gray-900 flex items-center gap-2">
                         <FileText className="h-4 w-4" style={{ color: brandColor }} />
@@ -624,7 +625,7 @@ export default function LandingPageSettings() {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="hero_announcement_text">{t('Announcement Badge')}</Label>
                       <Input
@@ -637,7 +638,7 @@ export default function LandingPageSettings() {
                         {t('Small announcement text shown above the title')}
                       </p>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-3">
                         <Label htmlFor="hero_primary_button_text">{t('Primary Button Text')}</Label>
@@ -648,7 +649,7 @@ export default function LandingPageSettings() {
                           placeholder={t("Start Free Trial")}
                         />
                       </div>
-                      
+
                       <div className="space-y-3">
                         <Label htmlFor="hero_secondary_button_text">{t('Secondary Button Text')}</Label>
                         <Input
@@ -661,7 +662,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-indigo-100 rounded-lg">
@@ -672,7 +673,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Add compelling statistics to your hero section')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('hero').stats || []).map((stat, index) => (
                       <div key={index} className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
@@ -718,7 +719,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -734,9 +735,9 @@ export default function LandingPageSettings() {
                     </Button>
                   </div>
                 </div>
-                
-                
-                
+
+
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-pink-100 rounded-lg">
@@ -747,7 +748,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Configure hero section imagery')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <MediaPicker
@@ -759,7 +760,7 @@ export default function LandingPageSettings() {
                         placeholder={t('Select hero image...')}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="hero_image_position">{t('Image Position')}</Label>
                       <select
@@ -776,7 +777,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-violet-100 rounded-lg">
@@ -787,7 +788,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Customize hero section colors and overlays')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="hero_background_color">{t("Background Color")}</Label>
@@ -806,7 +807,7 @@ export default function LandingPageSettings() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="hero_text_color">{t("Text Color")}</Label>
                       <div className="flex gap-2">
@@ -824,7 +825,7 @@ export default function LandingPageSettings() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="hero_overlay">{t('Background Overlay')}</Label>
@@ -838,7 +839,7 @@ export default function LandingPageSettings() {
                         {t('Add overlay on background image')}
                       </p>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="hero_overlay_color">{t('Overlay Color')}</Label>
                       <Input
@@ -853,13 +854,13 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Features Section */}
             {activeSection === 'features' && (
-              <FeaturesSection 
-                data={data} 
-                setData={setData} 
-                errors={errors} 
+              <FeaturesSection
+                data={data}
+                setData={setData}
+                errors={errors}
                 handleInputChange={handleInputChange}
                 getSectionData={getSectionData}
                 updateSectionData={updateSectionData}
@@ -867,7 +868,7 @@ export default function LandingPageSettings() {
                 t={t}
               />
             )}
-            
+
             {/* Screenshots Section */}
             {activeSection === 'screenshots' && (
               <div className="space-y-6">
@@ -890,7 +891,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="screenshots_title">{t('Section Title')}</Label>
@@ -901,7 +902,7 @@ export default function LandingPageSettings() {
                         placeholder={t("See HRM Saas in Action")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="screenshots_subtitle">{t('Section Subtitle')}</Label>
                       <Textarea
@@ -914,7 +915,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -925,7 +926,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Manage application screenshots')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('screenshots').screenshots_list || []).map((screenshot, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -947,7 +948,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 gap-4">
                           <div className="space-y-3">
                             <MediaPicker
@@ -961,7 +962,7 @@ export default function LandingPageSettings() {
                               placeholder={t('Select screenshot image...')}
                             />
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-3">
                               <Label htmlFor={`screenshot_${index}_title`}>{t('Title')}</Label>
@@ -976,7 +977,7 @@ export default function LandingPageSettings() {
                                 placeholder={t("Dashboard Overview")}
                               />
                             </div>
-                            
+
                             <div className="space-y-3">
                               <Label htmlFor={`screenshot_${index}_alt`}>{t('Alt Text')}</Label>
                               <Input
@@ -991,7 +992,7 @@ export default function LandingPageSettings() {
                               />
                             </div>
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`screenshot_${index}_description`}>{t('Description')}</Label>
                             <Textarea
@@ -1009,7 +1010,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -1027,7 +1028,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Templates Section */}
             {/* {activeSection === 'templates' && (
               <TemplatesSection 
@@ -1041,7 +1042,7 @@ export default function LandingPageSettings() {
                 t={t}
               />
             )} */}
-            
+
             {/* WhyChooseUs Section */}
             {activeSection === 'whychooseus' && (
               <div className="space-y-6">
@@ -1064,7 +1065,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="why_choose_us_title" className="text-sm font-medium text-gray-900 flex items-center gap-2">
@@ -1079,7 +1080,7 @@ export default function LandingPageSettings() {
                         className="h-10 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="why_choose_us_subtitle">{t('Section Subtitle')}</Label>
                       <Textarea
@@ -1092,7 +1093,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-amber-100 rounded-lg">
@@ -1103,7 +1104,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Key benefits and advantages')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('why_choose_us').reasons || []).map((reason, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -1125,7 +1126,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-3">
                             <Label htmlFor={`reason_${index}_title`}>{t('Title')}</Label>
@@ -1140,7 +1141,7 @@ export default function LandingPageSettings() {
                               placeholder={t("All-in-One HR Solution")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`reason_${index}_icon`}>{t('Icon')}</Label>
                             <select
@@ -1166,7 +1167,7 @@ export default function LandingPageSettings() {
 
                             </select>
                           </div>
-                          
+
                           <div className="space-y-3 md:col-span-1">
                             <Label htmlFor={`reason_${index}_description`}>{t('Description')}</Label>
                             <Textarea
@@ -1184,7 +1185,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -1200,7 +1201,7 @@ export default function LandingPageSettings() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-cyan-100 rounded-lg">
@@ -1211,7 +1212,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Trust indicators and key metrics')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4 mb-6">
                     <div className="space-y-3">
                       <Label htmlFor="why_choose_us_stats_title">{t('Statistics Title')}</Label>
@@ -1222,7 +1223,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Trusted by Industry Leaders")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="why_choose_us_stats_subtitle">{t('Statistics Subtitle')}</Label>
                       <Input
@@ -1233,7 +1234,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('why_choose_us').stats || []).map((stat, index) => (
                       <div key={index} className="grid grid-cols-3 gap-4 p-4 border rounded-lg">
@@ -1299,7 +1300,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -1315,7 +1316,7 @@ export default function LandingPageSettings() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-rose-100 rounded-lg">
@@ -1326,7 +1327,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Encourage user engagement')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="why_choose_us_cta_title">{t('CTA Title')}</Label>
@@ -1337,7 +1338,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Ready to get started?")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="why_choose_us_cta_subtitle">{t('CTA Subtitle')}</Label>
                       <Input
@@ -1351,13 +1352,13 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* About Section */}
             {activeSection === 'about' && (
-              <AboutSection 
-                data={data} 
-                setData={setData} 
-                errors={errors} 
+              <AboutSection
+                data={data}
+                setData={setData}
+                errors={errors}
                 handleInputChange={handleInputChange}
                 getSectionData={getSectionData}
                 updateSectionData={updateSectionData}
@@ -1365,7 +1366,7 @@ export default function LandingPageSettings() {
                 t={t}
               />
             )}
-            
+
             {/* Team Section */}
             {activeSection === 'team' && (
               <div className="space-y-6">
@@ -1388,7 +1389,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="team_title">{t('Team Title')}</Label>
@@ -1399,7 +1400,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Meet Our Team")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="team_subtitle">{t('Team Subtitle')}</Label>
                       <Textarea
@@ -1412,7 +1413,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -1423,7 +1424,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Add and manage team member profiles')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('team').members || []).map((member, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -1445,7 +1446,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-3">
                             <Label htmlFor={`member_${index}_name`}>{t("Name")}</Label>
@@ -1460,7 +1461,7 @@ export default function LandingPageSettings() {
                               placeholder={t("John Doe")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`member_${index}_role`}>{t('Role')}</Label>
                             <Input
@@ -1474,7 +1475,7 @@ export default function LandingPageSettings() {
                               placeholder={t("CEO & Founder")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3 md:col-span-2">
                             <MediaPicker
                               label={t('Profile Image')}
@@ -1487,7 +1488,7 @@ export default function LandingPageSettings() {
                               placeholder={t('Select profile image...')}
                             />
                           </div>
-                          
+
                           <div className="space-y-3 md:col-span-2">
                             <Label htmlFor={`member_${index}_bio`}>{t('Bio')}</Label>
                             <Textarea
@@ -1502,7 +1503,7 @@ export default function LandingPageSettings() {
                               rows={2}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`member_${index}_linkedin`}>{t('LinkedIn')}</Label>
                             <Input
@@ -1516,7 +1517,7 @@ export default function LandingPageSettings() {
                               placeholder="https://linkedin.com/in/..."
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`member_${index}_email`}>{t('Email')}</Label>
                             <Input
@@ -1533,7 +1534,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -1549,7 +1550,7 @@ export default function LandingPageSettings() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-green-100 rounded-lg">
@@ -1560,7 +1561,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Call-to-action for team recruitment')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="team_cta_title">{t("CTA Title")}</Label>
@@ -1571,7 +1572,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Want to Join Our Team?")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="team_cta_description">{t('CTA Description')}</Label>
                       <Textarea
@@ -1582,7 +1583,7 @@ export default function LandingPageSettings() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="team_cta_button_text">{t('Button Text')}</Label>
                       <Input
@@ -1596,7 +1597,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Testimonials Section */}
             {activeSection === 'testimonials' && (
               <div className="space-y-6">
@@ -1619,7 +1620,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="testimonials_title">{t("Section Title")}</Label>
@@ -1630,7 +1631,7 @@ export default function LandingPageSettings() {
                         placeholder={t("What Our Clients Say")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="testimonials_subtitle">{t("Section Subtitle")}</Label>
                       <Textarea
@@ -1643,7 +1644,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-yellow-100 rounded-lg">
@@ -1654,7 +1655,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Statistics that build credibility')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <Label htmlFor="testimonials_trust_title">{t('Trust Section Title')}</Label>
@@ -1665,7 +1666,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Trusted by HR Professionals Worldwide")}
                       />
                     </div>
-                    
+
                     {(getSectionData('testimonials').trust_stats || []).map((stat, index) => (
                       <div key={index} className="grid grid-cols-3 gap-4 p-4 border rounded-lg">
                         <div className="space-y-3">
@@ -1729,7 +1730,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -1745,7 +1746,7 @@ export default function LandingPageSettings() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-lime-100 rounded-lg">
@@ -1756,7 +1757,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Customer reviews and feedback')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('testimonials').testimonials || []).map((testimonial, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -1778,7 +1779,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-3">
                             <Label htmlFor={`testimonial_${index}_name`}>{t("Name")}</Label>
@@ -1793,7 +1794,7 @@ export default function LandingPageSettings() {
                               placeholder={t("John Doe")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`testimonial_${index}_role`}>{t("Role")}</Label>
                             <Input
@@ -1807,7 +1808,7 @@ export default function LandingPageSettings() {
                               placeholder={t("CEO")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`testimonial_${index}_company`}>{t("Company")}</Label>
                             <Input
@@ -1821,7 +1822,7 @@ export default function LandingPageSettings() {
                               placeholder={t("Company Name")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`testimonial_${index}_rating`}>{t('Rating')}</Label>
                             <select
@@ -1841,7 +1842,7 @@ export default function LandingPageSettings() {
                               <option value={5}>{t('5 Stars')}</option>
                             </select>
                           </div>
-                          
+
                           <div className="space-y-3 md:col-span-2">
                             <Label htmlFor={`testimonial_${index}_content`}>{t('Content')}</Label>
                             <Textarea
@@ -1859,7 +1860,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -1877,7 +1878,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Plans Section */}
             {activeSection === 'plans' && isSaas && (
               <div className="space-y-6">
@@ -1900,7 +1901,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="plans_title">{t("Section Title")}</Label>
@@ -1911,7 +1912,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Choose Your Plan")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="plans_subtitle">{t("Section Subtitle")}</Label>
                       <Textarea
@@ -1922,7 +1923,7 @@ export default function LandingPageSettings() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="plans_faq_text">{t('FAQ Text')}</Label>
                       <Input
@@ -1934,7 +1935,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start">
                     <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
@@ -1948,7 +1949,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* FAQ Section */}
             {activeSection === 'faq' && (
               <div className="space-y-6">
@@ -1971,7 +1972,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="faq_title">{t("Section Title")}</Label>
@@ -1982,7 +1983,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Frequently Asked Questions")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="faq_subtitle">{t("Section Subtitle")}</Label>
                       <Textarea
@@ -1993,7 +1994,7 @@ export default function LandingPageSettings() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="faq_cta_text">{t('CTA Text')}</Label>
                       <Input
@@ -2003,7 +2004,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Still have questions?")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="faq_button_text">{t("Button Text")}</Label>
                       <Input
@@ -2015,7 +2016,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-slate-100 rounded-lg">
@@ -2026,7 +2027,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Frequently asked questions and answers')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('faq').faqs || []).map((faq, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -2048,7 +2049,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="space-y-4">
                           <div className="space-y-3">
                             <Label htmlFor={`faq_${index}_question`}>{t('Question')}</Label>
@@ -2063,7 +2064,7 @@ export default function LandingPageSettings() {
                               placeholder={t("How does HRM work?")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`faq_${index}_answer`}>{t('Answer')}</Label>
                             <Textarea
@@ -2081,7 +2082,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -2099,7 +2100,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Newsletter Section */}
             {activeSection === 'newsletter' && (
               <div className="space-y-6">
@@ -2122,7 +2123,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="newsletter_title">{t("Section Title")}</Label>
@@ -2133,7 +2134,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Stay Updated with HRM SaaS")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="newsletter_subtitle">{t("Section Subtitle")}</Label>
                       <Textarea
@@ -2144,7 +2145,7 @@ export default function LandingPageSettings() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="newsletter_privacy_text">{t('Privacy Text')}</Label>
                       <Input
@@ -2156,7 +2157,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-red-100 rounded-lg">
@@ -2167,7 +2168,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Benefits of subscribing to newsletter')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('newsletter').benefits || []).map((benefit, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -2189,7 +2190,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-3">
                             <Label htmlFor={`benefit_${index}_icon`}>{t('Icon (Emoji)')}</Label>
@@ -2205,7 +2206,7 @@ export default function LandingPageSettings() {
                               maxLength={2}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`benefit_${index}_title`}>Title</Label>
                             <Input
@@ -2219,7 +2220,7 @@ export default function LandingPageSettings() {
                               placeholder={t("Weekly Updates")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`benefit_${index}_description`}>{t("Description")}</Label>
                             <Input
@@ -2236,7 +2237,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -2254,7 +2255,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Contact Section */}
             {activeSection === 'contact' && (
               <div className="space-y-6">
@@ -2277,7 +2278,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="contact_title">{t("Section Title")}</Label>
@@ -2288,7 +2289,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Get in Touch")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_subtitle">{t("Section Subtitle")}</Label>
                       <Textarea
@@ -2299,7 +2300,7 @@ export default function LandingPageSettings() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_form_title">{t('Form Title')}</Label>
                       <Input
@@ -2309,7 +2310,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Send us a Message")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_info_title">{t('Contact Info Title')}</Label>
                       <Input
@@ -2319,7 +2320,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Contact Information")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_info_description">{t('Contact Info Description')}</Label>
                       <Textarea
@@ -2332,7 +2333,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-emerald-100 rounded-lg">
@@ -2343,7 +2344,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Company contact details')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="contact_email">{t('Email Address')}</Label>
@@ -2356,7 +2357,7 @@ export default function LandingPageSettings() {
                         type="email"
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_phone">{t('Phone Number')}</Label>
                       <Input
@@ -2367,7 +2368,7 @@ export default function LandingPageSettings() {
                         placeholder={t("+1 (555) 123-4567")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="contact_address">{t('Address')}</Label>
                       <Textarea
@@ -2381,7 +2382,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-indigo-100 rounded-lg">
@@ -2392,7 +2393,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Contact-related frequently asked questions')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('contact').faqs || []).map((faq, index) => (
                       <div key={index} className="p-4 border rounded-lg space-y-4">
@@ -2411,7 +2412,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="space-y-4">
                           <div className="space-y-3">
                             <Label htmlFor={`contact_faq_${index}_question`}>Question</Label>
@@ -2426,7 +2427,7 @@ export default function LandingPageSettings() {
                               placeholder={t("How quickly do you respond?")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`contact_faq_${index}_answer`}>Answer</Label>
                             <Textarea
@@ -2444,7 +2445,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -2462,7 +2463,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Footer Section */}
             {activeSection === 'footer' && (
               <div className="space-y-6">
@@ -2485,7 +2486,7 @@ export default function LandingPageSettings() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="footer_description">{t('Company Description')}</Label>
@@ -2497,7 +2498,7 @@ export default function LandingPageSettings() {
                         rows={3}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="footer_newsletter_title">{t('Newsletter Title')}</Label>
                       <Input
@@ -2507,7 +2508,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Stay Updated with Our Latest Features")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="footer_newsletter_subtitle">{t('Newsletter Subtitle')}</Label>
                       <Input
@@ -2519,7 +2520,7 @@ export default function LandingPageSettings() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-blue-100 rounded-lg">
@@ -2530,7 +2531,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Social media links and profiles')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {(getSectionData('footer').social_links || []).map((social, index) => (
                       <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -2552,7 +2553,7 @@ export default function LandingPageSettings() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-3">
                             <Label htmlFor={`social_${index}_name`}>{t("Name")}</Label>
@@ -2567,7 +2568,7 @@ export default function LandingPageSettings() {
                               placeholder={t("Facebook")}
                             />
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`social_${index}_icon`}>{t("Icon")}</Label>
                             <select
@@ -2586,7 +2587,7 @@ export default function LandingPageSettings() {
                               <option value="Instagram">Instagram</option>
                             </select>
                           </div>
-                          
+
                           <div className="space-y-3">
                             <Label htmlFor={`social_${index}_href`}>{t("URL")}</Label>
                             <Input
@@ -2603,7 +2604,7 @@ export default function LandingPageSettings() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -2619,7 +2620,7 @@ export default function LandingPageSettings() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -2630,7 +2631,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t("Footer navigation links by category")}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-6">
                     {['product', 'company', 'support', 'legal'].map((category) => (
                       <div key={category} className="space-y-4">
@@ -2719,7 +2720,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Design Section */}
             {activeSection === 'design' && (
               <div className="space-y-6">
@@ -2729,7 +2730,7 @@ export default function LandingPageSettings() {
                     <h3 className="text-base font-medium">{t("Colors & Theme")}</h3>
                   </div>
                   <Separator className="my-2" />
-                  
+
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-3">
                       <Label htmlFor="primary_color">{t("Primary Color")}</Label>
@@ -2771,14 +2772,14 @@ export default function LandingPageSettings() {
                         <Input
                           id="accent_color"
                           type="color"
-                          value={data.config_sections?.theme?.accent_color || '#10b981'}
+                          value={data.config_sections?.theme?.accent_color || '#10b77f'}
                           onChange={(e) => updateThemeData({ accent_color: e.target.value })}
                           className="w-16 h-10 p-1"
                         />
                         <Input
-                          value={data.config_sections?.theme?.accent_color || '#10b981'}
+                          value={data.config_sections?.theme?.accent_color || '#10b77f'}
                           onChange={(e) => updateThemeData({ accent_color: e.target.value })}
-                          placeholder="#10b981"
+                          placeholder="#10b77f"
                         />
                       </div>
                     </div>
@@ -2791,7 +2792,7 @@ export default function LandingPageSettings() {
                     <h3 className="text-base font-medium">{t("Images & Logos")}</h3>
                   </div>
                   <Separator className="my-2" />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <MediaPicker
@@ -2831,7 +2832,7 @@ export default function LandingPageSettings() {
                       <p className="text-sm text-gray-500">{t('Drag and drop to reorder sections on your landing page')}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     {(data.config_sections?.section_order || []).map((sectionKey, index) => {
                       const sectionNames = {
@@ -2849,9 +2850,9 @@ export default function LandingPageSettings() {
                         contact: t('Contact'),
                         footer: t('Footer')
                       };
-                      
+
                       const isEnabled = data.config_sections?.section_visibility?.[sectionKey] !== false;
-                      
+
                       return (
                         <div
                           key={sectionKey}
@@ -2859,9 +2860,8 @@ export default function LandingPageSettings() {
                           onDragStart={(e) => handleDragStart(e, index)}
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, index)}
-                          className={`flex items-center gap-3 p-4 border rounded-lg cursor-move transition-all hover:shadow-md ${
-                            isEnabled ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-300 opacity-60'
-                          }`}
+                          className={`flex items-center gap-3 p-4 border rounded-lg cursor-move transition-all hover:shadow-md ${isEnabled ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-300 opacity-60'
+                            }`}
                         >
                           <GripVertical className="h-5 w-5 text-gray-400" />
                           <div className="flex-1 flex items-center justify-between">
@@ -2888,7 +2888,7 @@ export default function LandingPageSettings() {
                       );
                     })}
                   </div>
-                  
+
                   <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-start">
                       <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
@@ -2903,7 +2903,7 @@ export default function LandingPageSettings() {
                 </div>
               </div>
             )}
-            
+
             {/* Advanced Section */}
             {activeSection === 'advanced' && (
               <div className="space-y-6">
@@ -2913,7 +2913,7 @@ export default function LandingPageSettings() {
                     <h3 className="text-base font-medium">{t("SEO Settings")}</h3>
                   </div>
                   <Separator className="my-2" />
-                  
+
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <Label htmlFor="meta_title">{t("Meta Title")}</Label>
@@ -2924,7 +2924,7 @@ export default function LandingPageSettings() {
                         placeholder={t("Landing Page Title")}
                       />
                     </div>
-                    
+
                     <div className="space-y-3">
                       <Label htmlFor="meta_description">{t("Meta Description")}</Label>
                       <Textarea
@@ -2944,7 +2944,7 @@ export default function LandingPageSettings() {
                     <h3 className="text-base font-medium">{t("Custom CSS")}</h3>
                   </div>
                   <Separator className="my-2" />
-                  
+
                   <div className="space-y-3">
                     <Label htmlFor="custom_css">{t("Custom CSS")}</Label>
                     <Textarea
@@ -2960,14 +2960,14 @@ export default function LandingPageSettings() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <Code className="h-5 w-5 mr-2 text-muted-foreground" />
                     <h3 className="text-base font-medium">{t('Custom JavaScript')}</h3>
                   </div>
                   <Separator className="my-2" />
-                  
+
                   <div className="space-y-3">
                     <Label htmlFor="custom_js">{t('Custom JavaScript')}</Label>
                     <Textarea

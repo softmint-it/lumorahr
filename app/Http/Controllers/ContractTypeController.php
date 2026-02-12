@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ContractType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -11,30 +12,42 @@ class ContractTypeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ContractType::withPermissionCheck()->withCount('contracts');
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-contract-types')) {
+            $query = ContractType::withCount('contracts')->where(function ($q) {
+                if (Auth::user()->can('manage-any-contract-types')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-contract-types')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('is_renewable') && $request->is_renewable !== 'all') {
+                $query->where('is_renewable', $request->is_renewable === 'true');
+            }
+
+            $query->orderBy('created_at', 'desc');
+            $contractTypes = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/contracts/contract-types/index', [
+                'contractTypes' => $contractTypes,
+                'filters' => $request->all(['search', 'status', 'is_renewable', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('is_renewable') && $request->is_renewable !== 'all') {
-            $query->where('is_renewable', $request->is_renewable === 'true');
-        }
-
-        $query->orderBy('created_at', 'desc');
-        $contractTypes = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/contracts/contract-types/index', [
-            'contractTypes' => $contractTypes,
-            'filters' => $request->all(['search', 'status', 'is_renewable', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

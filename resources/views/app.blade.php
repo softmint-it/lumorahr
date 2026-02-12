@@ -69,7 +69,7 @@
     @inertiaHead
 </head>
 
-<body class="font-sans antialiased">
+<body class="font-sans antialiased !mb-0">
     @inertia
 </body>
 

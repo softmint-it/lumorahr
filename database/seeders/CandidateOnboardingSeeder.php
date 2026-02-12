@@ -27,12 +27,14 @@ class CandidateOnboardingSeeder extends Seeder
         $onboardingStatuses = ['Completed', 'In Progress', 'Completed', 'Pending', 'Completed', 'In Progress', 'Completed', 'Pending', 'Completed', 'In Progress'];
 
         foreach ($companies as $company) {
-            // Get hired candidates for this company
-            $hiredCandidates = Candidate::where('created_by', $company->id)
-                ->where('status', 'Hired')
+            // Get employees for this company
+            $employees = User::where('type', 'employee')
+                ->where('created_by', $company->id)
+                ->where('status', 'active')
                 ->get();
-            if ($hiredCandidates->isEmpty()) {
-                $this->command->warn('No hired candidates found for company: ' . $company->name . '. Please run CandidateSeeder first.');
+                
+            if ($employees->isEmpty()) {
+                $this->command->warn('No employees found for company: ' . $company->name . '. Please run EmployeeSeeder first.');
                 continue;
             }
 
@@ -44,25 +46,26 @@ class CandidateOnboardingSeeder extends Seeder
                 continue;
             }
 
-            // Get employees for buddy assignment
-            $employees = User::where('type', 'employee')->where('created_by', $company->id)->get();
+            // Get employees for buddy assignment (excluding current employee)
+            $buddyEmployees = User::where('type', 'employee')->where('created_by', $company->id)->get();
 
-            foreach ($hiredCandidates as $index => $candidate) {
-                // Check if onboarding already exists for this candidate
-                if (CandidateOnboarding::where('candidate_id', $candidate->id)->where('created_by', $company->id)->exists()) {
+            foreach ($employees as $index => $employee) {
+                // Check if onboarding already exists for this employee
+                if (CandidateOnboarding::where('employee_id', $employee->id)->where('created_by', $company->id)->exists()) {
                     continue;
                 }
 
                 // Select checklist based on job title or use default
-                $checklist = $this->selectChecklistForCandidate($candidate, $onboardingChecklists);
-                $buddyEmployee = $employees->random();
+                $checklist = $this->selectChecklistForEmployee($employee, $onboardingChecklists);
+                $buddyEmployee = $buddyEmployees->where('id', '!=', $employee->id)->random();
 
                 $status = $onboardingStatuses[$index % 10];
                 $startDate = date('Y-m-d', strtotime('-' . ($index + 1) . ' days'));
 
                 try {
                     CandidateOnboarding::create([
-                        'candidate_id' => $candidate->id,
+                        'candidate_id' => null,
+                        'employee_id' => $employee->id,
                         'checklist_id' => $checklist->id,
                         'start_date' => $startDate,
                         'buddy_employee_id' => $buddyEmployee?->id,
@@ -70,7 +73,7 @@ class CandidateOnboardingSeeder extends Seeder
                         'created_by' => $company->id,
                     ]);
                 } catch (\Exception $e) {
-                    $this->command->error('Failed to create onboarding for candidate: ' . $candidate->first_name . ' ' . $candidate->last_name . ' in company: ' . $company->name);
+                    $this->command->error('Failed to create onboarding for employee: ' . $employee->name . ' in company: ' . $company->name);
                     continue;
                 }
             }
@@ -80,36 +83,41 @@ class CandidateOnboardingSeeder extends Seeder
     }
 
     /**
-     * Select appropriate checklist based on candidate's job title
+     * Select appropriate checklist based on employee's job title
      */
-    private function selectChecklistForCandidate($candidate, $checklists)
+    private function selectChecklistForEmployee($employee, $checklists)
     {
-        $jobTitle = strtolower($candidate->job->title ?? '');
+        $jobTitle = strtolower($employee->employee->designation->name ?? '');
 
         // Match checklist based on job title keywords
         if (str_contains($jobTitle, 'developer') || str_contains($jobTitle, 'engineer') || str_contains($jobTitle, 'devops')) {
             $checklist = $checklists->where('name', 'Technical Team Onboarding')->first();
-            if ($checklist) return $checklist;
+            if ($checklist)
+                return $checklist;
         }
 
         if (str_contains($jobTitle, 'manager') || str_contains($jobTitle, 'director') || str_contains($jobTitle, 'lead')) {
             $checklist = $checklists->where('name', 'Management Level Onboarding')->first();
-            if ($checklist) return $checklist;
+            if ($checklist)
+                return $checklist;
         }
 
         if (str_contains($jobTitle, 'sales') || str_contains($jobTitle, 'business development')) {
             $checklist = $checklists->where('name', 'Sales Team Onboarding')->first();
-            if ($checklist) return $checklist;
+            if ($checklist)
+                return $checklist;
         }
 
         if (str_contains($jobTitle, 'customer') || str_contains($jobTitle, 'support')) {
             $checklist = $checklists->where('name', 'Customer Service Onboarding')->first();
-            if ($checklist) return $checklist;
+            if ($checklist)
+                return $checklist;
         }
 
         if (str_contains($jobTitle, 'intern')) {
             $checklist = $checklists->where('name', 'Intern Onboarding Program')->first();
-            if ($checklist) return $checklist;
+            if ($checklist)
+                return $checklist;
         }
 
         // Default to standard onboarding or first available checklist

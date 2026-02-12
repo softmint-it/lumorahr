@@ -20,18 +20,7 @@ export const rolesConfig: CrudConfig = {
     columns: [
       { key: 'label', label: t('Name'), sortable: true },
       { key: 'name', label: t('Slug'), sortable: true },
-      { key: 'description', label: t('Description') },
-      { 
-        key: 'creator.name', 
-        label: t('Created By'), 
-        render: (value, row) => row.creator?.name || t('System')
-      },
-      { 
-        key: 'created_at', 
-        label: t('Created At'), 
-        sortable: true, 
-        render: (value) => `${window.appSettings.formatDateTime(value, false)}` 
-      }
+      { key: 'description', label: t('Description') }
       // Permissions column will be added dynamically in the Roles component
     ],
     actions: [

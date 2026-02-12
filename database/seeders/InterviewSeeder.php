@@ -110,7 +110,7 @@ class InterviewSeeder extends Seeder
 
         foreach ($companies as $company) {
             // Get candidates for this company
-            $candidates = Candidate::where('created_by', $company->id)->get();
+            $candidates = Candidate::where('created_by', $company->id)->where('status', 'Interview')->get();
 
             if ($candidates->isEmpty()) {
                 $this->command->warn('No candidates found for company: ' . $company->name . '. Please run CandidateSeeder first.');
@@ -145,16 +145,25 @@ class InterviewSeeder extends Seeder
                 $selectedRounds = $interviewRounds->take(3);
 
                 foreach ($selectedRounds as $roundIndex => $round) {
+                    // Check if interview already exists for this candidate and round
+                    if (Interview::where('candidate_id', $candidate->id)
+                        ->where('round_id', $round->id)
+                        ->exists()) {
+                        continue;
+                    }
+
                     $dataIndex = ($candIndex * 2) + $roundIndex;
                     $interview = $interviewData[$dataIndex % 8];
 
                     // Find matching interview type
                     $interviewType = $interviewTypes->where('name', $interview['interview_type'])->first();
-                    if (!$interviewType) $interviewType = $interviewTypes->first();
+                    if (!$interviewType)
+                        $interviewType = $interviewTypes->first();
 
                     // Select interviewers
                     $selectedInterviewers = $employees->take(2);
-                    $interviewers = $selectedInterviewers->pluck('id')->map(function($id) { return (string)$id; })->toArray();
+                    $interviewers = $selectedInterviewers->pluck('id')->map(function ($id) {
+                        return (string) $id; })->toArray();
 
                     $scheduledDate = date('Y-m-d', strtotime($interview['scheduled_date']));
 

@@ -14,7 +14,7 @@ import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 
 export default function Designations() {
   const { t } = useTranslation();
-  const { auth, designations, departments, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, designations, departments, filters: pageFilters = {}, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
   
   // State
@@ -92,12 +92,16 @@ export default function Designations() {
   
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
-      toast.loading(t('Creating designation...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Creating designation...'));
+      }
       
       router.post(route('hr.designations.store'), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -105,7 +109,9 @@ export default function Designations() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -114,12 +120,16 @@ export default function Designations() {
         }
       });
     } else if (formMode === 'edit') {
-      toast.loading(t('Updating designation...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Updating designation...'));
+      }
       
       router.put(route('hr.designations.update', currentItem.id), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -127,7 +137,9 @@ export default function Designations() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -139,12 +151,16 @@ export default function Designations() {
   };
   
   const handleDeleteConfirm = () => {
-    toast.loading(t('Deleting designation...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting designation...'));
+    }
     
     router.delete(route('hr.designations.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -152,7 +168,9 @@ export default function Designations() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -164,11 +182,15 @@ export default function Designations() {
   
   const handleToggleStatus = (designation: any) => {
     const newStatus = designation.status === 'active' ? 'inactive' : 'active';
-    toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} designation...`);
+    if (!globalSettings?.is_demo) {
+      toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} designation...`);
+    }
     
     router.put(route('hr.designations.toggle-status', designation.id), {}, {
       onSuccess: (page) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -176,7 +198,9 @@ export default function Designations() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -262,7 +286,7 @@ export default function Designations() {
       key: 'created_at', 
       label: t('Created At'), 
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -309,7 +333,7 @@ export default function Designations() {
 
   return (
     <PageTemplate 
-      title={t("Designation Management")} 
+      title={t("Designations")} 
       url="/hr/designations"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -327,6 +351,7 @@ export default function Designations() {
               label: t('Department'),
               type: 'select',
               value: selectedDepartment,
+              searchable: true,
               onChange: setSelectedDepartment,
               options: departmentOptions
             }
@@ -393,6 +418,7 @@ export default function Designations() {
               name: 'department_id', 
               label: t('Department'), 
               type: 'select', 
+              searchable: true,
               options: departments ? departments.map((department: any) => ({
                 value: department.id.toString(),
                 label: `${department.name} (${department.branch?.name || t('No Branch')})`

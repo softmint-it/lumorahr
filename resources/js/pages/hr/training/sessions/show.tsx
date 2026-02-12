@@ -221,12 +221,12 @@ export default function TrainingSessionShow() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Date')}</h3>
-                  <p>{window.appSettings?.formatDateTime(trainingSession.start_date, false) || format(new Date(trainingSession.start_date), 'MMMM dd, yyyy')}</p>
+                  <p>{window.appSettings?.formatDateTimeSimple(trainingSession.start_date, false) || format(new Date(trainingSession.start_date), 'MMMM dd, yyyy')}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Time')}</h3>
                   <p>
-                    {window.appSettings?.formatDateTime(trainingSession.start_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(trainingSession.start_date), 'h:mm a')} - {window.appSettings?.formatDateTime(trainingSession.end_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(trainingSession.end_date), 'h:mm a')}
+                    {window.appSettings?.formatDateTimeSimple(trainingSession.start_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(trainingSession.start_date), 'h:mm a')} - {window.appSettings?.formatDateTimeSimple(trainingSession.end_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(trainingSession.end_date), 'h:mm a')}
                   </p>
                 </div>
                 <div>

@@ -234,7 +234,7 @@ export default function EmployeeReviews() {
       key: 'review_date', 
       label: t('Review Date'),
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'overall_rating', 
@@ -319,16 +319,16 @@ export default function EmployeeReviews() {
 
   // Prepare employee options
   const employeeOptions = [
-    { value: '', label: t('All Employees') },
+    { value: '', label: t('Select Employee'), disabled: true },
     ...(employees || []).map((employee: any) => ({
       value: employee.id.toString(),
-      label: `${employee.first_name} ${employee.last_name} (${employee.employee_id})`
+      label: `${employee.name}  (${employee.employee_id})`
     }))
   ];
 
   // Prepare review cycle options
   const reviewCycleOptions = [
-    { value: '', label: t('All Review Cycles') },
+    { value: '', label: t('Select Review Cycle'), disabled: true },
     ...(reviewCycles || []).map((cycle: any) => ({
       value: cycle.id.toString(),
       label: cycle.name
@@ -356,7 +356,8 @@ export default function EmployeeReviews() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'reviewer_id',
@@ -364,7 +365,8 @@ export default function EmployeeReviews() {
               type: 'select',
               value: selectedReviewer,
               onChange: setSelectedReviewer,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'review_cycle_id',
@@ -372,7 +374,8 @@ export default function EmployeeReviews() {
               type: 'select',
               value: selectedReviewCycle,
               onChange: setSelectedReviewCycle,
-              options: reviewCycleOptions
+              options: reviewCycleOptions,
+              searchable: true
             },
             {
               name: 'status',

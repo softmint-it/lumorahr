@@ -23,7 +23,7 @@ import { UpgradePlanModal } from '@/components/UpgradePlanModal';
 
 export default function Companies() {
   const { t } = useTranslation();
-  const { auth, companies, plans, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, companies, plans, filters: pageFilters = {}, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
   const getInitials = useInitials();
   
@@ -196,12 +196,16 @@ export default function Companies() {
   
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
-      toast.loading(t('Creating company...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Creating company...'));
+      }
       
       router.post(route('companies.store'), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -209,7 +213,9 @@ export default function Companies() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -218,12 +224,16 @@ export default function Companies() {
         }
       });
     } else if (formMode === 'edit') {
-      toast.loading(t('Updating company...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Updating company...'));
+      }
       
       router.put(route('companies.update', currentCompany.id), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -231,7 +241,9 @@ export default function Companies() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -243,12 +255,16 @@ export default function Companies() {
   };
   
   const handleDeleteConfirm = () => {
-    toast.loading(t('Deleting company...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting company...'));
+    }
     
     router.delete(route("companies.destroy", currentCompany.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -256,7 +272,9 @@ export default function Companies() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -267,12 +285,16 @@ export default function Companies() {
   };
   
   const handleResetPasswordConfirm = (data: { password: string }) => {
-    toast.loading(t('Resetting password...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Resetting password...'));
+    }
     
     router.put(route('companies.reset-password', currentCompany.id), data, {
       onSuccess: (page) => {
         setIsResetPasswordModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -280,7 +302,9 @@ export default function Companies() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -292,11 +316,15 @@ export default function Companies() {
   
   const handleToggleStatus = (company: any) => {
     const newStatus = company.status === 'active' ? 'inactive' : 'active';
-    toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} company...`);
+    if (!globalSettings?.is_demo) {
+      toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} company...`);
+    }
     
     router.put(route('companies.toggle-status', company.id), {}, {
       onSuccess: (page) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -304,7 +332,9 @@ export default function Companies() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -331,22 +361,30 @@ export default function Companies() {
     setCurrentCompany(company);
     
     // Fetch available plans
-    toast.loading(t('Loading plans...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Loading plans...'));
+    }
     fetch(route('companies.plans', company.id))
     .then(res => res.json())
     .then(data => {
         setAvailablePlans(data.plans);
         setIsUpgradePlanModalOpen(true);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
       })
       .catch(err => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         toast.error(t('Failed to load plans'));
       });
   };
   
   const handleUpgradePlanConfirm = (planId: number,duration: string) => {
-    toast.loading(t('Upgrading plan...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Upgrading plan...'));
+    }
     
     // Use Inertia router to handle the request
     router.put(route('companies.upgrade-plan', currentCompany.id), { 
@@ -356,12 +394,16 @@ export default function Companies() {
     }, {
       onSuccess: () => {
         setIsUpgradePlanModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         toast.success(t('Plan upgraded successfully'));
         router.reload();
       },
       onError: () => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         toast.error(t('Failed to upgrade plan'));
       }
     });
@@ -421,7 +463,7 @@ export default function Companies() {
 
   return (
     <PageTemplate 
-      title={t("Companies Management")} 
+      title={t("Companies")} 
       url="/companies"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -749,19 +791,6 @@ export default function Companies() {
                     )}
                   </div>
                 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-4 border border-gray-200 rounded-md">
-                      <div className="text-xl font-bold text-gray-900 mb-1">{company.business_count || 0}</div>
-                      <div className="text-xs text-gray-600">{t("Businesses")}</div>
-                    </div>
-                    
-                    <div className="text-center p-4 border border-gray-200 rounded-md">
-                      <div className="text-xl font-bold text-gray-900 mb-1">{company.appointments_count || 0}</div>
-                      <div className="text-xs text-gray-600">{t("Appointments")}</div>
-                    </div>
-                  </div>
-                
                   {/* Action buttons */}
                   <div className="flex gap-2">
                     <Button 
@@ -844,7 +873,8 @@ export default function Companies() {
               label: t('Enable Login'),
               placeholder: '', // Empty placeholder to prevent duplicate label
               type: 'switch',
-              defaultValue: true
+              defaultValue: true,
+              conditional: (mode) => mode === 'create'
             },
             { 
               name: 'password', 
@@ -852,7 +882,7 @@ export default function Companies() {
               type: 'password',
               required: (mode) => mode === 'create',
               conditional: (mode, data) => {
-                return data?.login_enabled === true;
+                return mode === 'create' && data?.login_enabled === true;
               }
             }
           ],

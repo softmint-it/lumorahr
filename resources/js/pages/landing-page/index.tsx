@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePage, Head } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
@@ -18,6 +19,7 @@ import { useBrand } from '@/contexts/BrandContext';
 import { THEME_COLORS } from '@/hooks/use-appearance';
 import { useFavicon } from '@/hooks/use-favicon';
 import { log } from 'node:console';
+import { isDemoMode, setCookie, isSaaS, getCookie } from '@/utils/helpers';
 
 interface Plan {
   id: number;
@@ -98,6 +100,7 @@ interface PageProps {
 }
 
 export default function LandingPage() {
+  const { i18n } = useTranslation();
   const pageProps = usePage<PageProps>();
   const { plans, testimonials, faqs, customPages = [], settings, flash } = pageProps.props;
   const globalSettings = (pageProps.props as any).globalSettings;
@@ -106,7 +109,100 @@ export default function LandingPage() {
   const { themeColor, customColor } = useBrand();
   const configPrimaryColor = settings.config_sections?.theme?.primary_color;
   const primaryColor = configPrimaryColor || (themeColor === 'custom' ? customColor : THEME_COLORS[themeColor as keyof typeof THEME_COLORS]);
+  // const userLanguage = globalSettings?.defaultLanguage || 'en';
+  const userLanguage = (usePage().props as any).userLanguage;
   useFavicon();
+
+  // Initialize i18n with default language
+  React.useEffect(() => {
+    if (userLanguage && i18n.language !== userLanguage) {
+      i18n.changeLanguage(userLanguage);
+    }
+  }, [userLanguage, i18n]);
+
+  // RTL Support for landing page - Apply immediately and persist
+  const applyRTLDirection = React.useCallback(() => {
+    const isDemo = globalSettings?.is_demo || false;
+    const currentLang = userLanguage || globalSettings?.defaultLanguage || 'en';;
+    const isRTLLanguage = ['ar', 'he'].includes(currentLang);
+    let dir = 'ltr';
+
+    const getCookie = (name: string): string | null => {
+      if (typeof document === 'undefined') return null;
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) {
+        const cookieValue = parts.pop()?.split(';').shift();
+        return cookieValue ? decodeURIComponent(cookieValue) : null;
+      }
+      return null;
+    };
+
+    // Check RTL setting from cookies/globalSettings
+    const layoutDirection = isDemo ? getCookie('layoutPosition') : globalSettings?.layoutDirection;
+    const isRTLSetting = layoutDirection === 'right';
+
+    // Apply RTL if: 1) Language is ar/he OR 2) RTL setting is enabled
+    if (isRTLLanguage || isRTLSetting) {
+      dir = 'rtl';
+    }
+
+    // Apply direction immediately
+    document.documentElement.dir = dir;
+    document.documentElement.setAttribute('dir', dir);
+    document.body.dir = dir;
+
+    return dir;
+  }, [userLanguage, globalSettings?.defaultLanguage, globalSettings?.is_demo, globalSettings?.layoutDirection]);
+
+  // Apply RTL on mount and when dependencies change
+  React.useLayoutEffect(() => {
+    const direction = applyRTLDirection();
+
+    // Ensure direction persists after any DOM changes
+    const observer = new MutationObserver(() => {
+      if (document.documentElement.dir !== direction) {
+        document.documentElement.dir = direction;
+        document.documentElement.setAttribute('dir', direction);
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['dir']
+    });
+
+    return () => observer.disconnect();
+  }, [applyRTLDirection]);
+
+  // Apply theme mode (dark/light) to landing page
+  React.useEffect(() => {
+    let themeMode = 'light'; // default
+
+    if (isDemoMode()) {
+      // In demo mode, get theme from cookies
+      try {
+        const themeSettings = getCookie('themeSettings');
+        if (themeSettings) {
+          const parsed = JSON.parse(themeSettings);
+          themeMode = parsed.appearance || 'light';
+        }
+      } catch (error) {
+        // Use default
+      }
+    } else {
+      // In live mode, get theme from database
+      themeMode = globalSettings?.themeMode || 'light';
+    }
+
+    // Apply theme mode
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = themeMode === 'dark' || (themeMode === 'system' && prefersDark);
+
+    document.documentElement.classList.toggle('dark', isDark);
+    document.body.classList.toggle('dark', isDark);
+  }, [globalSettings?.themeMode]);
+
   // SEO Meta tags
   React.useEffect(() => {
     const seo = settings.config_sections?.seo;
@@ -157,49 +253,49 @@ export default function LandingPage() {
   }, [settings.config_sections?.custom_js]);
 
   // RTL Support for landing page
-  React.useEffect(() => {
-    const isDemo = globalSettings?.is_demo || false;
-    let storedPosition = 'left';
+  // React.useEffect(() => {
+  //   const isDemo = globalSettings?.is_demo || false;
+  //   let storedPosition = 'left';
 
-    if (isDemo) {
-      // In demo mode, use cookies
-      const getCookie = (name: string): string | null => {
-        if (typeof document === 'undefined') return null;
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) {
-          const cookieValue = parts.pop()?.split(';').shift();
-          return cookieValue ? decodeURIComponent(cookieValue) : null;
-        }
-        return null;
-      };
-      const stored = getCookie('layoutPosition');
-      if (stored === 'left' || stored === 'right') {
-        storedPosition = stored;
-      }
-    } else {
-      // In normal mode, get from database via globalSettings
-      const stored = globalSettings?.layoutDirection;
+  //   if (isDemo) {
+  //     // In demo mode, use cookies
+  //     const getCookie = (name: string): string | null => {
+  //       if (typeof document === 'undefined') return null;
+  //       const value = `; ${document.cookie}`;
+  //       const parts = value.split(`; ${name}=`);
+  //       if (parts.length === 2) {
+  //         const cookieValue = parts.pop()?.split(';').shift();
+  //         return cookieValue ? decodeURIComponent(cookieValue) : null;
+  //       }
+  //       return null;
+  //     };
+  //     const stored = getCookie('layoutPosition');
+  //     if (stored === 'left' || stored === 'right') {
+  //       storedPosition = stored;
+  //     }
+  //   } else {
+  //     // In normal mode, get from database via globalSettings
+  //     const stored = globalSettings?.layoutDirection;
 
-      if (stored === 'left' || stored === 'right') {
-        storedPosition = stored;
-      }
-    }
+  //     if (stored === 'left' || stored === 'right') {
+  //       storedPosition = stored;
+  //     }
+  //   }
 
-    const dir = storedPosition === 'right' ? 'rtl' : 'ltr';    
-    document.documentElement.dir = dir;
-    document.documentElement.setAttribute('dir', dir);
-    
-    // Check if it was actually set
-    setTimeout(() => {
-      const actualDir = document.documentElement.getAttribute('dir');
-      if (actualDir !== dir) {
-        document.documentElement.dir = dir;
-        document.documentElement.setAttribute('dir', dir);
-      }
-    }, 1);
-    
-  }, []);
+  //   const dir = storedPosition === 'right' ? 'rtl' : 'ltr';    
+  //   document.documentElement.dir = dir;
+  //   document.documentElement.setAttribute('dir', dir);
+
+  //   // Check if it was actually set
+  //   setTimeout(() => {
+  //     const actualDir = document.documentElement.getAttribute('dir');
+  //     if (actualDir !== dir) {
+  //       document.documentElement.dir = dir;
+  //       document.documentElement.setAttribute('dir', dir);
+  //     }
+  //   }, 1);
+
+  // }, []);
 
   // Get section data helper
   const getSectionData = (key: string) => {
@@ -343,7 +439,7 @@ export default function LandingPage() {
           '--brand-color': primaryColor,
           '--primary-color': settings.config_sections?.theme?.primary_color || primaryColor,
           '--secondary-color': settings.config_sections?.theme?.secondary_color || '#8b5cf6',
-          '--accent-color': settings.config_sections?.theme?.accent_color || '#10b981'
+          '--accent-color': settings.config_sections?.theme?.accent_color || '#10b77f'
         } as React.CSSProperties}
       >
         {sectionOrder.map((sectionKey) => {

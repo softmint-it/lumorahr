@@ -304,7 +304,7 @@ export default function Users() {
 
   const breadcrumbs = [
     { title: t('Dashboard'), href: route('dashboard') },
-    { title: t('User Management'), href: route('users.index') },
+    { title: t('Staff'), href: route('users.index') },
     { title: t('Users') }
   ];
 
@@ -343,7 +343,7 @@ export default function Users() {
       key: 'created_at', 
       label: t('Joined'), 
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -567,7 +567,7 @@ export default function Users() {
                 
                   {/* Joined date */}
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    {t("Joined:")} {window.appSettings?.formatDateTime(user.created_at, false) || new Date(user.created_at).toLocaleDateString()}
+                    {t("Joined:")} {window.appSettings?.formatDateTimeSimple(user.created_at, false) || new Date(user.created_at).toLocaleDateString()}
                   </div>
                 
                   {/* Action buttons */}

@@ -326,10 +326,10 @@ export default function ContractRenewals() {
         <div>
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">Current ends: {window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()}</span>
+            <span className="text-sm">Current ends: {window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()}</span>
           </div>
           <div className="text-xs text-gray-500">
-            New: {window.appSettings?.formatDateTime(row.new_start_date, false) || new Date(row.new_start_date).toLocaleDateString()} - {window.appSettings?.formatDateTime(row.new_end_date, false) || new Date(row.new_end_date).toLocaleDateString()}
+            New: {window.appSettings?.formatDateTimeSimple(row.new_start_date, false) || new Date(row.new_start_date).toLocaleDateString()} - {window.appSettings?.formatDateTimeSimple(row.new_end_date, false) || new Date(row.new_end_date).toLocaleDateString()}
           </div>
         </div>
       )
@@ -377,7 +377,7 @@ export default function ContractRenewals() {
         if (!value) return '-';
         return (
           <div>
-            <div className="text-sm">{window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()}</div>
+            <div className="text-sm">{window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()}</div>
             <div className="text-xs text-gray-500">{row.approver?.name}</div>
           </div>
         );
@@ -436,7 +436,7 @@ export default function ContractRenewals() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses'), disabled: true },
     { value: 'Pending', label: t('Pending') },
     { value: 'Approved', label: t('Approved') },
     { value: 'Rejected', label: t('Rejected') },
@@ -444,7 +444,7 @@ export default function ContractRenewals() {
   ];
 
   const contractOptions = [
-    { value: '_empty_', label: t('All Contracts') },
+    { value: '_empty_', label: t('All Contracts'), disabled: true },
     ...(contracts || []).map((contract: any) => ({
       value: contract.id.toString(),
       label: `${contract.contract_number} - ${contract.employee?.name} (Expires: ${format(new Date(contract.end_date), 'MMM dd, yyyy')})`
@@ -495,7 +495,8 @@ export default function ContractRenewals() {
               type: 'select',
               value: contractFilter,
               onChange: setContractFilter,
-              options: contractOptions
+              options: contractOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -557,7 +558,8 @@ export default function ContractRenewals() {
               label: t('Contract'), 
               type: 'select', 
               required: true,
-              options: contractSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: contractSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'new_start_date', 
@@ -615,7 +617,8 @@ export default function ContractRenewals() {
               label: t('Requested By'), 
               type: 'select', 
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '_empty_')
+              options: employeeOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             }
           ],
           modalSize: 'xl'

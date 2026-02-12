@@ -71,11 +71,9 @@ class PlanOrderController extends BaseController
         try {
             $planOrder->approve(Auth::id());
 
-            return redirect()->route('plan-orders.index')
-                ->with('success', __('Plan order approved successfully!'));
+            return redirect()->back()->with('success', __('Plan order approved successfully!'));
         } catch (\Exception $e) {
-            return redirect()->route('plan-orders.index')
-                ->with('error', __('Failed to approve plan order: ') . $e->getMessage());
+            return redirect()->back()->with('error', $e->getMessage() ?: __('Failed to approve plan order'));
         }
     }
 
@@ -88,11 +86,9 @@ class PlanOrderController extends BaseController
 
             $planOrder->reject(Auth::id(), $request->notes);
 
-            return redirect()->route('plan-orders.index')
-                ->with('success', __('Plan order rejected successfully!'));
+            return redirect()->back()->with('success', __('Plan order rejected successfully!'));
         } catch (\Exception $e) {
-            return redirect()->route('plan-orders.index')
-                ->with('error', __('Failed to reject plan order: ') . $e->getMessage());
+            return redirect()->back()->with('error', $e->getMessage() ?: __('Failed to reject plan order'));
         }
     }
 }

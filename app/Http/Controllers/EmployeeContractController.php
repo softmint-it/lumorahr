@@ -9,59 +9,81 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class EmployeeContractController extends Controller
 {
     public function index(Request $request)
     {
-        $query = EmployeeContract::withPermissionCheck()->with(['employee', 'contractType', 'approver']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('contract_number', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('employee', function ($eq) use ($request) {
-                        $eq->where('name', 'like', '%' . $request->search . '%');
-                    });
+        if (Auth::user()->can('manage-employee-contracts')) {
+            $query = EmployeeContract::with(['employee', 'contractType', 'approver'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-awards')) {
+                    $q->whereIn('created_by', getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-employee-contracts')) {
+                    $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id())->orWhere('approved_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('contract_number', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('employee', function ($eq) use ($request) {
+                            $eq->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('contract_type_id') && !empty($request->contract_type_id) && $request->contract_type_id !== 'all') {
+                $query->where('contract_type_id', $request->contract_type_id);
+            }
+
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+            // Handle sorting
+            $allowedSortFields = ['id', 'contract_number', 'start_date', 'end_date', 'basic_salary', 'status', 'created_at'];
+            $sortField = in_array($request->sort_field, $allowedSortFields) ? $request->sort_field : 'id';
+            $sortDirection = in_array(strtolower($request->sort_direction), ['asc', 'desc']) ? $request->sort_direction : 'desc';
+
+            $query->orderBy($sortField, $sortDirection);
+
+            // Auto-update expired contracts
+            EmployeeContract::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'Active')
+                ->where('end_date', '<', Carbon::today())
+                ->update(['status' => 'Expired']);
+
+            $query->orderBy('id', 'desc');
+
+            $query->orderBy('id', 'desc');
+            $employeeContracts = $query->paginate($request->per_page ?? 10);
+
+            $contractTypes = ContractType::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get();
+
+            $employees = User::whereIn('created_by', getCompanyAndUsersId())
+                ->where('type', 'employee')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('hr/contracts/employee-contracts/index', [
+                'employeeContracts' => $employeeContracts,
+                'contractTypes' => $contractTypes,
+                'employees' => $employees,
+                'filters' => $request->all(['search', 'status', 'contract_type_id', 'employee_id', 'per_page', 'sort_field', 'sort_direction']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('contract_type_id') && !empty($request->contract_type_id) && $request->contract_type_id !== 'all') {
-            $query->where('contract_type_id', $request->contract_type_id);
-        }
-
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Auto-update expired contracts
-        EmployeeContract::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'Active')
-            ->where('end_date', '<', Carbon::today())
-            ->update(['status' => 'Expired']);
-
-        $query->orderBy('id', 'desc');
-        $employeeContracts = $query->paginate($request->per_page ?? 10);
-
-        $contractTypes = ContractType::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get();
-
-        $employees = User::whereIn('created_by', getCompanyAndUsersId())
-            ->where('type', 'employee')
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('hr/contracts/employee-contracts/index', [
-            'employeeContracts' => $employeeContracts,
-            'contractTypes' => $contractTypes,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'status', 'contract_type_id', 'employee_id', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)
@@ -72,13 +94,22 @@ class EmployeeContractController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',
             'basic_salary' => 'required|numeric|min:0',
-            'allowances' => 'nullable|array',
-            'benefits' => 'nullable|array',
             'terms_conditions' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        // Check for duplicate contract
+        $existingContract = EmployeeContract::where('employee_id', $request->employee_id)
+            ->where('contract_type_id', $request->contract_type_id)
+            ->where('start_date', $request->start_date)
+            ->where('end_date', $request->end_date)
+            ->first();
+
+        if ($existingContract) {
+            return redirect()->back()->with('error', __('A contract with the same details already exists for this employee.'));
         }
 
         // Generate contract number
@@ -95,8 +126,6 @@ class EmployeeContractController extends Controller
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'basic_salary' => $request->basic_salary,
-            'allowances' => $request->allowances,
-            'benefits' => $request->benefits,
             'terms_conditions' => $request->terms_conditions,
             'created_by' => creatorId(),
         ]);
@@ -116,13 +145,23 @@ class EmployeeContractController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',
             'basic_salary' => 'required|numeric|min:0',
-            'allowances' => 'nullable|array',
-            'benefits' => 'nullable|array',
             'terms_conditions' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        // Check for duplicate contract (excluding current contract)
+        $existingContract = EmployeeContract::where('employee_id', $request->employee_id)
+            ->where('contract_type_id', $request->contract_type_id)
+            ->where('start_date', $request->start_date)
+            ->where('end_date', $request->end_date)
+            ->where('id', '!=', $employeeContract->id)
+            ->first();
+
+        if ($existingContract) {
+            return redirect()->back()->with('error', __('A contract with the same details already exists for this employee.'));
         }
 
         $employeeContract->update([
@@ -131,8 +170,6 @@ class EmployeeContractController extends Controller
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'basic_salary' => $request->basic_salary,
-            'allowances' => $request->allowances,
-            'benefits' => $request->benefits,
             'terms_conditions' => $request->terms_conditions,
         ]);
 

@@ -37,7 +37,9 @@ export default function SystemSettings({
     calendarStartDay: 'sunday',
     defaultTimezone: 'UTC',
     emailVerification: false,
-    landingPageEnabled: true
+    landingPageEnabled: true,
+    ipRestrictionEnabled: false,
+    termsConditionsUrl: ''
   };
 
   // Combine settings from props and page props
@@ -54,7 +56,9 @@ export default function SystemSettings({
     calendarStartDay: settingsData.calendarStartDay || defaultSettings.calendarStartDay,
     defaultTimezone: settingsData.defaultTimezone || defaultSettings.defaultTimezone,
     emailVerification: settingsData.emailVerification === 'true' || settingsData.emailVerification === true || defaultSettings.emailVerification,
-    landingPageEnabled: settingsData.landingPageEnabled === 'true' || settingsData.landingPageEnabled === true || settingsData.landingPageEnabled === '1' || (settingsData.landingPageEnabled === undefined ? defaultSettings.landingPageEnabled : false)
+    landingPageEnabled: settingsData.landingPageEnabled === 'true' || settingsData.landingPageEnabled === true || settingsData.landingPageEnabled === '1' || (settingsData.landingPageEnabled === undefined ? defaultSettings.landingPageEnabled : false),
+    ipRestrictionEnabled: settingsData.ipRestrictionEnabled === '1' || settingsData.ipRestrictionEnabled === 1 || defaultSettings.ipRestrictionEnabled,
+    termsConditionsUrl: settingsData.termsConditionsUrl || defaultSettings.termsConditionsUrl
   }));
 
   // Update state when settings change
@@ -70,7 +74,9 @@ export default function SystemSettings({
         ...prevSettings,
         ...mergedSettings,
         emailVerification: mergedSettings.emailVerification === 'true' || mergedSettings.emailVerification === true || mergedSettings.emailVerification === '1',
-        landingPageEnabled: mergedSettings.landingPageEnabled === 'true' || mergedSettings.landingPageEnabled === true || mergedSettings.landingPageEnabled === '1' || (mergedSettings.landingPageEnabled === undefined ? defaultSettings.landingPageEnabled : false)
+        landingPageEnabled: mergedSettings.landingPageEnabled === 'true' || mergedSettings.landingPageEnabled === true || mergedSettings.landingPageEnabled === '1' || (mergedSettings.landingPageEnabled === undefined ? defaultSettings.landingPageEnabled : false),
+        ipRestrictionEnabled: mergedSettings.ipRestrictionEnabled === '1' || mergedSettings.ipRestrictionEnabled === 1 || false,
+        termsConditionsUrl: mergedSettings.termsConditionsUrl || defaultSettings.termsConditionsUrl
       }));
     }
   }, [settingsData]);
@@ -96,13 +102,20 @@ export default function SystemSettings({
       calendarStartDay: systemSettings.calendarStartDay,
       defaultTimezone: systemSettings.defaultTimezone,
       emailVerification: Boolean(systemSettings.emailVerification),
-      landingPageEnabled: Boolean(systemSettings.landingPageEnabled)
+      landingPageEnabled: Boolean(systemSettings.landingPageEnabled),
+      ipRestrictionEnabled: systemSettings.ipRestrictionEnabled ? 1 : 0,
+      termsConditionsUrl: systemSettings.termsConditionsUrl
     };
 
     // Only include email verification and landing page for non-company users
     if (!isCompanyUser) {
       cleanSettings.emailVerification = Boolean(systemSettings.emailVerification);
       cleanSettings.landingPageEnabled = Boolean(systemSettings.landingPageEnabled);
+    }
+    
+    // IP Restriction is available for company users
+    if (isCompanyUser) {
+      cleanSettings.ipRestrictionEnabled = systemSettings.ipRestrictionEnabled ? 1 : 0;
     }
 
     // Submit to backend using Inertia
@@ -250,6 +263,7 @@ export default function SystemSettings({
             </Select>
           </div>
 
+          {/* SaaS Version - Super Admin Only */}
           {!isCompanyUser && (
             <>
               <div className="grid gap-2">
@@ -307,6 +321,7 @@ export default function SystemSettings({
             </Select>
           </div>
 
+          {/* SaaS Version - Super Admin Only */}
           {!isCompanyUser && (
             <>
               <div className="grid gap-2 md:col-span-2">
@@ -337,6 +352,41 @@ export default function SystemSettings({
                     id="landingPageEnabled"
                     checked={systemSettings.landingPageEnabled}
                     onCheckedChange={(checked) => handleSystemSettingsChange('landingPageEnabled', checked)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:col-span-2">
+                <Label htmlFor="termsConditionsUrl">{t("Terms and Conditions URL")}</Label>
+                <Input
+                  id="termsConditionsUrl"
+                  type="url"
+                  placeholder="https://example.com/terms"
+                  value={systemSettings.termsConditionsUrl}
+                  onChange={(e) => handleSystemSettingsChange('termsConditionsUrl', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t("Enter the URL for your Terms and Conditions page that will be linked in the registration form")}
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Non-SaaS Version - Company Only */}
+          {isCompanyUser && (
+            <>
+              <div className="grid gap-2 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="ipRestrictionEnabled">{t("IP Restriction")}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t("Enable IP address restrictions for enhanced security")}
+                    </p>
+                  </div>
+                  <Switch
+                    id="ipRestrictionEnabled"
+                    checked={systemSettings.ipRestrictionEnabled}
+                    onCheckedChange={(checked) => handleSystemSettingsChange('ipRestrictionEnabled', checked)}
                   />
                 </div>
               </div>

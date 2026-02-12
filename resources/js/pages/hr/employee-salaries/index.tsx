@@ -227,15 +227,15 @@ export default function EmployeeSalaries() {
   // Define page actions
   const pageActions = [];
 
-  // Add the "Add New Salary" button if user has permission
-  if (hasPermission(permissions, 'create-employee-salaries')) {
-    pageActions.push({
-      label: t('Add Employee Salary'),
-      icon: <Plus className="h-4 w-4 mr-2" />,
-      variant: 'default',
-      onClick: () => handleAddNew()
-    });
-  }
+  // Need to Remove Add the "Add New Salary" button if user has permission
+  // if (hasPermission(permissions, 'create-employee-salaries')) {
+  //   pageActions.push({
+  //     label: t('Add Employee Salary'),
+  //     icon: <Plus className="h-4 w-4 mr-2" />,
+  //     variant: 'default',
+  //     onClick: () => handleAddNew()
+  //   });
+  // }
 
   const breadcrumbs = [
     { title: t('Dashboard'), href: route('dashboard') },
@@ -307,7 +307,7 @@ export default function EmployeeSalaries() {
       key: 'created_at',
       label: t('Created At'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -352,7 +352,7 @@ export default function EmployeeSalaries() {
 
   // Prepare options for filters and forms
   const employeeOptions = [
-    { value: 'all', label: t('All Employees') },
+    { value: 'all', label: t('All Employees'), disabled : true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -360,14 +360,14 @@ export default function EmployeeSalaries() {
   ];
 
   const isActiveOptions = [
-    { value: 'all', label: t('All Status') },
+    { value: 'all', label: t('All Status') , disabled : true},
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   return (
     <PageTemplate
-      title={t("Employee Salary Management")}
+      title={t("Employee Salaries")}
       url="/hr/employee-salaries"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -386,7 +386,8 @@ export default function EmployeeSalaries() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable : true
             },
             {
               name: 'is_active',
@@ -459,16 +460,19 @@ export default function EmployeeSalaries() {
               label: t('Employee'),
               type: 'select',
               required: true,
+              searchable : true,
+              disabled: formMode === 'edit' || formMode === 'view',
               options: employees ? employees.map((emp: any) => ({
                 value: emp.id.toString(),
                 label: emp.name
               })) : []
             },
-            { name: 'basic_salary', label: t('Basic Salary'), type: 'number', required: true, min: 0, step: 0.01 },
+            { name: 'basic_salary', label: t('Basic Salary'), type: 'number', min: 0, step: 0.01, readOnly: true },
             {
               name: 'components',
               label: t('Salary Components'),
               type: 'multi-select',
+              searchable : true,
               options: salaryComponents ? salaryComponents.map((comp: any) => ({
                 value: comp.id.toString(),
                 label: `${comp.name} (${comp.type}) - ${comp.calculation_type === 'percentage' ? comp.percentage_of_basic + '%' : 'Rs.' + comp.default_amount}`

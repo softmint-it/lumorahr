@@ -218,53 +218,69 @@ export default function MediaLibraryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5" />
-            Media Library
-            {filteredMedia.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {filteredMedia.length}
-              </Badge>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            Browse and select media files from your library
-          </DialogDescription>
+      <DialogContent className="max-w-7xl h-[95vh] flex flex-col">
+        <DialogHeader className="pb-6 border-b">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <ImageIcon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-semibold">
+                Media Library
+                {filteredMedia.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {filteredMedia.length}
+                  </Badge>
+                )}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground mt-1">
+                Browse and select media files from your library
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
           {/* Directory Navigation */}
-          <div className="flex items-center gap-2 flex-wrap pb-3 border-b">
-            <Button
-              variant={currentDirectory === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentDirectory(null)}
-            >
-              All Files
-            </Button>
-            {directories.map((dir: any) => (
-              <Button
-                key={dir.id}
-                variant={currentDirectory === dir.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentDirectory(dir.id)}
-              >
-                {dir.name}
-              </Button>
-            ))}
-          </div>
+          {directories.length > 0 && (
+            <div className="bg-muted/30 rounded-lg p-3 border">
+              <div className="flex items-center gap-2">
+                <div className="max-h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={currentDirectory === null ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setCurrentDirectory(null)}
+                      className="h-7 px-3 text-xs"
+                    >
+                      All Files
+                    </Button>
+                    {directories.map((dir: any) => (
+                      <Button
+                        key={dir.id}
+                        variant={currentDirectory === dir.id ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setCurrentDirectory(dir.id)}
+                        className="h-7 px-3 text-xs"
+                      >
+                        {dir.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Header with Search and Upload */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search media files..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10"
               />
             </div>
 
@@ -273,17 +289,16 @@ export default function MediaLibraryModal({
                 <Input
                   type="file"
                   multiple
-
+                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
                   onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
                   className="hidden"
                   id="file-upload"
                 />
                 <Button
                   type="button"
-                  variant="outline"
                   onClick={() => document.getElementById('file-upload')?.click()}
                   disabled={uploading}
-                  size="sm"
+                  className="h-10 px-4"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   {uploading ? 'Uploading...' : 'Upload'}
@@ -293,12 +308,19 @@ export default function MediaLibraryModal({
           </div>
 
           {/* Stats and Selection Info */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-md">
-            <span>
-              {filteredMedia.length} files • Page {currentPage} of {totalPages || 1}
-            </span>
+          <div className="flex items-center justify-between text-sm text-muted-foreground bg-muted/20 px-4 py-3 rounded-lg border">
+            <div className="flex items-center gap-4">
+              <span className="font-medium">
+                {filteredMedia.length} files
+              </span>
+              {totalPages > 1 && (
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+              )}
+            </div>
             {multiple && selectedItems.length > 0 && (
-              <Badge variant="default" className="text-xs">
+              <Badge variant="default" className="text-xs px-2 py-1">
                 {selectedItems.length} selected
               </Badge>
             )}
@@ -352,18 +374,18 @@ export default function MediaLibraryModal({
                 </div>
               </div>
             ) : (
-              <div className="p-4 overflow-y-auto flex-1">
-                <div className="grid grid-cols-5 gap-4">
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                   {currentMedia.map((item) => (
                     <div
                       key={item.id}
-                      className={`relative group cursor-pointer rounded-lg overflow-hidden transition-all hover:scale-105 ${selectedItems.includes(item.url)
-                          ? 'ring-2 ring-primary shadow-lg'
-                          : 'hover:shadow-md border border-border hover:border-primary/50'
+                      className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all duration-200 hover:scale-[1.02] ${selectedItems.includes(item.url)
+                          ? 'ring-2 ring-primary shadow-lg scale-[1.02]'
+                          : 'hover:shadow-lg border border-border/50 hover:border-primary/30 hover:shadow-primary/5'
                         }`}
                       onClick={() => handleSelect(item.url)}
                     >
-                      <div className="relative aspect-square bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                      <div className="relative aspect-square bg-gradient-to-br from-muted/50 to-muted overflow-hidden flex items-center justify-center">
                         {item.mime_type.startsWith('image/') ? (
                           <img
                             src={item.thumb_url}
@@ -386,8 +408,8 @@ export default function MediaLibraryModal({
 
                         {/* Selection Indicator */}
                         {selectedItems.includes(item.url) && (
-                          <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
-                            <div className="bg-primary text-primary-foreground rounded-full p-1.5">
+                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-sm">
+                            <div className="bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
                               <Check className="h-4 w-4" />
                             </div>
                           </div>
@@ -397,8 +419,8 @@ export default function MediaLibraryModal({
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
 
                         {/* File Name Tooltip */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-xs text-white truncate" title={item.name}>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                          <p className="text-xs text-white font-medium truncate" title={item.name}>
                             {item.name}
                           </p>
                         </div>
@@ -462,18 +484,18 @@ export default function MediaLibraryModal({
           )}
 
           {/* Actions */}
-          <div className="flex justify-between items-center pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-between items-center pt-6 border-t bg-muted/20 -mx-6 px-6 py-4">
+            <Button variant="outline" onClick={onClose} className="px-6">
               Cancel
             </Button>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {multiple && selectedItems.length > 0 && (
-                <Button variant="outline" onClick={() => setSelectedItems([])} size="sm">
-                  Clear
+                <Button variant="outline" onClick={() => setSelectedItems([])} className="px-4">
+                  Clear Selection
                 </Button>
               )}
               {multiple && selectedItems.length > 0 && (
-                <Button onClick={handleConfirmSelection}>
+                <Button onClick={handleConfirmSelection} className="px-6">
                   Select {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''}
                 </Button>
               )}

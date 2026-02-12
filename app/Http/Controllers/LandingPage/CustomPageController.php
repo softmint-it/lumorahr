@@ -43,7 +43,7 @@ class CustomPageController extends Controller
     }
 
     public function store(Request $request)
-    {
+    {        
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
@@ -65,9 +65,14 @@ class CustomPageController extends Controller
             'content' => 'required|string',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string',
-            'is_active' => 'boolean',
+            'is_active' => 'sometimes|boolean',
             'sort_order' => 'nullable|integer'
         ]);
+
+        // Ensure is_active is properly handled
+        if (!isset($validated['is_active'])) {
+            $validated['is_active'] = $request->has('is_active') ? (bool)$request->input('is_active') : false;
+        }
 
         $customPage->update($validated);
 

@@ -240,16 +240,16 @@ export default function DocumentCategories() {
         </div>
       )
     },
-    { 
-      key: 'sort_order', 
-      label: t('Order'),
-      sortable: true,
-      render: (value) => (
-        <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-          #{value}
-        </span>
-      )
-    },
+    // { 
+    //   key: 'sort_order', 
+    //   label: t('Order'),
+    //   sortable: true,
+    //   render: (value) => (
+    //     <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+    //       #{value}
+    //     </span>
+    //   )
+    // },
     { 
       key: 'documents_count', 
       label: t('Documents'),
@@ -297,7 +297,7 @@ export default function DocumentCategories() {
       key: 'created_at', 
       label: t('Created At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -333,13 +333,13 @@ export default function DocumentCategories() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   const mandatoryOptions = [
-    { value: '_empty_', label: t('All Types') },
+    { value: '_empty_', label: t('All Types'), disabled: true  },
     { value: 'true', label: t('Mandatory') },
     { value: 'false', label: t('Optional') }
   ];
@@ -468,15 +468,16 @@ export default function DocumentCategories() {
               label: t('Icon'), 
               type: 'select', 
               required: true,
-              options: iconOptions
+              options: iconOptions,
+              searchable  : true
             },
-            { 
-              name: 'sort_order', 
-              label: t('Sort Order'), 
-              type: 'number',
-              min: 0,
-              helpText: t('Lower numbers appear first')
-            },
+            // { 
+            //   name: 'sort_order', 
+            //   label: t('Sort Order'), 
+            //   type: 'number',
+            //   min: 0,
+            //   helpText: t('Lower numbers appear first')
+            // },
             { 
               name: 'is_mandatory', 
               label: t('Mandatory Category'), 

@@ -1,15 +1,21 @@
 <?php
 
-use App\Models\Setting;
-use App\Models\User;
 use App\Models\Coupon;
-use Carbon\Carbon;
+use App\Models\Currency;
+use App\Models\PaymentSetting;
 use App\Models\Plan;
 use App\Models\PlanOrder;
 use App\Models\Role;
-use App\Models\PaymentSetting;
+use App\Models\Setting;
+use App\Models\User;
+use App\Services\DynamicStorageService;
+use App\Services\StorageConfigService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Permission;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 if (!function_exists('getCacheSize')) {
     /**
@@ -32,7 +38,7 @@ if (!function_exists('getCacheSize')) {
     }
 }
 
-if (! function_exists('settings')) {
+if (!function_exists('settings')) {
     function settings($user_id = null)
     {
         // Skip database queries during installation
@@ -44,7 +50,8 @@ if (! function_exists('settings')) {
             if (auth()->user()) {
                 if (isSaas()) {
                     if (!in_array(auth()->user()->type, ['superadmin', 'company'])) {
-                        $user_id = auth()->user()->created_by;
+                        $autherUserCreatedBy = auth()->user()->created_by;
+                        $user_id = getCompanyId($autherUserCreatedBy);
                     } else {
                         $user_id = auth()->id();
                     }
@@ -69,14 +76,13 @@ if (! function_exists('settings')) {
         if (!$user_id) {
             return collect();
         }
-
         $userSettings = Setting::where('user_id', $user_id)->pluck('value', 'key')->toArray();
 
         // If user is not superadmin in SaaS mode, merge with superadmin settings for specific keys
         if (isSaas() && auth()->check() && auth()->user()->type !== 'superadmin') {
             $superAdmin = User::where('type', 'superadmin')->first();
             if ($superAdmin) {
-                $superAdminKeys = ['decimalFormat', 'defaultCurrency', 'thousandsSeparator', 'floatNumber', 'currencySymbolSpace', 'currencySymbolPosition', 'dateFormat', 'timeFormat', 'calendarStartDay', 'defaultTimezone'];
+                $superAdminKeys = ['decimalFormat', 'defaultCurrency', 'thousandsSeparator', 'floatNumber', 'currencySymbolSpace', 'currencySymbolPosition', 'dateFormat', 'timeFormat', 'calendarStartDay', 'defaultTimezone', 'contactUsUrl', 'contactUsDescription', 'strictlyCookieDescription', 'cookieDescription', 'strictlyCookieTitle', 'cookieTitle', 'strictlyNecessaryCookies', 'enableLogging'];
                 $superAdminSettings = Setting::where('user_id', $superAdmin->id)
                     ->whereIn('key', $superAdminKeys)
                     ->pluck('value', 'key')
@@ -84,12 +90,11 @@ if (! function_exists('settings')) {
                 $userSettings = array_merge($superAdminSettings, $userSettings);
             }
         }
-
         return $userSettings;
     }
 }
 
-if (! function_exists('formatDateTime')) {
+if (!function_exists('formatDateTime')) {
     function formatDateTime($date, $includeTime = true)
     {
         if (!$date) {
@@ -108,7 +113,7 @@ if (! function_exists('formatDateTime')) {
     }
 }
 
-if (! function_exists('getSetting')) {
+if (!function_exists('getSetting')) {
     function getSetting($key, $default = null, $user_id = null)
     {
         $settings = settings($user_id);
@@ -123,7 +128,7 @@ if (! function_exists('getSetting')) {
     }
 }
 
-if (! function_exists('updateSetting')) {
+if (!function_exists('updateSetting')) {
     function updateSetting($key, $value, $user_id = null)
     {
         if (is_null($user_id)) {
@@ -163,14 +168,14 @@ if (! function_exists('updateSetting')) {
     }
 }
 
-if (! function_exists('isLandingPageEnabled')) {
+if (!function_exists('isLandingPageEnabled')) {
     function isLandingPageEnabled()
     {
         return getSetting('landingPageEnabled', true) === true || getSetting('landingPageEnabled', true) === '1';
     }
 }
 
-if (! function_exists('defaultRoleAndSetting')) {
+if (!function_exists('defaultRoleAndSetting')) {
     function defaultRoleAndSetting($user)
     {
         $companyRole = Role::where('name', 'company')->first();
@@ -186,15 +191,16 @@ if (! function_exists('defaultRoleAndSetting')) {
             copySettingsFromSuperAdmin($user->id);
             $user->companyDefaultData($user);
         }
+
         return true;
     }
 }
 
-if (! function_exists('getPaymentSettings')) {
+if (!function_exists('getPaymentSettings')) {
     /**
      * Get payment settings for a user
      *
-     * @param int|null $userId
+     * @param  int|null  $userId
      * @return array
      */
     function getPaymentSettings($userId = null)
@@ -212,13 +218,13 @@ if (! function_exists('getPaymentSettings')) {
     }
 }
 
-if (! function_exists('updatePaymentSetting')) {
+if (!function_exists('updatePaymentSetting')) {
     /**
      * Update or create a payment setting
      *
-     * @param string $key
-     * @param mixed $value
-     * @param int|null $userId
+     * @param  string  $key
+     * @param  mixed  $value
+     * @param  int|null  $userId
      * @return \App\Models\PaymentSetting
      */
     function updatePaymentSetting($key, $value, $userId = null)
@@ -231,12 +237,12 @@ if (! function_exists('updatePaymentSetting')) {
     }
 }
 
-if (! function_exists('isPaymentMethodEnabled')) {
+if (!function_exists('isPaymentMethodEnabled')) {
     /**
      * Check if a payment method is enabled
      *
-     * @param string $method (stripe, paypal, razorpay, mercadopago, bank)
-     * @param int|null $userId
+     * @param  string  $method  (stripe, paypal, razorpay, mercadopago, bank)
+     * @param  int|null  $userId
      * @return bool
      */
     function isPaymentMethodEnabled($method, $userId = null)
@@ -248,12 +254,12 @@ if (! function_exists('isPaymentMethodEnabled')) {
     }
 }
 
-if (! function_exists('getPaymentMethodConfig')) {
+if (!function_exists('getPaymentMethodConfig')) {
     /**
      * Get configuration for a specific payment method
      *
-     * @param string $method (stripe, paypal, razorpay, mercadopago)
-     * @param int|null $userId
+     * @param  string  $method  (stripe, paypal, razorpay, mercadopago)
+     * @param  int|null  $userId
      * @return array
      */
     function getPaymentMethodConfig($method, $userId = null)
@@ -474,11 +480,11 @@ if (! function_exists('getPaymentMethodConfig')) {
     }
 }
 
-if (! function_exists('getEnabledPaymentMethods')) {
+if (!function_exists('getEnabledPaymentMethods')) {
     /**
      * Get all enabled payment methods
      *
-     * @param int|null $userId
+     * @param  int|null  $userId
      * @return array
      */
     function getEnabledPaymentMethods($userId = null)
@@ -496,12 +502,12 @@ if (! function_exists('getEnabledPaymentMethods')) {
     }
 }
 
-if (! function_exists('validatePaymentMethodConfig')) {
+if (!function_exists('validatePaymentMethodConfig')) {
     /**
      * Validate payment method configuration
      *
-     * @param string $method
-     * @param array $config
+     * @param  string  $method
+     * @param  array  $config
      * @return array [valid => bool, errors => array]
      */
     function validatePaymentMethodConfig($method, $config)
@@ -770,12 +776,12 @@ if (! function_exists('validatePaymentMethodConfig')) {
 
         return [
             'valid' => empty($errors),
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 }
 
-if (! function_exists('calculatePlanPricing')) {
+if (!function_exists('calculatePlanPricing')) {
     function calculatePlanPricing($plan, $couponCode = null, $billingCycle = 'monthly')
     {
         // $originalPrice = $plan->price;
@@ -804,17 +810,16 @@ if (! function_exists('calculatePlanPricing')) {
             'original_price' => $originalPrice,
             'discount_amount' => $discountAmount,
             'final_price' => $finalPrice,
-            'coupon_id' => $couponId
+            'coupon_id' => $couponId,
         ];
     }
 }
 
-if (! function_exists('createPlanOrder')) {
+if (!function_exists('createPlanOrder')) {
     function createPlanOrder($data)
     {
         $plan = Plan::findOrFail($data['plan_id']);
         $pricing = calculatePlanPricing($plan, $data['coupon_code'] ?? null, $data['billing_cycle'] ?? 'monthly');
-
 
         return PlanOrder::create([
             'user_id' => $data['user_id'],
@@ -833,7 +838,7 @@ if (! function_exists('createPlanOrder')) {
     }
 }
 
-if (! function_exists('assignPlanToUser')) {
+if (!function_exists('assignPlanToUser')) {
     function assignPlanToUser($user, $plan, $billingCycle)
     {
         $expiresAt = $billingCycle === 'yearly' ? now()->addYear() : now()->addMonth();
@@ -850,7 +855,7 @@ if (! function_exists('assignPlanToUser')) {
     }
 }
 
-if (! function_exists('processPaymentSuccess')) {
+if (!function_exists('processPaymentSuccess')) {
     function processPaymentSuccess($data)
     {
         $plan = Plan::findOrFail($data['plan_id']);
@@ -869,7 +874,7 @@ if (! function_exists('processPaymentSuccess')) {
     }
 }
 
-if (! function_exists('getPaymentGatewaySettings')) {
+if (!function_exists('getPaymentGatewaySettings')) {
     function getPaymentGatewaySettings()
     {
         $superAdminId = User::where('type', 'superadmin')->first()?->id;
@@ -877,12 +882,12 @@ if (! function_exists('getPaymentGatewaySettings')) {
         return [
             'payment_settings' => PaymentSetting::getUserSettings($superAdminId),
             'general_settings' => Setting::getUserSettings($superAdminId),
-            'super_admin_id' => $superAdminId
+            'super_admin_id' => $superAdminId,
         ];
     }
 }
 
-if (! function_exists('validatePaymentRequest')) {
+if (!function_exists('validatePaymentRequest')) {
     function validatePaymentRequest($request, $additionalRules = [])
     {
         $baseRules = [
@@ -895,14 +900,14 @@ if (! function_exists('validatePaymentRequest')) {
     }
 }
 
-if (! function_exists('handlePaymentError')) {
+if (!function_exists('handlePaymentError')) {
     function handlePaymentError($e, $method = 'payment')
     {
         return back()->withErrors(['error' => __('Payment processing failed: :message', ['message' => $e->getMessage()])]);
     }
 }
 
-if (! function_exists('defaultSettings')) {
+if (!function_exists('defaultSettings')) {
     /**
      * Get default settings for System, Brand, Storage, and Currency configurations
      *
@@ -910,7 +915,7 @@ if (! function_exists('defaultSettings')) {
      */
     function defaultSettings()
     {
-        $settings =  [
+        $settings = [
             // System Settings
             'defaultLanguage' => 'en',
             'dateFormat' => 'Y-m-d',
@@ -923,11 +928,11 @@ if (! function_exists('defaultSettings')) {
             // Brand Settings
             'logoDark' => 'logo/logo-dark.png',
             'logoLight' => 'logo/logo-light.png',
-            'favicon' => 'logo/favicon.ico',
+            'favicon' => 'logo/favicon.png',
             'titleText' => isSaas() ? 'HRM SaaS' : 'HRM',
-            'footerText' => isSaas() ? '© 2024 HRM SaaS. All rights reserved.' : '© 2024 HRM. All rights reserved.',
+            'footerText' => isSaas() ? '© 2026 HRM SaaS. All rights reserved.' : '© 2026 HRM. All rights reserved.',
             'themeColor' => 'green',
-            'customColor' => '#10b981',
+            'customColor' => '#10b77f',
             'sidebarVariant' => 'inset',
             'sidebarStyle' => 'plain',
             'layoutDirection' => 'left',
@@ -958,6 +963,9 @@ if (! function_exists('defaultSettings')) {
             'floatNumber' => true,
             'currencySymbolSpace' => false,
             'currencySymbolPosition' => 'before',
+
+            // Working Days Settings
+            'working_days' => '[1,2,3,4,5]',
         ];
 
         if (isDemo()) {
@@ -973,15 +981,16 @@ if (! function_exists('defaultSettings')) {
             ];
             $settings = array_merge($settings, $cookieSettingArray);
         }
+
         return $settings;
     }
 }
 
-if (! function_exists('createDefaultSettings')) {
+if (!function_exists('createDefaultSettings')) {
     /**
      * Create default settings for a user
      *
-     * @param int $userId
+     * @param  int  $userId
      * @return void
      */
     function createDefaultSettings($userId)
@@ -993,7 +1002,7 @@ if (! function_exists('createDefaultSettings')) {
             $settingsData[] = [
                 'user_id' => $userId,
                 'key' => $key,
-                'value' => is_bool($value) ? ($value ? '1' : '0') : (string)$value,
+                'value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -1003,11 +1012,11 @@ if (! function_exists('createDefaultSettings')) {
     }
 }
 
-if (! function_exists('copySettingsFromSuperAdmin')) {
+if (!function_exists('copySettingsFromSuperAdmin')) {
     /**
      * Copy system and brand settings from superadmin to company user
      *
-     * @param int $companyUserId
+     * @param  int  $companyUserId
      * @return void
      */
     function copySettingsFromSuperAdmin($companyUserId)
@@ -1022,11 +1031,13 @@ if (! function_exists('copySettingsFromSuperAdmin')) {
             $superAdmin = User::where('type', 'superadmin')->first();
             if (!$superAdmin) {
                 createDefaultSettings($companyUserId);
+
                 return;
             }
         } else {
             // Non-SaaS: Create default settings directly
             createDefaultSettings($companyUserId);
+
             return;
         }
 
@@ -1049,7 +1060,7 @@ if (! function_exists('copySettingsFromSuperAdmin')) {
             'sidebarVariant',
             'sidebarStyle',
             'layoutDirection',
-            'themeMode'
+            'themeMode',
         ];
 
         $superAdminSettings = Setting::where('user_id', $superAdmin->id)
@@ -1073,21 +1084,20 @@ if (! function_exists('copySettingsFromSuperAdmin')) {
     }
 }
 
-if (! function_exists('createdBy')) {
+if (!function_exists('createdBy')) {
     function createdBy()
     {
         if (Auth::user()->type == 'superadmin') {
             return Auth::user()->id;
-        } else if (Auth::user()->type == 'company') {
+        } elseif (Auth::user()->type == 'company') {
             return Auth::user()->id;
         } else {
-            return  Auth::user()->created_by;
+            return Auth::user()->created_by;
         }
     }
 }
 
-
-if (! function_exists('creatorId')) {
+if (!function_exists('creatorId')) {
     function creatorId()
     {
         return Auth::user()->id;
@@ -1095,18 +1105,88 @@ if (! function_exists('creatorId')) {
 }
 
 
-if (! function_exists('getCompanyAndUsersId')) {
+// For Auth User
+if (!function_exists('getCompanyAndUsersId')) {
     function getCompanyAndUsersId()
     {
         $user = Auth::user();
         if ($user->hasRole(['company'])) {
-            $companyUserIds = User::where('created_by', $user->id)->pluck('id')->toArray();
-            $companyUserIds[] = $user->id;
-            return $companyUserIds;
+            $companyId = getCompanyId($user->id);
+            if ($companyId) {
+                // Get all users in the company hierarchy
+                $allUsers = getAllCompanyUsers($companyId);
+                $allUsers[] = $companyId; // Include company itself
+                return array_unique($allUsers);
+            }
+            return [];
+
+            // Old code 
+            // $companyUserIds = User::where('created_by', $user->id)->pluck('id')->toArray();
+            // $companyUserIds[] = $user->id;
+            // return $companyUserIds;
+
         } else {
-            $userCreatedBy = User::where('id', Auth::user()->created_by)->value('id');
+            // Find the root company ID using recursive function
+            $companyId = getCompanyId($user->id);
+            if ($companyId) {
+                // Get all users in the company hierarchy
+                $allUsers = getAllCompanyUsers($companyId);
+                $allUsers[] = $companyId; // Include company itself
+                return array_unique($allUsers);
+            }
+
+            return [];
+        }
+    }
+}
+
+// Recursive Function For Get the All Users of the company in tree hierarchy
+if (!function_exists('getAllCompanyUsers')) {
+    function getAllCompanyUsers($companyId, &$allUsers = [])
+    {
+        // Get direct users created by this company/user
+        $directUsers = User::where('created_by', $companyId)->pluck('id')->toArray();
+        foreach ($directUsers as $userId) {
+            if (!in_array($userId, $allUsers)) {
+                $allUsers[] = $userId;
+                // Recursively get users created by this user
+                getAllCompanyUsers($userId, $allUsers);
+            }
+        }
+
+        return $allUsers;
+    }
+}
+
+
+// For Non Auth User For Career page
+if (!function_exists('getCompanyUsers')) {
+    function getCompanyUsers($companyId)
+    {
+        $user = User::where('id', $companyId)->first();
+        if (!$user) {
+            return [];
+        }
+        if ($user->hasRole(['company'])) {
+            $companyId = $user->id;
+
+            if ($companyId) {
+                // Get all users in the company hierarchy
+                $allUsers = getAllCompanyUsers($companyId);
+                $allUsers[] = $companyId; // Include company itself
+                return array_unique($allUsers);
+            }
+            return [];
+
+            // Old Code
+            // $companyUserIds = User::where('created_by', $user->id)->pluck('id')->toArray();
+            // $companyUserIds[] = $user->id;
+            // return $companyUserIds;
+        } else {
+            $userCreatedBy = User::where('id', $user->created_by)->value('id');
             $companyUserIds = User::where('created_by', $userCreatedBy)->pluck('id')->toArray();
             $companyUserIds[] = $userCreatedBy;
+
             return $companyUserIds;
         }
     }
@@ -1126,10 +1206,12 @@ if (!function_exists('getImageUrlPrefix')) {
                 }
                 $bucket = $settings['aws_bucket'];
                 $region = $settings['aws_default_region'];
+
                 return "https://{$bucket}.s3.{$region}.amazonaws.com/media/";
 
             case 'wasabi':
                 $url = $settings['wasabi_url'];
+
                 return $url ? rtrim($url, '/') . '/media/' : url('/storage/media/');
 
             case 'local':
@@ -1146,10 +1228,11 @@ if (!function_exists('getUser')) {
         $autheUser = Auth::user();
         if ($autheUser->hasRole('superadmin')) {
             return $autheUser;
-        } else if ($autheUser->hasRole('company')) {
+        } elseif ($autheUser->hasRole('company')) {
             return $autheUser;
         } else {
             $company = User::where('id', $autheUser->created_by)->first();
+
             return $company;
         }
     }
@@ -1196,7 +1279,7 @@ if (!function_exists('randomImage')) {
                 'global-systems-inc-office-photo.png',
                 'digital-innovations-ltd-team-photo.png',
                 'certificate-template.png',
-                'apex-industries-team-photo.png'
+                'apex-industries-team-photo.png',
             ];
         } else {
             $images = [
@@ -1210,7 +1293,6 @@ if (!function_exists('randomImage')) {
             ];
         }
 
-
         $randomImage = collect($images)->random();
 
         return $randomImage;
@@ -1221,6 +1303,7 @@ if (!function_exists('isSaas')) {
     function isSaas()
     {
         $isSaas = config('app.is_saas');
+
         return $isSaas;
     }
 }
@@ -1228,11 +1311,10 @@ if (!function_exists('isDemo')) {
     function isDemo()
     {
         $isDemo = config('app.is_demo');
+
         return $isDemo;
     }
 }
-
-
 
 if (!function_exists('isNotEditableRoles')) {
     function isNotEditableRoles()
@@ -1259,3 +1341,226 @@ if (!function_exists('isNotDeletableRoles')) {
         return $notDeletableRoles;
     }
 }
+
+if (!function_exists('formatCurrency')) {
+    function formatCurrency($amount, $user_id = null)
+    {
+        $settings = settings($user_id);
+        $currencyCode = $settings['defaultCurrency'] ?? 'USD';
+
+        // Get currency symbol from database
+        $currency = Currency::where('code', $currencyCode)->first();
+        $symbol = $currency ? $currency->symbol : $currencyCode;
+
+        $decimalPlaces = (int) ($settings['decimalFormat'] ?? 2);
+        $decimalSeparator = $settings['decimalSeparator'] ?? '.';
+        $thousandsSeparator = $settings['thousandsSeparator'] ?? ',';
+        $symbolPosition = $settings['currencySymbolPosition'] ?? 'before';
+        $symbolSpace = $settings['currencySymbolSpace'] ?? false;
+
+        $formattedAmount = number_format($amount, $decimalPlaces, $decimalSeparator, $thousandsSeparator);
+
+        if ($symbolPosition === 'before') {
+            return $symbol . ($symbolSpace ? ' ' : '') . $formattedAmount;
+        } else {
+            return $formattedAmount . ($symbolSpace ? ' ' : '') . $symbol;
+        }
+    }
+
+    // For generate the Unique Slug for Missing Slug Users
+    if (!function_exists('fixMissingUserSlugs')) {
+        function fixMissingUserSlugs()
+        {
+            $updatedCount = 0;
+
+            $users = User::whereNull('slug')
+                ->orWhere('slug', '')
+                ->get();
+
+            foreach ($users as $user) {
+                if (empty($user->name)) {
+                    continue;
+                }
+
+                $baseSlug = Str::slug($user->name);
+                $slug = $baseSlug;
+                $counter = 1;
+
+                while (
+                    User::where('slug', $slug)
+                        ->where('id', '!=', $user->id)
+                        ->exists()
+                ) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+
+                $user->slug = $slug;
+                $user->save();
+
+                $updatedCount++;
+            }
+
+            return $updatedCount;
+        }
+    }
+}
+
+if (!function_exists('getCompanyId')) {
+    function getCompanyId($userId)
+    {
+        $user = User::find($userId);
+
+        if (!$user) {
+            return null;
+        }
+        if ($user->type === 'company' || $user->hasRole('company')) {
+            return $user->id;
+        }
+
+        if ($user->created_by) {
+            return getCompanyId($user->created_by);
+        }
+
+        return null;
+    }
+}
+
+
+
+// Get super admin settings
+if (!function_exists('getAdminAllSetting')) {
+    function getAdminAllSetting()
+    {
+        // Laravel cache
+        return Cache::rememberForever('admin_settings', function () {
+            if (isSaas()) {
+                $superAdmin = User::where('type', 'superadmin')->first();
+            } else {
+                $superAdmin = User::where('type', 'company')->first();
+            }
+
+            $settings = [];
+            if ($superAdmin) {
+                $settings = Setting::where('user_id', $superAdmin->id)->pluck('value', 'key')->toArray();
+            }
+
+            return $settings;
+        });
+    }
+}
+
+// File Upload Function
+if (!function_exists('upload_file')) {
+    function upload_file($request, $key_name, $name, $path, $custom_validation = [])
+    {
+        try {
+            $storage_settings = getAdminAllSetting();
+
+            if (isset($storage_settings['storage_type'])) {
+                if ($storage_settings['storage_type'] == 'wasabi') {
+                    config(
+                        [
+                            'filesystems.disks.wasabi.driver' => 's3',
+                            'filesystems.disks.wasabi.key' => $storage_settings['wasabi_access_key'],
+                            'filesystems.disks.wasabi.secret' => $storage_settings['wasabi_secret_key'],
+                            'filesystems.disks.wasabi.region' => $storage_settings['wasabi_region'] ?? 'us-east-1',
+                            'filesystems.disks.wasabi.bucket' => $storage_settings['wasabi_bucket'],
+                            'filesystems.disks.wasabi.endpoint' => $storage_settings['wasabi_url'],
+                            'filesystems.disks.wasabi.root' => $storage_settings['wasabi_root'],
+                            'filesystems.disks.use_path_style_endpoint' => false,
+                            'filesystems.disks.wasabi.visibility' => 'public',
+                        ]
+                    );
+                    $max_size = !empty($storage_settings['storage_max_upload_size']) ? $storage_settings['storage_max_upload_size'] : '2048';
+                    $mimes = !empty($storage_settings['storage_file_types']) ? $storage_settings['storage_file_types'] : 'jpeg,jpg,png,svg,zip,txt,gif,docx';
+                } elseif ($storage_settings['storage_type'] == 'aws_s3') {
+                    config(
+                        [
+                            'filesystems.disks.s3.driver' => 's3',
+                            'filesystems.disks.s3.key' => $storage_settings['aws_access_key_id'],
+                            'filesystems.disks.s3.secret' => $storage_settings['aws_secret_access_key'],
+                            'filesystems.disks.s3.region' => $storage_settings['aws_default_region'] ?? 'us-east-1',
+                            'filesystems.disks.s3.bucket' => $storage_settings['aws_bucket'],
+                            'filesystems.disks.s3.url' => $storage_settings['aws_url'],
+                            'filesystems.disks.s3.endpoint' => $storage_settings['aws_endpoint'],
+                            'filesystems.disks.s3.use_path_style_endpoint' => false,
+                            'filesystems.disks.s3.visibility' => 'public',
+                        ]
+                    );
+                    $max_size = !empty($storage_settings['storage_max_upload_size']) ? $storage_settings['storage_max_upload_size'] : '2048';
+                    $mimes = !empty($storage_settings['storage_file_types']) ? $storage_settings['storage_file_types'] : 'jpeg,jpg,png,svg,zip,txt,gif,docx';
+                } else {
+                    $max_size = !empty($storage_settings['storage_max_upload_size']) ? $storage_settings['storage_max_upload_size'] : '2048';
+                    $mimes = !empty($storage_settings['storage_file_types']) ? $storage_settings['storage_file_types'] : 'jpeg,jpg,png,svg,zip,txt,gif,docx';
+                }
+                $file = $request->$key_name;
+
+                $extension = strtolower($file->getClientOriginalExtension());
+                $allowed_extensions = explode(',', $mimes);
+
+                if (empty($extension) || !in_array($extension, $allowed_extensions)) {
+                    return [
+                        'status' => false,
+                        'msg' => 'The ' . $key_name . ' must be a file of type: ' . implode(', ', $allowed_extensions) . '.',
+                    ];
+                }
+
+                if (count($custom_validation) > 0) {
+                    $validation = $custom_validation;
+                } else {
+                    $validation = [
+                        'mimes:' . $mimes,
+                        'max:' . $max_size,
+                    ];
+                }
+                $validator = Validator::make($request->all(), [
+                    $key_name => $validation,
+                ]);
+                if ($validator->fails()) {
+                    $res = [
+                        'status' => false,
+                        'msg' => $validator->messages()->first(),
+                    ];
+
+                    return $res;
+                } else {
+                    $storageType = $settings['storage_type'] ?? 'local';
+                    $diskName = match ($storageType) {
+                        'local' => 'public',
+                        'aws_s3' => 's3',
+                        'wasabi' => 'wasabi',
+                        default => 'public'
+                    };
+
+                    // Store file directly to storage
+                    $file->storeAs('media/' . $path, $name, $diskName);
+
+                    $res = [
+                        'status' => true,
+                        'msg' => 'success',
+                        'url' => $path . '/' . $name,
+                    ];
+
+                    return $res;
+                }
+            } else {
+                $res = [
+                    'status' => false,
+                    'msg' => __('Not set configurations'),
+                ];
+
+                return $res;
+            }
+        } catch (\Exception $e) {
+            $res = [
+                'status' => false,
+                'msg' => $e->getMessage(),
+            ];
+
+            return $res;
+        }
+    }
+}
+
+

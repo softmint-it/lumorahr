@@ -35,7 +35,7 @@ class DocumentCategorySeeder extends Seeder
             [
                 'name' => 'Educational Certificates',
                 'description' => 'Academic qualifications, degrees, diplomas, and professional certifications',
-                'color' => '#10B981',
+                'color' => '#10b77f',
                 'icon' => 'GraduationCap',
                 'sort_order' => 2,
                 'is_mandatory' => true,

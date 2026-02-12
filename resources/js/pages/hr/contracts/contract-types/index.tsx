@@ -219,13 +219,20 @@ export default function ContractTypes() {
     { 
       key: 'name', 
       label: t('Contract Type'), 
-      sortable: true,
+      sortable: false,
       render: (value, row) => (
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-gray-500" />
           <div>
             <div className="font-medium">{value}</div>
-            <div className="text-xs text-gray-500">{row.description}</div>
+            <div className="text-xs text-gray-500">
+              {row.description ? 
+                (row.description.split(' ').length > 20 ? 
+                  row.description.split(' ').slice(0, 10).join(' ') + '...' : 
+                  row.description
+                ) : '-'
+              }
+            </div>
           </div>
         </div>
       )
@@ -308,7 +315,7 @@ export default function ContractTypes() {
       key: 'created_at', 
       label: t('Created At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -344,13 +351,13 @@ export default function ContractTypes() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled : true},
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   const renewableOptions = [
-    { value: '_empty_', label: t('All') },
+    { value: '_empty_', label: t('All'), disabled : true },
     { value: 'true', label: t('Renewable') },
     { value: 'false', label: t('Non-renewable') }
   ];

@@ -151,7 +151,7 @@ export default function ConductEmployeeReview() {
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('Review Date')}</h3>
                     <p className="mt-1 text-base font-semibold">
-                      {review.review_date ? (window.appSettings?.formatDateTime(review.review_date, false) || new Date(review.review_date).toLocaleString()) : '-'  }
+                      {review.review_date ? (window.appSettings?.formatDateTimeSimple(review.review_date, false) || new Date(review.review_date).toLocaleString()) : '-'  }
                     </p>
                   </div>
                 </div>

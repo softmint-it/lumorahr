@@ -227,11 +227,6 @@ export default function MeetingTypes() {
       )
     },
     { 
-      key: 'description', 
-      label: t('Description'),
-      render: (value) => value || '-'
-    },
-    { 
       key: 'default_duration', 
       label: t('Default Duration'),
       render: (value) => (
@@ -268,7 +263,7 @@ export default function MeetingTypes() {
       key: 'created_at', 
       label: t('Created At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -304,7 +299,7 @@ export default function MeetingTypes() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];

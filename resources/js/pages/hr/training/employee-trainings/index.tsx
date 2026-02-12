@@ -346,13 +346,13 @@ export default function EmployeeTrainings() {
       key: 'assigned_date', 
       label: t('Assigned Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value, false) || format(new Date(value), 'MMM dd, yyyy')) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || format(new Date(value), 'MMM dd, yyyy')) : '-'
     },
     { 
       key: 'completion_date', 
       label: t('Completion Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value, false) || format(new Date(value), 'MMM dd, yyyy')) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || format(new Date(value), 'MMM dd, yyyy')) : '-'
     },
     { 
       key: 'score', 
@@ -429,7 +429,7 @@ export default function EmployeeTrainings() {
 
   // Prepare employee options for filter
   const employeeOptions = [
-    { value: '', label: t('All Employees') },
+    { value: '', label: t('All Employees'), disabled: true },
     ...(employees || []).map((employee: any) => ({
       value: employee.id.toString(),
       label: employee.name
@@ -438,7 +438,7 @@ export default function EmployeeTrainings() {
 
   // Prepare training program options for filter
   const trainingProgramOptions = [
-    { value: '', label: t('All Programs') },
+    { value: '', label: t('All Programs'), disabled: true },
     ...(trainingPrograms || []).map((program: any) => ({
       value: program.id.toString(),
       label: program.name
@@ -475,7 +475,8 @@ export default function EmployeeTrainings() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'training_program_id',
@@ -483,7 +484,8 @@ export default function EmployeeTrainings() {
               type: 'select',
               value: selectedProgram,
               onChange: setSelectedProgram,
-              options: trainingProgramOptions
+              options: trainingProgramOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -573,14 +575,16 @@ export default function EmployeeTrainings() {
               label: t('Employee'), 
               type: 'select',
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: employeeOptions.filter(opt => opt.value !== ''),
+              searchable: true
             },
             { 
               name: 'training_program_id', 
               label: t('Training Program'), 
               type: 'select',
               required: true,
-              options: trainingProgramOptions.filter(opt => opt.value !== '')
+              options: trainingProgramOptions.filter(opt => opt.value !== ''),
+              searchable: true
             },
             { 
               name: 'status', 

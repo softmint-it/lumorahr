@@ -10,50 +10,63 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class HrDocumentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = HrDocument::withPermissionCheck()->with(['category', 'uploader', 'approver']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('file_name', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-hr-documents')) {
+            $query = HrDocument::with(['category', 'uploader', 'approver'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-hr-documents')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-hr-documents')) {
+                    $q->where('created_by', Auth::id())->orWhere('uploaded_by', Auth::id())->orWhere('approved_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%')
+                        ->orWhere('file_name', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('category_id') && !empty($request->category_id) && $request->category_id !== 'all') {
+                $query->where('category_id', $request->category_id);
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+
+
+            // Auto-update expired documents
+            HrDocument::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', '!=', 'Expired')
+                ->where('expiry_date', '<', Carbon::today())
+                ->update(['status' => 'Expired']);
+
+            $query->orderBy('id', 'desc');
+            $hrDocuments = $query->paginate($request->per_page ?? 10);
+
+            $categories = DocumentCategory::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('hr/documents/hr-documents/index', [
+                'hrDocuments' => $hrDocuments,
+                'categories' => $categories,
+                'filters' => $request->all(['search', 'category_id', 'status', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('category_id') && !empty($request->category_id) && $request->category_id !== 'all') {
-            $query->where('category_id', $request->category_id);
-        }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-
-
-        // Auto-update expired documents
-        HrDocument::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', '!=', 'Expired')
-            ->where('expiry_date', '<', Carbon::today())
-            ->update(['status' => 'Expired']);
-
-        $query->orderBy('id', 'desc');
-        $hrDocuments = $query->paginate($request->per_page ?? 10);
-
-        $categories = DocumentCategory::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('hr/documents/hr-documents/index', [
-            'hrDocuments' => $hrDocuments,
-            'categories' => $categories,
-            'filters' => $request->all(['search', 'category_id', 'status', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

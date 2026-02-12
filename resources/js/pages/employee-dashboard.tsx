@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { usePage, router } from '@inertiajs/react';
 import { toast } from '@/components/custom-toast';
 import { format } from 'date-fns';
+import { hasPermission } from '@/utils/authorization';
 
 interface EmployeeDashboardData {
   stats: {
@@ -31,6 +32,7 @@ interface PageAction {
 export default function EmployeeDashboard({ dashboardData }: { dashboardData: EmployeeDashboardData }) {
   const { t } = useTranslation();
   const { auth } = usePage().props as any;
+  const permissions = auth?.permissions || [];
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [clockInTime, setClockInTime] = useState<string | null>(null);
   const [clockOutTime, setClockOutTime] = useState<string | null>(null);
@@ -245,36 +247,38 @@ export default function EmployeeDashboard({ dashboardData }: { dashboardData: Em
               )}
 
               {/* Clock In/Out Buttons */}
-              <div className="flex justify-center gap-4 mb-6">
-                <button
-                  className={`flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-colors shadow-md ${isClockedIn
-                    ? 'bg-gray-400 cursor-not-allowed text-white'
-                    : 'bg-green-500 hover:bg-green-600 text-white'
-                    }`}
-                  onClick={handleClockIn}
-                  disabled={isClockedIn}
-                >
-                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" />
-                    <circle cx="12" cy="12" r="10" />
-                  </svg>
-                  {t('Clock In')}
-                </button>
+              {hasPermission(permissions, 'clock-in-out') && (
+                <div className="flex justify-center gap-4 mb-6">
+                  <button
+                    className={`flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-colors shadow-md ${isClockedIn
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                      }`}
+                    onClick={handleClockIn}
+                    disabled={isClockedIn}
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2" />
+                      <circle cx="12" cy="12" r="10" />
+                    </svg>
+                    {t('Clock In')}
+                  </button>
 
-                <button
-                  className={`flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-colors shadow-md ${!isClockedIn
-                    ? 'bg-gray-400 cursor-not-allowed text-white'
-                    : 'bg-red-500 hover:bg-red-600 text-white'
-                    }`}
-                  onClick={handleClockOut}
-                  disabled={!isClockedIn}
-                >
-                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  {t('Clock Out')}
-                </button>
-              </div>
+                  <button
+                    className={`flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-colors shadow-md ${!isClockedIn
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'bg-red-500 hover:bg-red-600 text-white'
+                      }`}
+                    onClick={handleClockOut}
+                    disabled={!isClockedIn}
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    {t('Clock Out')}
+                  </button>
+                </div>
+              )}
 
               {/* Clock Times Display */}
               <div className="grid grid-cols-2 gap-4">

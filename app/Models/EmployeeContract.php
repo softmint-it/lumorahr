@@ -17,7 +17,6 @@ class EmployeeContract extends BaseModel
         'start_date',
         'end_date',
         'basic_salary',
-        'allowances',
         'benefits',
         'terms_conditions',
         'status',
@@ -30,7 +29,6 @@ class EmployeeContract extends BaseModel
         'start_date' => 'date',
         'end_date' => 'date',
         'approved_at' => 'datetime',
-        'allowances' => 'array',
         'benefits' => 'array',
         'basic_salary' => 'decimal:2',
     ];
@@ -79,12 +77,6 @@ class EmployeeContract extends BaseModel
 
     public function getTotalCompensationAttribute()
     {
-        $total = $this->basic_salary;
-        if ($this->allowances && is_array($this->allowances)) {
-            foreach ($this->allowances as $allowance) {
-                $total += $allowance['amount'] ?? 0;
-            }
-        }
-        return $total;
+        return $this->basic_salary;
     }
 }

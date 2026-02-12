@@ -284,7 +284,7 @@ export default function LeavePolicies() {
       key: 'created_at',
       label: t('Created At'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -322,7 +322,7 @@ export default function LeavePolicies() {
 
   // Prepare leave type options for filter and form
   const leaveTypeOptions = [
-    { value: 'all', label: t('All Leave Types') },
+    { value: 'all', label: t('All Leave Types') , disabled: true },
     ...(leaveTypes || []).map((type: any) => ({
       value: type.id.toString(),
       label: type.name
@@ -331,14 +331,14 @@ export default function LeavePolicies() {
 
   // Prepare status options for filter
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses') , disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   return (
     <PageTemplate
-      title={t("Leave Policy Management")}
+      title={t("Leave Policies")}
       url="/hr/leave-policies"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -357,7 +357,8 @@ export default function LeavePolicies() {
               type: 'select',
               value: selectedLeaveType,
               onChange: setSelectedLeaveType,
-              options: leaveTypeOptions
+              options: leaveTypeOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -432,6 +433,7 @@ export default function LeavePolicies() {
               label: t('Leave Type'),
               type: 'select',
               required: true,
+              searchable: true,
               options: leaveTypes ? leaveTypes.map((type: any) => ({
                 value: type.id.toString(),
                 label: type.name

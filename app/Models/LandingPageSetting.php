@@ -246,7 +246,7 @@ class LandingPageSetting extends Model
                 ]
             ],
             'theme' => [
-                'primary_color' => '#10b981',
+                'primary_color' => '#10b77f',
                 'secondary_color' => '#ffffff',
                 'accent_color' => '#f7f7f7',
                 'logo_light' => '',
@@ -481,7 +481,7 @@ class LandingPageSetting extends Model
                 ]
             ],
             'theme' => [
-                'primary_color' => '#10b981',
+                'primary_color' => '#10b77f',
                 'secondary_color' => '#ffffff',
                 'accent_color' => '#f7f7f7',
                 'logo_light' => '',

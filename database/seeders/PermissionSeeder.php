@@ -508,7 +508,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'manage-any-candidates', 'module' => 'candidates', 'label' => 'Manage All Candidates', 'description' => 'Manage Any Candidates'],
             ['name' => 'manage-own-candidates', 'module' => 'candidates', 'label' => 'Manage Own Candidates', 'description' => 'Manage Limited Candidates that is created by own'],
             ['name' => 'view-candidates', 'module' => 'candidates', 'label' => 'View Candidates', 'description' => 'View Candidates'],
-            ['name' => 'create-candidates', 'module' => 'candidates', 'label' => 'Create Candidates', 'description' => 'Can create candidates'],
+            ['name' => 'convert-to-employee', 'module' => 'candidates', 'label' => 'Convert to Employee', 'description' => 'Convert Candidate to Employee'],
+            // ['name' => 'create-candidates', 'module' => 'candidates', 'label' => 'Create Candidates', 'description' => 'Can create candidates'],
             ['name' => 'edit-candidates', 'module' => 'candidates', 'label' => 'Edit Candidates', 'description' => 'Can edit candidates'],
             ['name' => 'delete-candidates', 'module' => 'candidates', 'label' => 'Delete Candidates', 'description' => 'Can delete candidates'],
 
@@ -547,6 +548,15 @@ class PermissionSeeder extends Seeder
             ['name' => 'create-interview-feedback', 'module' => 'interview_feedback', 'label' => 'Create Interview Feedback', 'description' => 'Can create interview feedback'],
             ['name' => 'edit-interview-feedback', 'module' => 'interview_feedback', 'label' => 'Edit Interview Feedback', 'description' => 'Can edit interview feedback'],
             ['name' => 'delete-interview-feedback', 'module' => 'interview_feedback', 'label' => 'Delete Interview Feedback', 'description' => 'Can delete interview feedback'],
+
+            // Custom Questions management
+            ['name' => 'manage-custom-questions', 'module' => 'custom_questions', 'label' => 'Manage Custom Questions', 'description' => 'Can manage custom questions'],
+            ['name' => 'manage-any-custom-questions', 'module' => 'custom_questions', 'label' => 'Manage All Custom Questions', 'description' => 'Manage Any Custom Questions'],
+            ['name' => 'manage-own-custom-questions', 'module' => 'custom_questions', 'label' => 'Manage Own Custom Questions', 'description' => 'Manage Limited Custom Questions that is created by own'],
+            ['name' => 'view-custom-questions', 'module' => 'custom_questions', 'label' => 'View Custom Questions', 'description' => 'View Custom Questions'],
+            ['name' => 'create-custom-questions', 'module' => 'custom_questions', 'label' => 'Create Custom Questions', 'description' => 'Can create custom questions'],
+            ['name' => 'edit-custom-questions', 'module' => 'custom_questions', 'label' => 'Edit Custom Questions', 'description' => 'Can edit custom questions'],
+            ['name' => 'delete-custom-questions', 'module' => 'custom_questions', 'label' => 'Delete Custom Questions', 'description' => 'Can delete custom questions'],
 
             // Candidate Assessments management
             ['name' => 'manage-candidate-assessments', 'module' => 'candidate_assessments', 'label' => 'Manage Candidate Assessments', 'description' => 'Can manage candidate assessments'],
@@ -599,6 +609,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'manage-any-candidate-onboarding', 'module' => 'candidate_onboarding', 'label' => 'Manage All Candidate Onboarding', 'description' => 'Manage Any Candidate Onboarding'],
             ['name' => 'manage-own-candidate-onboarding', 'module' => 'candidate_onboarding', 'label' => 'Manage Own Candidate Onboarding', 'description' => 'Manage Limited Candidate Onboarding that is created by own'],
             ['name' => 'view-candidate-onboarding', 'module' => 'candidate_onboarding', 'label' => 'View Candidate Onboarding', 'description' => 'View Candidate Onboarding'],
+            ['name' => 'manage-candidate-onboarding-status', 'module' => 'candidate_onboarding', 'label' => 'Manage Candidate Onboarding status', 'description' => 'Manage Candidate Onboarding Status'],
             ['name' => 'create-candidate-onboarding', 'module' => 'candidate_onboarding', 'label' => 'Create Candidate Onboarding', 'description' => 'Can create candidate onboarding'],
             ['name' => 'edit-candidate-onboarding', 'module' => 'candidate_onboarding', 'label' => 'Edit Candidate Onboarding', 'description' => 'Can edit candidate onboarding'],
             ['name' => 'delete-candidate-onboarding', 'module' => 'candidate_onboarding', 'label' => 'Delete Candidate Onboarding', 'description' => 'Can delete candidate onboarding'],
@@ -872,6 +883,27 @@ class PermissionSeeder extends Seeder
             // Calendar permissions
             ['name' => 'manage-calendar', 'module' => 'calendar', 'label' => 'Manage Calendar', 'description' => 'Can manage calendar'],
             ['name' => 'view-calendar', 'module' => 'calendar', 'label' => 'View Calendar', 'description' => 'Can view calendar'],
+
+            // Manage Working Days
+            ['name' => 'manage-working-days-settings', 'module' => 'working_days', 'label' => 'Manage Working Days', 'description' => 'Manage Working Days'],
+            ['name' => 'update-working-days-settings', 'module' => 'working_days', 'label' => 'Manage Working Days', 'description' => 'Manage Working Days'],
+
+            // Biometric Attendance
+            ['name' => 'manage-biometric-attendance', 'module' => 'biometric_attendance', 'label' => 'Manage Biometric Attendance', 'description' => 'Can manage biometric attendance data'],
+            ['name' => 'manage-any-biometric-attendance', 'module' => 'biometric_attendance', 'label' => 'Manage All Biometric Attendance', 'description' => 'Manage Any Biometric Attendance'],
+            ['name' => 'manage-own-biometric-attendance', 'module' => 'biometric_attendance', 'label' => 'Manage Own Biometric Attendance', 'description' => 'Manage Limited Biometric Attendance that is created by own'],
+            ['name' => 'view-biometric-attendance', 'module' => 'biometric_attendance', 'label' => 'View Biometric Attendance', 'description' => 'View Biometric Attendance'],
+            ['name' => 'sync-biometric-attendance', 'module' => 'biometric_attendance', 'label' => 'Sync Biometric Attendance', 'description' => 'Can sync biometric attendance data'],
+            ['name' => 'manage-biomatric-attedance-settings', 'module' => 'biometric_attendance', 'label' => 'Manage Biometric Attendance Setting', 'description' => 'Manage Biometric Attendance Setting'],
+
+            // Ip Restriction
+            ['name' => 'manage-ip-restriction-settings', 'module' => 'ip_restriction', 'label' => 'Manage Ip Restriction Settings', 'description' => 'Manage Ip Restriction Settings'],
+            ['name' => 'create-ip-restriction', 'module' => 'ip_restriction', 'label' => 'Create Ip Restriction', 'description' => 'Create Ip Restriction'],
+            ['name' => 'edit-ip-restriction', 'module' => 'ip_restriction', 'label' => 'Edit Ip Restriction', 'description' => 'Edit Ip Restriction'],
+            ['name' => 'delete-ip-restriction', 'module' => 'ip_restriction', 'label' => 'Delete Ip Restriction', 'description' => 'Delete Ip Restriction'],
+
+            // Manage Career Page
+            ['name' => 'manage-career-page', 'module' => 'career', 'label' => 'Manage Career Page', 'description' => 'Manage Career Page'],
 
         ];
 

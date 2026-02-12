@@ -20,121 +20,133 @@ class AnnouncementController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Announcement::withPermissionCheck()->with(['departments', 'branches']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('content', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-announcements')) {
+            $query = Announcement::with(['departments', 'branches'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-announcements')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-announcements')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle category filter
-        if ($request->has('category') && !empty($request->category)) {
-            $query->where('category', $request->category);
-        }
-
-        // Handle department filter
-        if ($request->has('department_id') && !empty($request->department_id)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('is_company_wide', true)
-                    ->orWhereHas('departments', function ($q) use ($request) {
-                        $q->where('departments.id', $request->department_id);
-                    });
-            });
-        }
-
-        // Handle branch filter
-        if ($request->has('branch_id') && !empty($request->branch_id)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('is_company_wide', true)
-                    ->orWhereHas('branches', function ($q) use ($request) {
-                        $q->where('branches.id', $request->branch_id);
-                    });
-            });
-        }
-
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status)) {
-            $today = now()->format('Y-m-d');
-
-            if ($request->status === 'active') {
-                $query->where('start_date', '<=', $today)
-                    ->where(function ($q) use ($today) {
-                        $q->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $today);
-                    });
-            } elseif ($request->status === 'upcoming') {
-                $query->where('start_date', '>', $today);
-            } elseif ($request->status === 'expired') {
-                $query->whereNotNull('end_date')
-                    ->where('end_date', '<', $today);
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%')
+                        ->orWhere('content', 'like', '%' . $request->search . '%');
+                });
             }
-        }
 
-        // Handle priority filter
-        if ($request->has('priority') && !empty($request->priority)) {
-            if ($request->priority === 'high') {
-                $query->where('is_high_priority', true);
-            } elseif ($request->priority === 'normal') {
-                $query->where('is_high_priority', false);
+            // Handle category filter
+            if ($request->has('category') && !empty($request->category)) {
+                $query->where('category', $request->category);
             }
-        }
 
-        // Handle featured filter
-        if ($request->has('featured') && $request->featured === 'true') {
-            $query->where('is_featured', true);
-        }
+            // Handle department filter
+            if ($request->has('department_id') && !empty($request->department_id)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('is_company_wide', true)
+                        ->orWhereHas('departments', function ($q) use ($request) {
+                            $q->where('departments.id', $request->department_id);
+                        });
+                });
+            }
 
-        // Handle date range filter
-        if ($request->has('date_from') && !empty($request->date_from)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('start_date', '>=', $request->date_from)
-                    ->orWhere('end_date', '>=', $request->date_from);
-            });
-        }
-        if ($request->has('date_to') && !empty($request->date_to)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('start_date', '<=', $request->date_to)
-                    ->orWhere('end_date', '<=', $request->date_to);
-            });
-        }
+            // Handle branch filter
+            if ($request->has('branch_id') && !empty($request->branch_id)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('is_company_wide', true)
+                        ->orWhereHas('branches', function ($q) use ($request) {
+                            $q->where('branches.id', $request->branch_id);
+                        });
+                });
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status)) {
+                $today = now()->format('Y-m-d');
+
+                if ($request->status === 'active') {
+                    $query->where('start_date', '<=', $today)
+                        ->where(function ($q) use ($today) {
+                            $q->whereNull('end_date')
+                                ->orWhere('end_date', '>=', $today);
+                        });
+                } elseif ($request->status === 'upcoming') {
+                    $query->where('start_date', '>', $today);
+                } elseif ($request->status === 'expired') {
+                    $query->whereNotNull('end_date')
+                        ->where('end_date', '<', $today);
+                }
+            }
+
+            // Handle priority filter
+            if ($request->has('priority') && !empty($request->priority)) {
+                if ($request->priority === 'high') {
+                    $query->where('is_high_priority', true);
+                } elseif ($request->priority === 'normal') {
+                    $query->where('is_high_priority', false);
+                }
+            }
+
+            // Handle featured filter
+            if ($request->has('featured') && $request->featured === 'true') {
+                $query->where('is_featured', true);
+            }
+
+            // Handle date range filter
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('start_date', '>=', $request->date_from)
+                        ->orWhere('end_date', '>=', $request->date_from);
+                });
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('start_date', '<=', $request->date_to)
+                        ->orWhere('end_date', '<=', $request->date_to);
+                });
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $announcements = $query->paginate($request->per_page ?? 10);
+
+            // Get departments for filter dropdown
+            $departments = Department::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name')
+                ->get();
+
+            // Get branches for filter dropdown
+            $branches = Branch::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name')
+                ->get();
+
+            // Get categories for filter dropdown
+            $categories = Announcement::whereIn('created_by', getCompanyAndUsersId())
+                ->select('category')
+                ->distinct()
+                ->pluck('category')
+                ->toArray();
+
+            return Inertia::render('hr/announcements/index', [
+                'announcements' => $announcements,
+                'departments' => $departments,
+                'branches' => $branches,
+                'categories' => $categories,
+                'filters' => $request->all(['search', 'category', 'department_id', 'branch_id', 'status', 'priority', 'featured', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('created_at', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $announcements = $query->paginate($request->per_page ?? 10);
-
-        // Get departments for filter dropdown
-        $departments = Department::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name')
-            ->get();
-
-        // Get branches for filter dropdown
-        $branches = Branch::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name')
-            ->get();
-
-        // Get categories for filter dropdown
-        $categories = Announcement::whereIn('created_by', getCompanyAndUsersId())
-            ->select('category')
-            ->distinct()
-            ->pluck('category')
-            ->toArray();
-
-        return Inertia::render('hr/announcements/index', [
-            'announcements' => $announcements,
-            'departments' => $departments,
-            'branches' => $branches,
-            'categories' => $categories,
-            'filters' => $request->all(['search', 'category', 'department_id', 'branch_id', 'status', 'priority', 'featured', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     /**
@@ -480,11 +492,11 @@ class AnnouncementController extends Controller
         }
 
         $filePath = getStorageFilePath($announcement->attachments);
-        
+
         if (!file_exists($filePath)) {
             return redirect()->back()->with('error', __('Attachment file not found'));
         }
-        
+
         return response()->download($filePath);
     }
 
