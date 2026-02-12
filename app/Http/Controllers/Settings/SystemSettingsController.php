@@ -14,7 +14,7 @@ class SystemSettingsController extends Controller
     public function update(Request $request)
     {
         try {
-            $validated = $request->validate([
+            $rules = [
                 'defaultLanguage' => 'required|string',
                 'dateFormat' => 'required|string',
                 'timeFormat' => 'required|string',
@@ -22,7 +22,16 @@ class SystemSettingsController extends Controller
                 'defaultTimezone' => 'required|string',
                 'emailVerification' => 'boolean',
                 'landingPageEnabled' => 'boolean',
-            ]);
+                'ipRestrictionEnabled'  => 'boolean',
+            ];
+
+            if(isSaaS()){
+                $rules['termsConditionsUrl'] = 'nullable';
+            } else {
+                $rules['termsConditionsUrl'] = 'nullable';
+            }
+
+            $validated = $request->validate($rules);
 
             foreach ($validated as $key => $value) {
                 updateSetting($key, $value);
@@ -50,6 +59,7 @@ class SystemSettingsController extends Controller
                 'settings.favicon' => 'nullable|string',
                 'settings.titleText' => 'nullable|string|max:255',
                 'settings.footerText' => 'nullable|string|max:500',
+                'settings.companyMobile' => 'nullable|string|max:20',
                 'settings.themeColor' => 'nullable|string|in:blue,green,purple,orange,red,custom',
                 'settings.customColor' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
                 'settings.sidebarVariant' => 'nullable|string|in:inset,floating,minimal',

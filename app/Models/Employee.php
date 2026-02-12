@@ -12,6 +12,8 @@ class Employee extends Model
     protected $fillable = [
         'user_id',
         'employee_id',
+        'biometric_emp_id',
+        'employee_code',
         'phone',
         'date_of_birth',
         'gender',
@@ -37,6 +39,7 @@ class Employee extends Model
         'bank_identifier_code',
         'bank_branch',
         'tax_payer_id',
+        'employee_status',
         'created_by'
     ];
 
@@ -102,5 +105,16 @@ class Employee extends Model
     public function documents()
     {
         return $this->hasMany(EmployeeDocument::class,'employee_id','user_id');
+    }
+
+    /**
+     * Generate unique employee ID
+     */
+    public static function generateEmployeeId()
+    {
+        $lastEmployee = self::orderBy('id', 'desc')->first();
+        $nextId = $lastEmployee ? $lastEmployee->id + 1 : 1;
+        
+        return 'EMP' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
     }
 }

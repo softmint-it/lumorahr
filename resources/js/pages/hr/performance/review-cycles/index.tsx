@@ -260,7 +260,7 @@ export default function ReviewCycles() {
       key: 'created_at', 
       label: t('Created At'), 
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     }
   ];
 
@@ -408,6 +408,7 @@ export default function ReviewCycles() {
               label: t('Frequency'), 
               type: 'select', 
               required: true,
+              searchable: true,
               options: [
                 { value: 'Monthly', label: t('Monthly') },
                 { value: 'Quarterly', label: t('Quarterly') },

@@ -336,13 +336,13 @@ export default function MeetingRooms() {
   ];
 
   const typeOptions = [
-    { value: '_empty_', label: t('All Types') },
+    { value: '_empty_', label: t('All Types') , disabled: true },
     { value: 'Physical', label: t('Physical') },
     { value: 'Virtual', label: t('Virtual') }
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];

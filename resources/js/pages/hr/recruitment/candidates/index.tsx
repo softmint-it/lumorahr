@@ -14,9 +14,9 @@ import { format } from 'date-fns';
 
 export default function Candidates() {
   const { t } = useTranslation();
-  const { auth, candidates, jobPostings, sources, employees, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, candidates, jobPostings, sources, employees, filters: pageFilters = {}, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [statusFilter, setStatusFilter] = useState(pageFilters.status || '_empty_');
   const [jobFilter, setJobFilter] = useState(pageFilters.job_id || '_empty_');
@@ -28,22 +28,22 @@ export default function Candidates() {
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
-  
+
   const hasActiveFilters = () => {
     return statusFilter !== '_empty_' || jobFilter !== '_empty_' || sourceFilter !== '_empty_' || searchTerm !== '';
   };
-  
+
   const activeFilterCount = () => {
     return (statusFilter !== '_empty_' ? 1 : 0) + (jobFilter !== '_empty_' ? 1 : 0) + (sourceFilter !== '_empty_' ? 1 : 0) + (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.recruitment.candidates.index'), { 
+    router.get(route('hr.recruitment.candidates.index'), {
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -52,13 +52,13 @@ export default function Candidates() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.recruitment.candidates.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.recruitment.candidates.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -67,19 +67,18 @@ export default function Candidates() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
-        setFormMode('view');
-        setIsFormModalOpen(true);
+        router.get(route('hr.recruitment.candidates.show', item.id));
         break;
-      case 'edit':
-        setFormMode('edit');
-        setIsFormModalOpen(true);
-        break;
+      // Need to Remove - case 'edit':
+      //   setFormMode('edit');
+      //   setIsFormModalOpen(true);
+      //   break;
       case 'delete':
         setIsDeleteModalOpen(true);
         break;
@@ -88,63 +87,90 @@ export default function Candidates() {
         setSelectedStatus(item.status);
         setIsStatusModalOpen(true);
         break;
+      case 'convert-to-employee':
+        if (!globalSettings?.is_demo) {
+          toast.loading(t('Loading conversion form...'));
+        }
+        router.get(route('hr.recruitment.candidates.convert-to-employee', item.id), {}, {
+          onSuccess: (page) => {
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
+            if (page.props.flash.success) {
+              toast.success(t(page.props.flash.success));
+            } else if (page.props.flash.error) {
+              toast.error(t(page.props.flash.error));
+            }
+          },
+          onError: (errors) => {
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
+            if (typeof errors === 'string') {
+              toast.error(t(errors));
+            } else {
+              toast.error(t('Failed to load conversion form: {{errors}}', { errors: Object.values(errors).join(', ') }));
+            }
+          }
+        });
+        break;
     }
   };
-  
-  const handleAddNew = () => {
-    setCurrentItem(null);
-    setFormMode('create');
-    setIsFormModalOpen(true);
-  };
-  
-  const handleFormSubmit = (formData: any) => {
-    if (formMode === 'create') {
-      toast.loading(t('Creating candidate...'));
 
-      router.post(route('hr.recruitment.candidates.store'), formData, {
-        onSuccess: (page) => {
-          setIsFormModalOpen(false);
-          toast.dismiss();
-          if (page.props.flash.success) {
-            toast.success(t(page.props.flash.success));
-          } else if (page.props.flash.error) {
-            toast.error(t(page.props.flash.error));
-          }
-        },
-        onError: (errors) => {
-          toast.dismiss();
-          if (typeof errors === 'string') {
-            toast.error(t(errors));
-          } else {
-            toast.error(t('Failed to create candidate: {{errors}}', { errors: Object.values(errors).join(', ') }));
-          }
-        }
-      });
-    } else if (formMode === 'edit') {
-      toast.loading(t('Updating candidate...'));
+  // Need to Remove - const handleAddNew = () => {
+  //   setCurrentItem(null);
+  //   setFormMode('create');
+  //   setIsFormModalOpen(true);
+  // };
 
-      router.put(route('hr.recruitment.candidates.update', currentItem.id), formData, {
-        onSuccess: (page) => {
-          setIsFormModalOpen(false);
-          toast.dismiss();
-          if (page.props.flash.success) {
-            toast.success(t(page.props.flash.success));
-          } else if (page.props.flash.error) {
-            toast.error(t(page.props.flash.error));
-          }
-        },
-        onError: (errors) => {
-          toast.dismiss();
-          if (typeof errors === 'string') {
-            toast.error(t(errors));
-          } else {
-            toast.error(t('Failed to update candidate: {{errors}}', { errors: Object.values(errors).join(', ') }));
-          }
-        }
-      });
-    }
-  };
-  
+  // Need to Remove - const handleFormSubmit = (formData: any) => {
+  //   if (formMode === 'create') {
+  //     toast.loading(t('Creating candidate...'));
+
+  //     router.post(route('hr.recruitment.candidates.store'), formData, {
+  //       onSuccess: (page) => {
+  //         setIsFormModalOpen(false);
+  //         toast.dismiss();
+  //         if (page.props.flash.success) {
+  //           toast.success(t(page.props.flash.success));
+  //         } else if (page.props.flash.error) {
+  //           toast.error(t(page.props.flash.error));
+  //         }
+  //       },
+  //       onError: (errors) => {
+  //         toast.dismiss();
+  //         if (typeof errors === 'string') {
+  //           toast.error(t(errors));
+  //         } else {
+  //           toast.error(t('Failed to create candidate: {{errors}}', { errors: Object.values(errors).join(', ') }));
+  //         }
+  //       }
+  //     });
+  //   } else if (formMode === 'edit') {
+  //     toast.loading(t('Updating candidate...'));
+
+  //     router.put(route('hr.recruitment.candidates.update', currentItem.id), formData, {
+  //       onSuccess: (page) => {
+  //         setIsFormModalOpen(false);
+  //         toast.dismiss();
+  //         if (page.props.flash.success) {
+  //           toast.success(t(page.props.flash.success));
+  //         } else if (page.props.flash.error) {
+  //           toast.error(t(page.props.flash.error));
+  //         }
+  //       },
+  //       onError: (errors) => {
+  //         toast.dismiss();
+  //         if (typeof errors === 'string') {
+  //           toast.error(t(errors));
+  //         } else {
+  //           toast.error(t('Failed to update candidate: {{errors}}', { errors: Object.values(errors).join(', ') }));
+  //         }
+  //       }
+  //     });
+  //   }
+  // };
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting candidate...'));
 
@@ -171,9 +197,9 @@ export default function Candidates() {
 
   const handleStatusUpdate = (formData: any) => {
     if (!formData.status) return;
-    
+
     toast.loading(t('Updating status...'));
-    
+
     router.put(route('hr.recruitment.candidates.update-status', currentItem.id), { status: formData.status }, {
       onSuccess: (page) => {
         setIsStatusModalOpen(false);
@@ -194,14 +220,14 @@ export default function Candidates() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('_empty_');
     setJobFilter('_empty_');
     setSourceFilter('_empty_');
     setShowFilters(false);
-    
+
     router.get(route('hr.recruitment.candidates.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -209,15 +235,15 @@ export default function Candidates() {
   };
 
   const pageActions = [];
-  
-  if (hasPermission(permissions, 'create-candidates')) {
-    pageActions.push({
-      label: t('Add Candidate'),
-      icon: <Plus className="h-4 w-4 mr-2" />,
-      variant: 'default',
-      onClick: () => handleAddNew()
-    });
-  }
+
+  // Need to Remove - if (hasPermission(permissions, 'create-candidates')) {
+  //   pageActions.push({
+  //     label: t('Add Candidate'),
+  //     icon: <Plus className="h-4 w-4 mr-2" />,
+  //     variant: 'default',
+  //     onClick: () => handleAddNew()
+  //   });
+  // }
 
   const breadcrumbs = [
     { title: t('Dashboard'), href: route('dashboard') },
@@ -238,9 +264,9 @@ export default function Candidates() {
   };
 
   const columns = [
-    { 
-      key: 'full_name', 
-      label: t('Name'), 
+    {
+      key: 'full_name',
+      label: t('Name'),
       sortable: true,
       render: (_, row) => (
         <div>
@@ -249,8 +275,8 @@ export default function Candidates() {
         </div>
       )
     },
-    { 
-      key: 'job.title', 
+    {
+      key: 'job.title',
       label: t('Job'),
       render: (_, row) => (
         <div>
@@ -259,23 +285,23 @@ export default function Candidates() {
         </div>
       )
     },
-    { 
-      key: 'source.name', 
+    {
+      key: 'source.name',
       label: t('Source'),
       render: (_, row) => row.source?.name || '-'
     },
-    { 
-      key: 'experience_years', 
+    {
+      key: 'experience_years',
       label: t('Experience'),
       render: (value) => `${value} ${t('years')}`
     },
-    { 
-      key: 'expected_salary', 
+    {
+      key: 'expected_salary',
       label: t('Expected Salary'),
       render: (value) => value ? window.appSettings?.formatCurrency(value) : '-'
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => (
         <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getStatusColor(value)}`}>
@@ -283,40 +309,61 @@ export default function Candidates() {
         </span>
       )
     },
-    { 
-      key: 'application_date', 
+    {
+      key: 'is_employee',
+      label: t('Employee Converted'),
+      render: (value) => (
+        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${value
+          ? 'bg-green-50 text-green-700 ring-green-600/20'
+          : 'bg-gray-50 text-gray-600 ring-gray-500/10'
+          }`}>
+          {value ? t('Yes') : t('No')}
+        </span>
+      )
+    },
+    {
+      key: 'application_date',
       label: t('Applied'),
-      sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      sortable: false,
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-candidates'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
-      className: 'text-amber-500',
-      requiredPermission: 'edit-candidates'
-    },
-    { 
-      label: t('Update Status'), 
-      icon: 'RefreshCw', 
-      action: 'update-status', 
+    // Need to Remove - { 
+    //   label: t('Edit'), 
+    //   icon: 'Edit', 
+    //   action: 'edit', 
+    //   className: 'text-amber-500',
+    //   requiredPermission: 'edit-candidates'
+    // },
+    {
+      label: t('Update Status'),
+      icon: 'RefreshCw',
+      action: 'update-status',
       className: 'text-green-500',
-      requiredPermission: 'edit-candidates'
+      requiredPermission: 'edit-candidates',
+      condition: (item: any) => !['Hired', 'Rejected'].includes(item.status)
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Convert to Employee'),
+      icon: 'UserPlus',
+      action: 'convert-to-employee',
+      className: 'text-purple-500',
+      requiredPermission: 'create-employees',
+      condition: (item: any) => item.status === 'Hired' && !item.is_employee
+    },
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-candidates'
     }
@@ -373,8 +420,8 @@ export default function Candidates() {
   ];
 
   return (
-    <PageTemplate 
-      title={t("Candidates")} 
+    <PageTemplate
+      title={t("Candidates")}
       url="/hr/recruitment/candidates"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -400,7 +447,8 @@ export default function Candidates() {
               type: 'select',
               value: jobFilter,
               onChange: setJobFilter,
-              options: jobOptions
+              options: jobOptions,
+              searchable: true
             },
             {
               name: 'source_id',
@@ -408,7 +456,8 @@ export default function Candidates() {
               type: 'select',
               value: sourceFilter,
               onChange: setSourceFilter,
-              options: sourceOptions
+              options: sourceOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -419,8 +468,8 @@ export default function Candidates() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.recruitment.candidates.index'), { 
-              page: 1, 
+            router.get(route('hr.recruitment.candidates.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -460,7 +509,8 @@ export default function Candidates() {
         />
       </div>
 
-      <CrudFormModal
+      {/* Need to Remove - Form Modal */}
+      {/* <CrudFormModal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
         onSubmit={handleFormSubmit}
@@ -471,14 +521,16 @@ export default function Candidates() {
               label: t('Job'), 
               type: 'select', 
               required: true,
-              options: jobPostingOptions.filter(opt => opt.value !== '_empty_')
+              options: jobPostingOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'source_id', 
               label: t('Source'), 
               type: 'select', 
               required: true,
-              options: candidateSourceOptions.filter(opt => opt.value !== '_empty_')
+              options: candidateSourceOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'first_name', 
@@ -583,7 +635,7 @@ export default function Candidates() {
               : t('View Candidate')
         }
         mode={formMode}
-      />
+      /> */}
 
       <CrudDeleteModal
         isOpen={isDeleteModalOpen}

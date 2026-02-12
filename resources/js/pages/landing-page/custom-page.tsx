@@ -136,7 +136,7 @@ export default function CustomPage() {
   `;
   const primaryColor = settings?.config_sections?.theme?.primary_color || '#3b82f6';
   const secondaryColor = settings?.config_sections?.theme?.secondary_color || '#8b5cf6';
-  const accentColor = settings?.config_sections?.theme?.accent_color || '#10b981';
+  const accentColor = settings?.config_sections?.theme?.accent_color || '#10b77f';
   useFavicon();
   return (
     <>

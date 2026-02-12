@@ -9,6 +9,7 @@ use App\Models\InterviewType;
 use App\Models\User;
 use App\Models\User as UserModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -16,56 +17,70 @@ class InterviewController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Interview::withPermissionCheck()->with(['candidate', 'job', 'round', 'interviewType']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->whereHas('candidate', function ($q) use ($request) {
-                $q->where('first_name', 'like', '%' . $request->search . '%')
-                    ->orWhere('last_name', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('candidate_id') && !empty($request->candidate_id) && $request->candidate_id !== 'all') {
-            $query->where('candidate_id', $request->candidate_id);
-        }
-
-        $query->orderBy('id', 'desc');
-        $interviews = $query->paginate($request->per_page ?? 10);
-
-        $candidates = Candidate::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'first_name', 'last_name')
-            ->get();
-
-        $interviewTypes = InterviewType::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get();
-
-        $employees = UserModel::with('employee')
-            ->whereIn('type', ['manager', 'hr', 'employee'])
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'employee_id' => $user->employee->employee_id ?? ''
-                ];
+        if (Auth::user()->can('manage-interviews')) {
+            $query = Interview::with(['candidate', 'job', 'round', 'interviewType'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-interviews')) {
+                    $q->whereIn('created_by', getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-interviews')) {
+                    $q->where('created_by', Auth::id())->orwhereJsonContains('interviewers', (string) Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
 
-        return Inertia::render('hr/recruitment/interviews/index', [
-            'interviews' => $interviews,
-            'candidates' => $candidates,
-            'interviewTypes' => $interviewTypes,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'status', 'candidate_id', 'per_page']),
-        ]);
+            if ($request->has('search') && !empty($request->search)) {
+                $query->whereHas('candidate', function ($q) use ($request) {
+                    $q->where('first_name', 'like', '%' . $request->search . '%')
+                        ->orWhere('last_name', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('candidate_id') && !empty($request->candidate_id) && $request->candidate_id !== 'all') {
+                $query->where('candidate_id', $request->candidate_id);
+            }
+
+            $query->orderBy('id', 'desc');
+            $interviews = $query->paginate($request->per_page ?? 10);
+
+            $candidates = Candidate::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'first_name', 'last_name')
+                ->where('status', 'Interview')
+                ->get();
+
+            $interviewTypes = InterviewType::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get();
+
+            $employees = UserModel::with('employee')
+                ->whereIn('type', ['manager', 'hr', 'employee'])
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name', 'type')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'type' => $user->type,
+                        'employee_id' => $user->employee->employee_id ?? ''
+                    ];
+                });
+
+            return Inertia::render('hr/recruitment/interviews/index', [
+                'interviews' => $interviews,
+                'candidates' => $candidates,
+                'interviewTypes' => $interviewTypes,
+                'employees' => $employees,
+                'filters' => $request->all(['search', 'status', 'candidate_id', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
     }
 
     public function store(Request $request)
@@ -85,6 +100,16 @@ class InterviewController extends Controller
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        // Check if interview already exists for this candidate and round
+        $existingInterview = Interview::where('candidate_id', $request->candidate_id)
+            ->where('round_id', $request->round_id)
+            ->whereIn('created_by', getCompanyAndUsersId())
+            ->first();
+
+        if ($existingInterview) {
+            return redirect()->back()->with('error', __('Interview already exists for this interview round'));
         }
 
         $candidate = Candidate::find($request->candidate_id);
@@ -127,6 +152,17 @@ class InterviewController extends Controller
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        // Check if interview already exists for this candidate and round (excluding current record)
+        $existingInterview = Interview::where('candidate_id', $request->candidate_id)
+            ->where('round_id', $request->round_id)
+            ->where('id', '!=', $interview->id)
+            ->whereIn('created_by', getCompanyAndUsersId())
+            ->first();
+
+        if ($existingInterview) {
+            return redirect()->back()->with('error', __('Interview already exists for this interview round'));
         }
 
         $candidate = Candidate::find($request->candidate_id);

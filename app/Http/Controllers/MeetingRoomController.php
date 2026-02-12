@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MeetingRoom;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -11,31 +12,43 @@ class MeetingRoomController extends Controller
 {
     public function index(Request $request)
     {
-        $query = MeetingRoom::withPermissionCheck()->withCount('meetings');
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('location', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-meeting-rooms')) {
+            $query = MeetingRoom::withCount('meetings')->where(function ($q) {
+                if (Auth::user()->can('manage-any-meeting-rooms')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-meeting-rooms')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%')
+                        ->orWhere('location', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
+                $query->where('type', $request->type);
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            $query->orderBy('id', 'desc');
+            $meetingRooms = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('meetings/meeting-rooms/index', [
+                'meetingRooms' => $meetingRooms,
+                'filters' => $request->all(['search', 'type', 'status', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
-            $query->where('type', $request->type);
-        }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        $query->orderBy('id','desc');
-        $meetingRooms = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('meetings/meeting-rooms/index', [
-            'meetingRooms' => $meetingRooms,
-            'filters' => $request->all(['search', 'type', 'status', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

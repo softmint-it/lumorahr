@@ -326,7 +326,7 @@ export default function HrDocuments() {
         const isExpired = new Date(value) < new Date();
         return (
           <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-gray-600'}`}>
-            {window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()}
+            {window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()}
             {isExpired && (
               <div className="text-xs text-red-500">Expired</div>
             )}
@@ -380,7 +380,7 @@ export default function HrDocuments() {
   ];
 
   const categoryOptions = [
-    { value: '_empty_', label: t('All Categories') },
+    { value: '_empty_', label: t('All Categories') , disabled: true },
     ...(categories || []).map((cat: any) => ({
       value: cat.id.toString(),
       label: cat.name
@@ -388,7 +388,7 @@ export default function HrDocuments() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true },
     { value: 'Draft', label: t('Draft') },
     { value: 'Under Review', label: t('Under Review') },
     { value: 'Approved', label: t('Approved') },
@@ -427,7 +427,8 @@ export default function HrDocuments() {
               type: 'select',
               value: categoryFilter,
               onChange: setCategoryFilter,
-              options: categoryOptions
+              options: categoryOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -511,7 +512,8 @@ export default function HrDocuments() {
               label: t('Category'), 
               type: 'select', 
               required: true,
-              options: categorySelectOptions.filter(opt => opt.value !== '_empty_')
+              options: categorySelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'file', 
@@ -549,7 +551,10 @@ export default function HrDocuments() {
           ],
           modalSize: 'xl'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          effective_date: currentItem.effective_date ? window.appSettings.formatDateTimeSimple(currentItem.effective_date, false) : currentItem.effective_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Upload New Document')

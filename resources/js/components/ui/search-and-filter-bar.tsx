@@ -11,9 +11,10 @@ interface FilterOption {
   name: string;
   label: string;
   type: 'select' | 'date';
-  options?: { value: string; label: string }[];
+  options?: { value: string; label: string; disabled?: boolean }[];
   value: string | Date | undefined;
   onChange: (value: any) => void;
+  searchable?: boolean;
 }
 
 interface SearchAndFilterBarProps {
@@ -150,9 +151,9 @@ export function SearchAndFilterBar({
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder={t(`All ${filter.label}`)} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent searchable={filter.searchable}>
                       {filter.options.map((option) => (
-                        <SelectItem key={option.value || 'empty'} value={option.value || '_empty_'}>
+                        <SelectItem key={option.value || 'empty'} value={option.value || '_empty_'} disabled={option.disabled}>
                           {option.label}
                         </SelectItem>
                       ))}

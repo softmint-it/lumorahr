@@ -18,7 +18,7 @@ export default function EmployeeGoals() {
   const { t } = useTranslation();
   const { auth, goals, employees, goalTypes, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   // State
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [selectedEmployee, setSelectedEmployee] = useState(pageFilters.employee_id || '');
@@ -31,27 +31,27 @@ export default function EmployeeGoals() {
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [progressValue, setProgressValue] = useState(0);
-  
+
   // Check if any filters are active
   const hasActiveFilters = () => {
     return selectedStatus !== 'all' || searchTerm !== '' || selectedEmployee !== '' || selectedGoalType !== '';
   };
-  
+
   // Count active filters
   const activeFilterCount = () => {
-    return (selectedStatus !== 'all' ? 1 : 0) + 
-           (searchTerm ? 1 : 0) + 
-           (selectedEmployee ? 1 : 0) + 
-           (selectedGoalType ? 1 : 0);
+    return (selectedStatus !== 'all' ? 1 : 0) +
+      (searchTerm ? 1 : 0) +
+      (selectedEmployee ? 1 : 0) +
+      (selectedGoalType ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.performance.employee-goals.index'), { 
+    router.get(route('hr.performance.employee-goals.index'), {
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -60,13 +60,13 @@ export default function EmployeeGoals() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.performance.employee-goals.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.performance.employee-goals.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -75,10 +75,10 @@ export default function EmployeeGoals() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
         setFormMode('view');
@@ -97,13 +97,13 @@ export default function EmployeeGoals() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
       toast.loading(t('Creating employee goal...'));
@@ -155,10 +155,10 @@ export default function EmployeeGoals() {
       });
     }
   };
-  
+
   const handleProgressSubmit = (formData: any) => {
     toast.loading(t('Updating goal progress...'));
-    
+
     router.put(route('hr.performance.employee-goals.update-progress', currentItem.id), { progress: formData.progress }, {
       onSuccess: (page) => {
         setIsProgressModalOpen(false);
@@ -181,10 +181,10 @@ export default function EmployeeGoals() {
       }
     });
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting employee goal...'));
-    
+
     router.delete(route('hr.performance.employee-goals.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
@@ -207,14 +207,14 @@ export default function EmployeeGoals() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setSelectedEmployee('');
     setSelectedGoalType('');
     setSelectedStatus('all');
     setShowFilters(false);
-    
+
     router.get(route('hr.performance.employee-goals.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -223,7 +223,7 @@ export default function EmployeeGoals() {
 
   // Define page actions
   const pageActions = [];
-  
+
   // Add the "Add New Goal" button if user has permission
   if (hasPermission(permissions, 'create-employee-goals')) {
     pageActions.push({
@@ -243,37 +243,37 @@ export default function EmployeeGoals() {
 
   // Define table columns
   const columns = [
-    { 
-      key: 'title', 
-      label: t('Title'), 
+    {
+      key: 'title',
+      label: t('Title'),
       sortable: true
     },
-    { 
-      key: 'employee', 
+    {
+      key: 'employee',
       label: t('Employee'),
       render: (value: any, row: any) => {
         return row.employee?.name || '-';
       }
     },
-    { 
-      key: 'goal_type.name', 
+    {
+      key: 'goal_type.name',
       label: t('Goal Type'),
       render: (value: string, row: any) => row.goal_type?.name || '-'
     },
-    { 
-      key: 'start_date', 
+    {
+      key: 'start_date',
       label: t('Start Date'),
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
-    { 
-      key: 'end_date', 
+    {
+      key: 'end_date',
       label: t('End Date'),
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
-    { 
-      key: 'progress', 
+    {
+      key: 'progress',
       label: t('Progress'),
       render: (value: number) => (
         <div className="w-full">
@@ -282,14 +282,14 @@ export default function EmployeeGoals() {
         </div>
       )
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value: string) => {
         let statusClass = '';
         let statusText = '';
-        
-        switch(value) {
+
+        switch (value) {
           case 'not_started':
             statusClass = 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20';
             statusText = t('Not Started');
@@ -306,7 +306,7 @@ export default function EmployeeGoals() {
             statusClass = 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20';
             statusText = value;
         }
-        
+
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${statusClass}`}>
             {statusText}
@@ -318,31 +318,31 @@ export default function EmployeeGoals() {
 
   // Define table actions
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-employee-goals'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
       requiredPermission: 'edit-employee-goals'
     },
-    { 
-      label: t('Update Progress'), 
-      icon: 'BarChart', 
-      action: 'update-progress', 
+    {
+      label: t('Update Progress'),
+      icon: 'BarChart',
+      action: 'update-progress',
       className: 'text-green-500',
       requiredPermission: 'edit-employee-goals'
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-employee-goals'
     }
@@ -375,8 +375,8 @@ export default function EmployeeGoals() {
   ];
 
   return (
-    <PageTemplate 
-      title={t("Employee Goals")} 
+    <PageTemplate
+      title={t("Employee Goals")}
       url="/hr/performance/employee-goals"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -389,21 +389,24 @@ export default function EmployeeGoals() {
           onSearchChange={setSearchTerm}
           onSearch={handleSearch}
           filters={[
-            {
+            ...(hasPermission(permissions, 'manage-any-employee-goals') ? [{
               name: 'employee_id',
               label: t('Employee'),
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
-            },
+              options: employeeOptions,
+              searchable: true
+            }] : []),
+
             {
               name: 'goal_type_id',
               label: t('Goal Type'),
               type: 'select',
               value: selectedGoalType,
               onChange: setSelectedGoalType,
-              options: goalTypeOptions
+              options: goalTypeOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -422,8 +425,8 @@ export default function EmployeeGoals() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.performance.employee-goals.index'), { 
-              page: 1, 
+            router.get(route('hr.performance.employee-goals.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               employee_id: selectedEmployee || undefined,
@@ -478,19 +481,21 @@ export default function EmployeeGoals() {
               type: 'text',
               readOnly: true
             } : {
-              name: 'employee_id', 
-              label: t('Employee'), 
-              type: 'select', 
+              name: 'employee_id',
+              label: t('Employee'),
+              type: 'select',
               required: true,
+              searchable: true,
               options: employees.map((employee: any) => ({
                 value: employee.id,
                 label: `${employee.name} (${employee.employee_id})`
               }))
             },
-            { 
-              name: 'goal_type_id', 
-              label: t('Goal Type'), 
-              type: 'select', 
+            {
+              name: 'goal_type_id',
+              label: t('Goal Type'),
+              type: 'select',
+              searchable: true,
               required: true,
               options: goalTypes.map((goalType: any) => ({
                 value: goalType.id.toString(),
@@ -502,9 +507,9 @@ export default function EmployeeGoals() {
             { name: 'start_date', label: t('Start Date'), type: 'date', required: true },
             { name: 'end_date', label: t('End Date'), type: 'date', required: true },
             { name: 'target', label: t('Target'), type: 'text', placeholder: 'e.g., Complete 5 projects, Achieve 95% accuracy, etc.' },
-            { 
-              name: 'progress', 
-              label: t('Progress (%)'), 
+            {
+              name: 'progress',
+              label: t('Progress (%)'),
               type: 'number',
               min: 0,
               max: 100,
@@ -526,7 +531,9 @@ export default function EmployeeGoals() {
         }}
         initialData={currentItem ? {
           ...currentItem,
-          employee_name: currentItem.employee?.name
+          employee_name: currentItem.employee?.name,
+          start_date: currentItem.start_date ? window.appSettings.formatDateTimeSimple(currentItem.start_date, false) : currentItem.start_date,
+          end_date: currentItem.end_date ? window.appSettings.formatDateTimeSimple(currentItem.end_date, false) : currentItem.end_date
         } : null}
         title={
           formMode === 'create'
@@ -545,9 +552,9 @@ export default function EmployeeGoals() {
         onSubmit={handleProgressSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'progress', 
-              label: t('Progress (%)'), 
+            {
+              name: 'progress',
+              label: t('Progress (%)'),
               type: 'number',
               min: 0,
               max: 100,

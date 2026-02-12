@@ -11,45 +11,56 @@ class SalaryComponentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SalaryComponent::withPermissionCheck()
-            ->with(['creator']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-salary-components')) {
+            $query = SalaryComponent::with(['creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-salary-components')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-salary-components')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle type filter
-        if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
-            $query->where('type', $request->type);
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
 
-        // Handle calculation type filter
-        if ($request->has('calculation_type') && !empty($request->calculation_type) && $request->calculation_type !== 'all') {
-            $query->where('calculation_type', $request->calculation_type);
-        }
+            // Handle type filter
+            if ($request->has('type') && !empty($request->type) && $request->type !== 'all') {
+                $query->where('type', $request->type);
+            }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
+            // Handle calculation type filter
+            if ($request->has('calculation_type') && !empty($request->calculation_type) && $request->calculation_type !== 'all') {
+                $query->where('calculation_type', $request->calculation_type);
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $salaryComponents = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/salary-components/index', [
+                'salaryComponents' => $salaryComponents,
+                'filters' => $request->all(['search', 'type', 'calculation_type', 'status', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('type', 'asc')->orderBy('name', 'asc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $salaryComponents = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/salary-components/index', [
-            'salaryComponents' => $salaryComponents,
-            'filters' => $request->all(['search', 'type', 'calculation_type', 'status', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

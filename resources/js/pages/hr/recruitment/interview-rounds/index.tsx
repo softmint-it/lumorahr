@@ -229,7 +229,7 @@ export default function InterviewRounds() {
     { 
       key: 'sequence_number', 
       label: t('Sequence'), 
-      sortable: true,
+      sortable: false,
       render: (value) => (
         <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
           {value}
@@ -239,7 +239,7 @@ export default function InterviewRounds() {
     { 
       key: 'name', 
       label: t('Name'), 
-      sortable: true,
+      sortable: false,
       render: (value) => <div className="font-medium">{value}</div>
     },
     { 
@@ -264,7 +264,7 @@ export default function InterviewRounds() {
       key: 'created_at', 
       label: t('Created At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -300,13 +300,13 @@ export default function InterviewRounds() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses') , disabled: true},
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   const jobOptions = [
-    { value: '_empty_', label: t('All Jobs') },
+    { value: '_empty_', label: t('All Jobs') , disabled: true},
     ...(jobPostings || []).map((job: any) => ({
       value: job.id.toString(),
       label: `${job.job_code} - ${job.title}`
@@ -349,7 +349,8 @@ export default function InterviewRounds() {
               type: 'select',
               value: jobFilter,
               onChange: setJobFilter,
-              options: jobOptions
+              options: jobOptions,
+              searchable: true,
             }
           ]}
           showFilters={showFilters}
@@ -411,7 +412,8 @@ export default function InterviewRounds() {
               label: t('Job'), 
               type: 'select', 
               required: true,
-              options: jobPostingOptions.filter(opt => opt.value !== '_empty_')
+              options: jobPostingOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'name', 

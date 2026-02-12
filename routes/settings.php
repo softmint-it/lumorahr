@@ -13,6 +13,7 @@ use App\Http\Controllers\Settings\WebhookController;
 use App\Http\Controllers\StripePaymentController;
 use App\Http\Controllers\PayPalPaymentController;
 use App\Http\Controllers\BankPaymentController;
+use App\Http\Controllers\Settings\WorkingDaysSettingController;
 use Inertia\Inertia;
 
 /*
@@ -35,7 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'plan.access'])->group(function () {
     // Payment Settings (admin only)
     Route::post('/payment-settings', [PaymentSettingController::class, 'store'])->name('payment.settings');
-    
+
     // Profile settings page with profile and password sections
     Route::get('profile', function () {
         return Inertia::render('settings/profile-settings');
@@ -51,15 +52,15 @@ Route::middleware(['auth', 'verified', 'plan.access'])->group(function () {
     Route::get('settings/email', function () {
         return Inertia::render('settings/components/email-settings');
     })->name('settings.email');
-    
+
     // Email settings routes
     Route::get('settings/email/get', [EmailSettingController::class, 'getEmailSettings'])->name('settings.email.get');
     Route::post('settings/email/update', [EmailSettingController::class, 'updateEmailSettings'])->name('settings.email.update');
     Route::post('settings/email/test', [EmailSettingController::class, 'sendTestEmail'])->name('settings.email.test');
-  
+
     // General settings page with system and company settings
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
-    
+
     // System Settings routes
     Route::post('settings/system', [SystemSettingsController::class, 'update'])->name('settings.system.update');
     Route::post('settings/brand', [SystemSettingsController::class, 'updateBrand'])->name('settings.brand.update');
@@ -69,17 +70,33 @@ Route::middleware(['auth', 'verified', 'plan.access'])->group(function () {
     Route::post('settings/cookie', [SystemSettingsController::class, 'updateCookie'])->name('settings.cookie.update');
     Route::post('settings/seo', [SystemSettingsController::class, 'updateSeo'])->name('settings.seo.update');
     Route::post('settings/cache/clear', [SystemSettingsController::class, 'clearCache'])->name('settings.cache.clear');
-    
+
     // Currency Settings routes
     Route::post('settings/currency', [CurrencySettingController::class, 'update'])->name('settings.currency.update');
-    
+
+    // Working Days Settings routes
+    Route::get('settings/working-days/get', [WorkingDaysSettingController::class, 'getWorkingDaysSettings'])->name('settings.working-days.get');
+    Route::post('settings/working-days/update', [WorkingDaysSettingController::class, 'updateWorkingDaysSettings'])->name('settings.working-days.update');
+
     // Webhook Settings routes
     Route::get('settings/webhooks', [WebhookController::class, 'index'])->name('settings.webhooks.index');
     Route::post('settings/webhooks', [WebhookController::class, 'store'])->name('settings.webhooks.store');
     Route::put('settings/webhooks/{webhook}', [WebhookController::class, 'update'])->name('settings.webhooks.update');
     Route::delete('settings/webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('settings.webhooks.destroy');
-    
+
     // Google Calendar Settings routes
     Route::post('settings/google-calendar', [SystemSettingsController::class, 'updateGoogleCalendar'])->name('settings.google-calendar.update');
-    
+
+    // IP Restriction Settings routes
+    Route::middleware('permission:manage-ip-restriction-settings')->group(function () {
+        Route::post('ip-restrictions', [\App\Http\Controllers\IpRestrictionController::class, 'store'])->name('ip-restrictions.store');
+        Route::put('ip-restrictions/{ipRestriction}', [\App\Http\Controllers\IpRestrictionController::class, 'update'])->name('ip-restrictions.update');
+        Route::delete('ip-restrictions/{ipRestriction}', [\App\Http\Controllers\IpRestrictionController::class, 'destroy'])->name('ip-restrictions.destroy');
+    });
+
+    // Zekto Settings routes
+    Route::middleware('permission:manage-biomatric-attedance-settings')->group(function () {
+        Route::post('settings/zekto/update', [\App\Http\Controllers\ZektoSettingsController::class, 'update'])->name('settings.zekto.update');
+        Route::post('settings/zekto/generate-token', [\App\Http\Controllers\ZektoSettingsController::class, 'generateToken'])->name('settings.zekto.generate-token');
+    });
 });

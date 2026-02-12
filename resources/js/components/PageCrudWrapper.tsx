@@ -45,7 +45,7 @@ export function PageCrudWrapper({
 }: PageCrudWrapperProps) {
   const { t } = useTranslation();
   const { entity, table, filters = [], form, hooks } = config;
-  const { auth, ...pageProps } = usePage().props as any;
+  const { auth, globalSettings, ...pageProps } = usePage().props as any;
   const permissions = auth?.permissions || [];
   
   // Get data from page props using entity name
@@ -264,12 +264,16 @@ export function PageCrudWrapper({
       
       if (formMode === 'create') {
         // Show loading toast
-        toast.loading(t('Creating...'));
+        if (!globalSettings?.is_demo) {
+          toast.loading(t('Creating...'));
+        }
         
         router.post(entity.endpoint, formDataObj, {
           onSuccess: (page) => {
             setIsFormModalOpen(false);
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (page.props.flash.success) {
               toast.success(t(page.props.flash.success));
             } else if (page.props.flash.error) {
@@ -280,7 +284,9 @@ export function PageCrudWrapper({
             }
           },
           onError: (errors) => {
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (typeof errors === 'string') {
               toast.error(t(errors));
             } else {
@@ -290,12 +296,16 @@ export function PageCrudWrapper({
         });
       } else if (formMode === 'edit') {
         // Show loading toast
-        toast.loading(t('Updating...'));
+        if (!globalSettings?.is_demo) {
+          toast.loading(t('Updating...'));
+        }
         
         router.post(`${entity.endpoint}/${currentItem.id}?_method=PUT`, formDataObj, {
           onSuccess: (page) => {
             setIsFormModalOpen(false);
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (page.props.flash.success) {
               toast.success(t(page.props.flash.success));
             } else if (page.props.flash.error) {
@@ -306,7 +316,9 @@ export function PageCrudWrapper({
             }
           },
           onError: (errors) => {
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (typeof errors === 'string') {
               toast.error(t(errors));
             } else {
@@ -320,12 +332,16 @@ export function PageCrudWrapper({
     
     if (formMode === 'create') {
       // Show loading toast
-      toast.loading(t('Creating...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Creating...'));
+      }
       
       router.post(entity.endpoint, processedFormData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -336,7 +352,9 @@ export function PageCrudWrapper({
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -346,12 +364,16 @@ export function PageCrudWrapper({
       });
     } else if (formMode === 'edit') {
       // Show loading toast
-      toast.loading(t('Updating...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Updating...'));
+      }
       
       router.put(`${entity.endpoint}/${currentItem.id}`, processedFormData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -362,7 +384,9 @@ export function PageCrudWrapper({
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -375,12 +399,16 @@ export function PageCrudWrapper({
   
   const handleDeleteConfirm = () => {
     // Show loading toast
-    toast.loading(t('Deleting...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting...'));
+    }
     
     router.delete(`${entity.endpoint}/${currentItem.id}`, {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -391,7 +419,9 @@ export function PageCrudWrapper({
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {

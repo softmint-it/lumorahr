@@ -249,7 +249,7 @@ export default function PerformanceIndicatorCategories() {
       key: 'created_at', 
       label: t('Created At'), 
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -294,7 +294,7 @@ export default function PerformanceIndicatorCategories() {
 
   return (
     <PageTemplate 
-      title={t("Performance Indicator Categories")} 
+      title={t("Indicator Categories")} 
       url="/hr/performance/indicator-categories"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

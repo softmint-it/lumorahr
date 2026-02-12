@@ -311,7 +311,8 @@ export function CrudFormModal({
             onChange={(e) => handleChange(field.name, e.target.value ? parseFloat(e.target.value) : '')}
             required={field.required}
             className={errors[field.name] ? 'border-red-500' : ''}
-            disabled={mode === 'view'}
+            disabled={field.disabled || mode === 'view'}
+            readOnly={field.readOnly}
           />
         );
 
@@ -354,7 +355,7 @@ export function CrudFormModal({
                 {displayText || (field.placeholder || `Select ${field.label}`)}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent className="z-[60000]">
+            <SelectContent className="z-[60000]" searchable={field.searchable}>
               {field.relation ? (
                 options.map((option: any) => (
                   <SelectItem

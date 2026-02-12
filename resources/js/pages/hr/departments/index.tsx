@@ -14,7 +14,7 @@ import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 
 export default function Departments() {
   const { t } = useTranslation();
-  const { auth, departments, branches, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, departments, branches, filters: pageFilters = {}, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
 
   // State
@@ -95,12 +95,16 @@ export default function Departments() {
 
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
-      toast.loading(t('Creating department...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Creating department...'));
+      }
 
       router.post(route('hr.departments.store'), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -108,7 +112,9 @@ export default function Departments() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -117,12 +123,16 @@ export default function Departments() {
         }
       });
     } else if (formMode === 'edit') {
-      toast.loading(t('Updating department...'));
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Updating department...'));
+      }
 
       router.put(route('hr.departments.update', currentItem.id), formData, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (page.props.flash.success) {
             toast.success(t(page.props.flash.success));
           } else if (page.props.flash.error) {
@@ -130,7 +140,9 @@ export default function Departments() {
           }
         },
         onError: (errors) => {
-          toast.dismiss();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
           if (typeof errors === 'string') {
             toast.error(t(errors));
           } else {
@@ -142,12 +154,16 @@ export default function Departments() {
   };
 
   const handleDeleteConfirm = () => {
-    toast.loading(t('Deleting department...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting department...'));
+    }
 
     router.delete(route('hr.departments.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -155,7 +171,9 @@ export default function Departments() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -167,11 +185,15 @@ export default function Departments() {
 
   const handleToggleStatus = (department: any) => {
     const newStatus = department.status === 'active' ? 'inactive' : 'active';
-    toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} department...`);
+    if (!globalSettings?.is_demo) {
+      toast.loading(`${newStatus === 'active' ? t('Activating') : t('Deactivating')} department...`);
+    }
 
     router.put(route('hr.departments.toggle-status', department.id), {}, {
       onSuccess: (page) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -179,7 +201,9 @@ export default function Departments() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -259,7 +283,7 @@ export default function Departments() {
       key: 'created_at',
       label: t('Created At'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -306,14 +330,14 @@ export default function Departments() {
 
   // Prepare status options for filter
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('Select Status'), disabled: true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   return (
     <PageTemplate
-      title={t("Department Management")}
+      title={t("Departments")}
       url="/hr/departments"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -332,7 +356,8 @@ export default function Departments() {
               type: 'select',
               value: selectedBranch,
               onChange: setSelectedBranch,
-              options: branchOptions
+              options: branchOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -406,6 +431,7 @@ export default function Departments() {
               label: t('Branch'),
               type: 'select',
               required: true,
+              searchable: true,
               options: branches ? branches.map((branch: any) => ({
                 value: branch.id.toString(),
                 label: branch.name

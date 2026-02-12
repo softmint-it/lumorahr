@@ -139,7 +139,7 @@ export default function EmployeeTrainingDashboard() {
                       <div className="font-medium">{training.employee?.name}</div>
                       <div className="text-sm text-gray-500">{training.training_program?.name}</div>
                       <div className="text-xs text-gray-500">
-                        {t('Completed')}: {window.appSettings?.formatDateTime(training.completion_date, false) || format(new Date(training.completion_date), 'MMM dd, yyyy')}
+                        {t('Completed')}: {window.appSettings?.formatDateTimeSimple(training.completion_date, false) || format(new Date(training.completion_date), 'MMM dd, yyyy')}
                       </div>
                     </div>
                     <div className="text-right">
@@ -178,7 +178,7 @@ export default function EmployeeTrainingDashboard() {
                   </CardHeader>
                   <CardContent className="pb-2">
                     <div className="text-sm">
-                      <span className="font-medium">{t('Assigned')}:</span> {window.appSettings?.formatDateTime(training.assigned_date, false) || format(new Date(training.assigned_date), 'MMM dd, yyyy')}
+                      <span className="font-medium">{t('Assigned')}:</span> {window.appSettings?.formatDateTimeSimple(training.assigned_date, false) || format(new Date(training.assigned_date), 'MMM dd, yyyy')}
                     </div>
                   </CardContent>
                   <CardFooter>

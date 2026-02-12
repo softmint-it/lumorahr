@@ -312,7 +312,7 @@ export default function InterviewFeedback() {
       key: 'created_at', 
       label: t('Submitted'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -350,7 +350,7 @@ export default function InterviewFeedback() {
   ];
 
   const interviewerOptions = [
-    { value: '_empty_', label: t('All Interviewers') },
+    { value: '_empty_', label: t('All Interviewers'), disabled: true },
     ...(interviewers || []).map((interviewer: any) => ({
       value: interviewer.id.toString(),
       label: interviewer.name
@@ -361,7 +361,7 @@ export default function InterviewFeedback() {
     { value: '_empty_', label: t('Select Interview') },
     ...(interviews || []).map((interview: any) => ({
       value: interview.id.toString(),
-      label: `${interview.candidate?.first_name} ${interview.candidate?.last_name} - ${interview.job?.title}`
+      label: `${interview.candidate?.first_name} ${interview.candidate?.last_name} - ${interview.job?.title} (${interview.round?.name || 'No Round'})`
     }))
   ];
 
@@ -401,7 +401,8 @@ export default function InterviewFeedback() {
               type: 'select',
               value: interviewerFilter,
               onChange: setInterviewerFilter,
-              options: interviewerOptions
+              options: interviewerOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -481,7 +482,7 @@ export default function InterviewFeedback() {
                     <SelectTrigger>
                       <SelectValue placeholder={t('Select Interview')} />
                     </SelectTrigger>
-                    <SelectContent className="z-[60000]">
+                    <SelectContent className="z-[60000]" searchable={true}>
                       {interviewOptions.filter(opt => opt.value !== '_empty_').map(option => (
                         <SelectItem key={option.value} value={String(option.value)}>
                           {option.label}
@@ -496,6 +497,7 @@ export default function InterviewFeedback() {
               name: 'interviewer_id', 
               label: t('Interviewer'), 
               type: 'multi-select', 
+              searchable: true,
               key: `interviewer-${selectedInterview}`,
               options: availableInterviewers.map((interviewer: any) => ({
                 value: interviewer.id.toString(),

@@ -88,76 +88,65 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
             status={status}
         >
             <form className="space-y-5" onSubmit={submit}>
-                <div className="space-y-4">
-                    <div className="relative">
-                        <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium mb-1 block">{t("Email address")}</Label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="email"
-                                type="email"
-                                required
-                                autoFocus
-                                tabIndex={1}
-                                autoComplete="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="email@example.com"
-                                className="pl-10 w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg transition-all duration-200"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
-                        </div>
-                        <InputError message={errors.email} />
-                    </div>
+                <div className="mb-4">
+                    <Label htmlFor="email" className="block text-sm font-medium text-gray-900">{t("Email address")}</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        required
+                        autoFocus
+                        tabIndex={1}
+                        autoComplete="email"
+                        value={data.email}
+                        onChange={(e) => setData('email', e.target.value)}
+                        placeholder="Enter your email"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400 mt-2"
+                        onFocus={(e) => e.target.style.borderColor = primaryColor}
+                        onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                    />
+                    <InputError message={errors.email} />
+                </div>
 
-                    <div>
-                        <div className="flex items-center justify-between mb-1">
-                            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">{t("Password")}</Label>
-                            {canResetPassword && (
-                                <TextLink
-                                    href={route('password.request')}
-                                    className="text-sm transition-colors duration-200"
-                                    style={{ color: primaryColor }}
-                                    tabIndex={5}
-                                >
-                                    {t("Forgot password?")}
-                                </TextLink>
-                            )}
-                        </div>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                required
-                                tabIndex={2}
-                                autoComplete="current-password"
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                placeholder="••••••••"
-                                className="pl-10 w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg transition-all duration-200"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
-                        </div>
-                        <InputError message={errors.password} />
+                <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="password" className="block text-sm font-medium text-gray-900">{t("Password")}</Label>
+                        {canResetPassword && (
+                            <TextLink
+                                href={route('password.request')}
+                                className="text-sm no-underline hover:underline hover:underline-primary"
+                                style={{ color: primaryColor }}
+                                tabIndex={5}
+                            >
+                                {t("Forgot password?")}
+                            </TextLink>
+                        )}
                     </div>
+                    <Input
+                        id="password"
+                        type="password"
+                        required
+                        tabIndex={2}
+                        autoComplete="current-password"
+                        value={data.password}
+                        onChange={(e) => setData('password', e.target.value)}
+                        placeholder="Enter your password"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400"
+                        onFocus={(e) => e.target.style.borderColor = primaryColor}
+                        onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                    />
+                    <InputError message={errors.password} />
+                </div>
 
-                    <div className="flex items-center">
-                        <Checkbox
-                            id="remember"
-                            name="remember"
-                            checked={data.remember}
-                            onClick={() => setData('remember', !data.remember)}
-                            tabIndex={3}
-                            className="border-gray-300 rounded"
-                            style={{ '--tw-ring-color': primaryColor, color: primaryColor } as React.CSSProperties}
-                        />
-                        <Label htmlFor="remember" className="ml-2 text-gray-600 dark:text-gray-400">{t("Remember me")}</Label>
-                    </div>
+                <div className="flex items-center !mt-4 !mb-5">
+                    <Checkbox
+                        id="remember"
+                        name="remember"
+                        checked={data.remember}
+                        onClick={() => setData('remember', !data.remember)}
+                        tabIndex={3}
+                        className="w-[14px] h-[14px] border border-gray-300 rounded"
+                    />
+                    <Label htmlFor="remember" className="ml-2 text-sm text-gray-600">{t("Remember me")}</Label>
                 </div>
 
                 <Recaptcha
@@ -166,23 +155,49 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                     onError={() => setRecaptchaToken('')}
                 />
 
-                <AuthButton
+                <button
+                    type="submit"
+                    disabled={processing}
                     tabIndex={4}
-                    processing={processing}
+                    className="w-full text-white py-2.5 text-sm font-medium tracking-wide transition-all duration-200 rounded-md shadow-md hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
+                    style={{ backgroundColor: primaryColor }}
                 >
-                    {t("Log in")}
-                </AuthButton>
+                    {processing ? t("Signing in...") : t("Login")}
+                </button>
+
+                {isSaas && (
+                    <div className="text-center">
+                        <p className="text-sm text-gray-500">
+                            {t("Don't have an account?")}{' '}
+                            <TextLink
+                                href={route('register')}
+                                className="font-medium hover:underline"
+                                style={{ color: primaryColor }}
+                                tabIndex={6}
+                            >
+                                {t("Sign up")}
+                            </TextLink>
+                        </p>
+                    </div>
+                )}
 
                 {isDemo && (
-                    <div className="mt-6">
-                        <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
-                            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">Demo Quick Access</h3>
+                    <>
+                        {/* Divider */}
+                        <div className="my-5">
+                            <div className="flex items-center">
+                                <div className="flex-1 h-px bg-gray-200"></div>
+                                <div className="w-2 h-2 rotate-45 mx-4" style={{ backgroundColor: primaryColor }}></div>
+                                <div className="flex-1 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
 
-                            {isSaas ? (
-                                // SaaS Demo Buttons
-                                <div className="flex flex-col space-y-3">
-                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                        <Button
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-900 tracking-wider mb-4 text-center">{t("Quick Access")}</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                {isSaas ? (
+                                    <>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -192,12 +207,12 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login as Super Admin
-                                        </Button>
-                                        <Button
+                                            {t("Login as Super Admin")}
+                                        </button>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -207,15 +222,12 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login as Company
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                        <Button
+                                            {t("Login as Company")}
+                                        </button>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -225,12 +237,12 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login As HR
-                                        </Button>
-                                        <Button
+                                            {t("Login As HR")}
+                                        </button>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -240,18 +252,15 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login As Employee
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                // Non-SaaS Demo Buttons
-                                <div className="flex flex-col space-y-3">
-                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                        <Button
+                                            {t("Login As Employee")}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -261,12 +270,12 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login as Company
-                                        </Button>
-                                        <Button
+                                            {t("Login As Company")}
+                                        </button>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -276,15 +285,12 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login As HR
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex justify-center">
-                                        <Button
+                                            {t("Login As HR")}
+                                        </button>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 router.post(route('login'), {
@@ -294,32 +300,19 @@ export default function Login({ status, canResetPassword, demoBusinesses = [] }:
                                                     recaptcha_token: recaptchaToken
                                                 });
                                             }}
-                                            className="w-full sm:flex-1 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200"
-                                            style={{ backgroundColor: primaryColor }}
+                                            className="col-span-2 py-2 px-4 border text-[13px] font-medium text-white transition-all duration-200 rounded-md shadow-sm hover:shadow-md transform hover:scale-[1.02]"
+                                            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                         >
-                                            Login As Employee
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
+                                            {t("Login As Employee")}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    </>
                 )}
 
-                {isSaas && (
-                    <div className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-                        {t("Don't have an account?")}{' '}
-                        <TextLink
-                            href={route('register')}
-                            className="font-medium transition-colors duration-200"
-                            style={{ color: primaryColor }}
-                            tabIndex={6}
-                        >
-                            {t("Sign up")}
-                        </TextLink>
-                    </div>
-                )}
+                
             </form>
         </AuthLayout>
     );

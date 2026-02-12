@@ -137,12 +137,12 @@ export default function PayrollRunShow() {
             <div>
               <label className="text-sm font-medium text-gray-500">{t('Pay Period')}</label>
               <p className="text-sm">
-                {window.appSettings?.formatDateTime(payrollRun.pay_period_start, false) || new Date(payrollRun.pay_period_start).toLocaleDateString()} - {window.appSettings?.formatDateTime(payrollRun.pay_period_end, false) || new Date(payrollRun.pay_period_end).toLocaleDateString()}
+                {window.appSettings?.formatDateTimeSimple(payrollRun.pay_period_start, false) || new Date(payrollRun.pay_period_start).toLocaleDateString()} - {window.appSettings?.formatDateTimeSimple(payrollRun.pay_period_end, false) || new Date(payrollRun.pay_period_end).toLocaleDateString()}
               </p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">{t('Pay Date')}</label>
-              <p className="text-sm">{ window.appSettings?.formatDateTime(payrollRun.pay_date, false) || new Date(payrollRun.pay_date).toLocaleDateString()}</p>
+              <p className="text-sm">{ window.appSettings?.formatDateTimeSimple(payrollRun.pay_date, false) || new Date(payrollRun.pay_date).toLocaleDateString()}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">{t('Payroll Frequency')}</label>
@@ -162,7 +162,7 @@ export default function PayrollRunShow() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">{t('Created At')}</label>
-              <p className="text-sm">{window.appSettings?.formatDateTime(payrollRun.created_at, false) || new Date(payrollRun.created_at).toLocaleDateString()}</p>
+              <p className="text-sm">{window.appSettings?.formatDateTimeSimple(payrollRun.created_at, false) || new Date(payrollRun.created_at).toLocaleDateString()}</p>
             </div>
           </div>
           {payrollRun.notes && (

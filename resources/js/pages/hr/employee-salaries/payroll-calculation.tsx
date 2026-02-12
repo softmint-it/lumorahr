@@ -283,7 +283,7 @@ export default function PayrollCalculation() {
                     attendanceRecords.map((record: any, index: number) => (
                       <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {window.appSettings?.formatDateTime(record.date, false) || new Date(record.date).toLocaleDateString()}
+                          {window.appSettings?.formatDateTimeSimple(record.date, false) || new Date(record.date).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-green-600">
                           {record.clock_in || '-'}

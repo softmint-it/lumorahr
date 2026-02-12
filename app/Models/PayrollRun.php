@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
 class PayrollRun extends BaseModel
 {
@@ -21,7 +20,7 @@ class PayrollRun extends BaseModel
         'employee_count',
         'status',
         'notes',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
@@ -86,11 +85,13 @@ class PayrollRun extends BaseModel
 
         try {
             // Get all active employees
-            $employees = User::where('type', 'employee')
+            $employees = User::with('employee')->where('type', 'employee')
                 ->whereIn('created_by', getCompanyAndUsersId())
+                ->whereHas('employee', function ($q) {
+                    $q->whereIn('employee_status', ['active', 'probation']);
+                })
                 ->orderby('id', 'desc')
                 ->get();
-
 
             foreach ($employees as $employee) {
                 $this->processEmployeePayroll($employee);
@@ -113,10 +114,17 @@ class PayrollRun extends BaseModel
      */
     private function processEmployeePayroll($employee)
     {
+        // Get working days from settings
+        $globalSettings = settings();
+        $workingDaysIndices = json_decode($globalSettings['working_days'] ?? '[]', true);
+
+        if (empty($workingDaysIndices)) {
+            throw new \Exception(__('Please configure working days first.'));
+        }
         // Get employee salary (basic salary is already set according to company policy)
         $employeeSalary = EmployeeSalary::getActiveSalary($employee->id);
 
-        if (!$employeeSalary) {
+        if (! $employeeSalary) {
             return;
         }
 
@@ -130,10 +138,21 @@ class PayrollRun extends BaseModel
             ->get();
 
         // Calculate working days in period (excluding weekends)
-        $totalWorkingDays = $this->pay_period_start->diffInDaysFiltered(function ($date) {
-            return !$date->isWeekend(); // count only weekdays
-        }, $this->pay_period_end->copy()->addDay());
+        // $totalWorkingDays = $this->pay_period_start->diffInDaysFiltered(function ($date) {
+        //     return !$date->isWeekend(); // count only weekdays
+        // }, $this->pay_period_end->copy()->addDay());
 
+        // Calculate working days in pay period
+        $startDate = new \DateTime($this->pay_period_start);
+        $endDate = new \DateTime($this->pay_period_end);
+        $totalWorkingDays = 0;
+
+        for ($date = clone $startDate; $date <= $endDate; $date->modify('+1 day')) {
+            $dayIndex = (int) $date->format('w');
+            if (in_array($dayIndex, $workingDaysIndices)) {
+                $totalWorkingDays++;
+            }
+        }
 
         // Calculate attendance summary
         $presentDays = $attendanceRecords
@@ -192,8 +211,6 @@ class PayrollRun extends BaseModel
             'created_by' => $this->created_by,
         ]);
     }
-
-
 
     /**
      * Get employee leave data for pay period.

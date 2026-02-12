@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceRegularization;
 use App\Models\AttendanceRecord;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,64 +14,102 @@ class AttendanceRegularizationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AttendanceRegularization::withPermissionCheck()
-            ->with(['employee', 'attendanceRecord', 'approver', 'creator']);
+        if (Auth::user()->can('manage-attendance-regularizations')) {
+            $query = AttendanceRegularization::with(['employee', 'attendanceRecord', 'approver', 'creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-attendance-regularizations')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-attendance-regularizations')) {
+                    $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id())->orWhere('approved_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('reason', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('employee', function ($subQ) use ($request) {
-                        $subQ->where('name', 'like', '%' . $request->search . '%');
-                    });
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('reason', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('employee', function ($subQ) use ($request) {
+                            $subQ->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle date range filter
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->where('date', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->where('date', '<=', $request->date_to);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $regularizations = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name']);
+
+            // Get attendance records for form dropdown
+            $attendanceRecords = AttendanceRecord::whereIn('created_by', getCompanyAndUsersId())
+                ->with('employee')
+                ->orderBy('date', 'desc')
+                ->take(50)
+                ->get();
+
+            return Inertia::render('hr/attendance-regularizations/index', [
+                'regularizations' => $regularizations,
+                'employees' => $this->getFilteredEmployees(),
+                'attendanceRecords' => $attendanceRecords,
+                'filters' => $request->all(['search', 'employee_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-attendance-regularizations') && !Auth::user()->can('manage-any-attendance-regularizations')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        // Handle date range filter
-        if ($request->has('date_from') && !empty($request->date_from)) {
-            $query->where('date', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && !empty($request->date_to)) {
-            $query->where('date', '<=', $request->date_to);
-        }
-
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
-
-        $regularizations = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::where('type', 'employee')
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name']);
-
-        // Get attendance records for form dropdown
-        $attendanceRecords = AttendanceRecord::whereIn('created_by', getCompanyAndUsersId())
+        $employees = User::emp()
             ->with('employee')
-            ->orderBy('date', 'desc')
-            ->take(50)
-            ->get();
-
-        return Inertia::render('hr/attendance-regularizations/index', [
-            'regularizations' => $regularizations,
-            'employees' => $employees,
-            'attendanceRecords' => $attendanceRecords,
-            'filters' => $request->all(['search', 'employee_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+            ->whereIn('created_by', getCompanyAndUsersId())
+            ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
 
     public function store(Request $request)
@@ -223,6 +262,7 @@ class AttendanceRegularizationController extends Controller
                     'value' => $record->id,
                 ];
             });
+
 
             return response()->json($datesForDropdown);
         } catch (\Exception $e) {

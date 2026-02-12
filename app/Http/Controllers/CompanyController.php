@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Plan;
 use App\Models\PlanOrder;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -69,7 +69,7 @@ class CompanyController extends Controller
         return Inertia::render('companies/index', [
             'companies' => $companies,
             'plans' => $plans,
-            'filters' => $request->only(['search', 'status', 'start_date', 'end_date', 'sort_field', 'sort_direction', 'per_page'])
+            'filters' => $request->only(['search', 'status', 'start_date', 'end_date', 'sort_field', 'sort_direction', 'per_page']),
         ]);
     }
 
@@ -82,7 +82,7 @@ class CompanyController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        $company = new User();
+        $company = new User;
         $company->name = $validated['name'];
         $company->email = $validated['email'];
 
@@ -93,12 +93,13 @@ class CompanyController extends Controller
 
         $company->type = 'company';
         $company->status = $validated['status'];
+        $company->created_by = creatorId() ?? 1;
 
         // Set company language same as creator (superadmin)
         $creator = auth()->user();
-        if ($creator && $creator->lang) {
-            $company->lang = $creator->lang;
-        }
+        $superAdminSettings = settings();
+        $userLang = isset($superAdminSettings['defaultLanguage']) ? $superAdminSettings['defaultLanguage'] : $creator->lang;
+        $company->lang = $userLang;
 
         // Assign default plan
         $defaultPlan = Plan::where('is_default', true)->first();
@@ -142,16 +143,10 @@ class CompanyController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $company->id,
-            'status' => 'required|in:active,inactive',
         ]);
 
         $company->name = $validated['name'];
         $company->email = $validated['email'];
-        $company->status = $validated['status'];
-        // Only set password if provided
-        if (isset($validated['password'])) {
-            $company->password = Hash::make($validated['password']);
-        }
 
         $company->save();
 
@@ -221,7 +216,7 @@ class CompanyController extends Controller
                 $enabledFeatures = $plan->getEnabledFeatures();
                 $featureLabels = [
                     'ai_integration' => __('AI Integration'),
-                    'password_protection' => __('Password Protection')
+                    'password_protection' => __('Password Protection'),
                 ];
                 foreach ($enabledFeatures as $feature) {
                     if (isset($featureLabels[$feature])) {
@@ -229,7 +224,9 @@ class CompanyController extends Controller
                     }
                 }
             } else {
-                if ($plan->enable_chatgpt === 'on') $features[] = __('AI Integration');
+                if ($plan->enable_chatgpt === 'on') {
+                    $features[] = __('AI Integration');
+                }
             }
 
             // Monthly plan
@@ -244,7 +241,7 @@ class CompanyController extends Controller
                 'max_users' => $plan->max_users,
                 'storage_limit' => $plan->storage_limit . ' ' . __('GB'),
                 'is_current' => $company->plan_id === $plan->id,
-                'is_default' => $plan->is_default
+                'is_default' => $plan->is_default,
             ];
 
             // Yearly plan (create a separate entry)
@@ -260,7 +257,7 @@ class CompanyController extends Controller
                 'max_users' => $plan->max_users,
                 'storage_limit' => $plan->storage_limit . ' ' . __('GB'),
                 'is_current' => $company->plan_id === $plan->id,
-                'is_default' => $plan->is_default
+                'is_default' => $plan->is_default,
             ];
         }
 
@@ -269,11 +266,10 @@ class CompanyController extends Controller
             'company' => [
                 'id' => $company->id,
                 'name' => $company->name,
-                'current_plan_id' => $company->plan_id
-            ]
+                'current_plan_id' => $company->plan_id,
+            ],
         ]);
     }
-
 
     public function upgradePlan(Request $request, User $company)
     {
@@ -295,7 +291,7 @@ class CompanyController extends Controller
         $isYearly = $validated['duration'] === 'Yearly';
 
         // Create plan order entry for tracking
-        $planOrder = new PlanOrder();
+        $planOrder = new PlanOrder;
         $planOrder->user_id = $company->id;
         $planOrder->plan_id = $plan->id;
         $planOrder->billing_cycle = $request->duration === 'yearly' ? 'yearly' : 'monthly';

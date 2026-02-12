@@ -24,7 +24,7 @@ interface CurrencyProps {
 
 export default function CurrencySettings() {
     const { t } = useTranslation();
-    const { currencies = [], systemSettings = {} } = usePage().props as any;
+    const { currencies = [], systemSettings = {}, globalSettings } = usePage().props as any;
 
     // Currency Settings form state
     const [currencySettings, setCurrencySettings] = useState({
@@ -119,12 +119,16 @@ export default function CurrencySettings() {
     const submitCurrencySettings = (e: React.FormEvent) => {
         e.preventDefault();
 
-        toast.loading(t('Saving currency settings...'));
+        if (!globalSettings?.is_demo) {
+            toast.loading(t('Saving currency settings...'));
+        }
 
         router.post(route('settings.currency.update'), currencySettings, {
             preserveScroll: true,
             onSuccess: (page) => {
-                toast.dismiss();
+                if (!globalSettings?.is_demo) {
+                    toast.dismiss();
+                }
                 const successMessage = page.props.flash?.success;
                 const errorMessage = page.props.flash?.error;
 
@@ -137,7 +141,9 @@ export default function CurrencySettings() {
                 }
             },
             onError: (errors) => {
-                toast.dismiss();
+                if (!globalSettings?.is_demo) {
+                    toast.dismiss();
+                }
                 const errorMessage = errors.error || Object.values(errors).join(', ') || t('Failed to update currency settings');
                 toast.error(errorMessage);
             }

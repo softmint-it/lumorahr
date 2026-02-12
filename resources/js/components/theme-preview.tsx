@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SidebarMenuSkeleton } from '@/components/ui/sidebar';
 import { useThemePreview } from '@/hooks/use-theme-preview';
 import { useLogos } from '@/contexts/LogoContext';
+import { getImagePath } from '@/utils/helpers';
 
 export function ThemePreview() {
   const { appearance, themeColor, position, variant, collapsible, style } = useThemePreview();
@@ -26,15 +27,15 @@ export function ThemePreview() {
     if (logoError) return '';
     
     if (appearance === 'dark') {
-      return logoLight || 'logo/logo-light.png';
+      return getImagePath(logoLight || 'logo/logo-light.png');
     } else {
-      return logoDark || 'logo/logo-dark.png';
+      return getImagePath(logoDark || 'logo/logo-dark.png');
     }
   };
   
   // Get title text
   const getTitleText = () => {
-    return 'LumoraHR';
+    return 'WorkDo';
   };
   
   return (

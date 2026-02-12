@@ -264,7 +264,7 @@ export default function JobRequisitions() {
       key: 'created_at', 
       label: t('Created At'),
       sortable: true,
-      render: (value) =>window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) =>window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -428,13 +428,15 @@ export default function JobRequisitions() {
               label: t('Job Category'), 
               type: 'select', 
               required: true,
-              options: jobCategoryOptions.filter(opt => opt.value !== '_empty_')
+              options: jobCategoryOptions.filter(opt => opt.value !== '_empty_'),
+              searchable : true,
             },
             { 
               name: 'department_id', 
               label: t('Department'), 
               type: 'select',
-              options: departmentOptions.filter(opt => opt.value !== '_empty_')
+              options: departmentOptions.filter(opt => opt.value !== '_empty_'),
+              searchable : true,
             },
             { 
               name: 'positions_count', 

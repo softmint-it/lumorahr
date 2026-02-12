@@ -51,7 +51,7 @@ export function BrandProvider({ children, globalSettings, user }: { children: Re
       // Apply theme color globally
       const color = updatedSettings.themeColor === 'custom' ? updatedSettings.customColor : {
         blue: '#3b82f6',
-        green: '#10b981',
+        green: '#10b77f',
         purple: '#8b5cf6',
         orange: '#f97316',
         red: '#ef4444'

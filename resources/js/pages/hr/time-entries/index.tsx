@@ -234,7 +234,7 @@ export default function TimeEntries() {
 
   const breadcrumbs = [
     { title: t('Dashboard'), href: route('dashboard') },
-    { title: t('Time Entry Management'), href: route('hr.time-entries.index') },
+    { title: t('Time Tracking'), href: route('hr.time-entries.index') },
     { title: t('Time Entries') }
   ];
 
@@ -249,7 +249,7 @@ export default function TimeEntries() {
       key: 'date',
       label: t('Date'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     {
       key: 'hours',
@@ -290,7 +290,7 @@ export default function TimeEntries() {
         };
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColors[value as keyof typeof statusColors]}`}>
-            {t(value)}
+            {value.charAt(0).toUpperCase() + value.slice(1)}
           </span>
         );
       }
@@ -299,7 +299,7 @@ export default function TimeEntries() {
       key: 'created_at',
       label: t('Submitted On'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -501,7 +501,10 @@ export default function TimeEntries() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          date: currentItem.date ? window.appSettings.formatDateTimeSimple(currentItem.date, false) : currentItem.date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Time Entry')

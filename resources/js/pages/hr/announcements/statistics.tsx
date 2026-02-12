@@ -69,12 +69,12 @@ export default function AnnouncementStatistics() {
             </div>
             <div>
               <p className="text-sm text-gray-600">{t('Start Date')}</p>
-              <p className="font-medium">{announcement.start_date ? (window.appSettings?.formatDateTime(announcement.start_date, false) || new Date(announcement.start_date).toLocaleString()) : '-'}</p>
+              <p className="font-medium">{announcement.start_date ? (window.appSettings?.formatDateTimeSimple(announcement.start_date, false) || new Date(announcement.start_date).toLocaleString()) : '-'}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">{t('End Date')}</p>
               <p className="font-medium">
-                {announcement.end_date ? (window.appSettings?.formatDateTime(announcement.end_date, false) || new Date(announcement.end_date).toLocaleString()) : t('Ongoing')}
+                {announcement.end_date ? (window.appSettings?.formatDateTimeSimple(announcement.end_date, false) || new Date(announcement.end_date).toLocaleString()) : t('Ongoing')}
               </p>
             </div>
           </div>

@@ -7,31 +7,44 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class OfferTemplateController extends Controller
 {
     public function index(Request $request)
     {
-        $query = OfferTemplate::withPermissionCheck();
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('template_content', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-offer-templates')) {
+            $query = OfferTemplate::where(function ($q) {
+                if (Auth::user()->can('manage-any-offer-templates')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-offer-templates')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('template_content', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            $query->orderBy('created_at', 'desc');
+            $offerTemplates = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/recruitment/offer-templates/index', [
+                'offerTemplates' => $offerTemplates,
+                'filters' => $request->all(['search', 'status', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        $query->orderBy('created_at', 'desc');
-        $offerTemplates = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/recruitment/offer-templates/index', [
-            'offerTemplates' => $offerTemplates,
-            'filters' => $request->all(['search', 'status', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)
@@ -141,21 +154,22 @@ class OfferTemplateController extends Controller
         $generatedContent = $this->generateOfferContent($offerTemplate, $request->variables);
         $filename = $request->filename ?? ($offerTemplate->name . '_' . date('Y-m-d'));
 
-        $pdf = Pdf::loadHTML('<div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">' . nl2br(htmlspecialchars($generatedContent)) . '</div>');
+        $html = '<div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">' . nl2br($generatedContent) . '</div>';
+        $pdf = Pdf::loadHTML($html);
         return $pdf->download($filename . '.pdf');
     }
 
     private function generateOfferContent(OfferTemplate $offerTemplate, array $variables = [])
     {
         $content = $offerTemplate->template_content;
-        
+
         if ($offerTemplate->variables && is_array($offerTemplate->variables)) {
             foreach ($offerTemplate->variables as $variable) {
                 $value = $variables[$variable] ?? '{{' . $variable . '}}';
                 $content = str_replace('{{' . $variable . '}}', $value, $content);
             }
         }
-        
+
         return $content;
     }
 }

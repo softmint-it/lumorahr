@@ -257,7 +257,7 @@ export default function LeaveApplications() {
       label: t('Start Date'),
       sortable: true,
       // render: (value: string) => new Date(value).toLocaleDateString()
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
       
     },
     {
@@ -265,7 +265,7 @@ export default function LeaveApplications() {
       label: t('End Date'),
       sortable: true,
       // render: (value: string) => new Date(value).toLocaleDateString()
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     {
       key: 'total_days',
@@ -285,7 +285,7 @@ export default function LeaveApplications() {
         };
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColors[value as keyof typeof statusColors]}`}>
-            {t(value)}
+            {value.charAt(0).toUpperCase() + value.slice(1)}
           </span>
         );
       }
@@ -294,7 +294,7 @@ export default function LeaveApplications() {
       key: 'created_at',
       label: t('Applied On'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -342,7 +342,7 @@ export default function LeaveApplications() {
 
   // Prepare options for filters and forms
   const employeeOptions = [
-    { value: 'all', label: t('All Employees') },
+    { value: 'all', label: t('All Employees') , disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -350,7 +350,7 @@ export default function LeaveApplications() {
   ];
 
   const leaveTypeOptions = [
-    { value: 'all', label: t('All Leave Types') },
+    { value: 'all', label: t('All Leave Types') , disabled: true },
     ...(leaveTypes || []).map((type: any) => ({
       value: type.id.toString(),
       label: type.name
@@ -358,7 +358,7 @@ export default function LeaveApplications() {
   ];
 
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses'), disabled: true },
     { value: 'pending', label: t('Pending') },
     { value: 'approved', label: t('Approved') },
     { value: 'rejected', label: t('Rejected') }
@@ -366,7 +366,7 @@ export default function LeaveApplications() {
 
   return (
     <PageTemplate
-      title={t("Leave Application Management")}
+      title={t("Leave Applications")}
       url="/hr/leave-applications"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -385,7 +385,8 @@ export default function LeaveApplications() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'leave_type_id',
@@ -393,7 +394,8 @@ export default function LeaveApplications() {
               type: 'select',
               value: selectedLeaveType,
               onChange: setSelectedLeaveType,
-              options: leaveTypeOptions
+              options: leaveTypeOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -467,6 +469,7 @@ export default function LeaveApplications() {
               label: t('Employee'),
               type: 'select',
               required: true,
+              searchable : true,
               options: employees ? employees.map((emp: any) => ({
                 value: emp.id.toString(),
                 label: emp.name
@@ -477,6 +480,7 @@ export default function LeaveApplications() {
               label: t('Leave Type'),
               type: 'select',
               required: true,
+              searchable : true,
               options: leaveTypes ? leaveTypes.map((type: any) => ({
                 value: type.id.toString(),
                 label: type.name
@@ -503,7 +507,11 @@ export default function LeaveApplications() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          start_date: currentItem.start_date ? window.appSettings.formatDateTimeSimple(currentItem.start_date, false) : currentItem.start_date,
+          end_date: currentItem.end_date ? window.appSettings.formatDateTimeSimple(currentItem.end_date, false) : currentItem.end_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Leave Application')

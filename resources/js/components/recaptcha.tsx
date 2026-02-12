@@ -18,6 +18,7 @@ export default function Recaptcha({ onVerify, onExpired, onError }: RecaptchaPro
   const { settings = {} } = usePage().props as any;
   const recaptchaRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<number | null>(null);
+  const containerId = useRef<string>(`recaptcha-${Math.random().toString(36).substr(2, 9)}`);
 
   const recaptchaEnabled = settings.recaptchaEnabled === 'true' || settings.recaptchaEnabled === true || settings.recaptchaEnabled === 1 || settings.recaptchaEnabled === '1';
   const recaptchaVersion = settings.recaptchaVersion || 'v2';
@@ -40,9 +41,9 @@ export default function Recaptcha({ onVerify, onExpired, onError }: RecaptchaPro
     };
 
     const loadRecaptchaV2 = () => {
-      if (window.grecaptcha && recaptchaRef.current) {
+      if (window.grecaptcha && recaptchaRef.current && widgetId.current === null) {
         try {
-          widgetId.current = window.grecaptcha.render(recaptchaRef.current, {
+          widgetId.current = window.grecaptcha.render(containerId.current, {
             sitekey: recaptchaSiteKey,
             callback: onVerify,
             'expired-callback': onExpired || (() => {}),
@@ -92,16 +93,17 @@ export default function Recaptcha({ onVerify, onExpired, onError }: RecaptchaPro
       try {
         if (widgetId.current !== null && window.grecaptcha) {
           window.grecaptcha.reset(widgetId.current);
+          widgetId.current = null;
         }
       } catch (error) {
         console.error('ReCaptcha cleanup error:', error);
       }
     };
-  }, [recaptchaEnabled, recaptchaVersion, recaptchaSiteKey, onVerify, onExpired, onError]);
+  }, [recaptchaEnabled, recaptchaSiteKey]);
 
   if (!recaptchaEnabled || !recaptchaSiteKey) {
     return null;
   }
 
-  return recaptchaVersion === 'v2' ? <div ref={recaptchaRef}></div> : null;
+  return recaptchaVersion === 'v2' ? <div id={containerId.current} ref={recaptchaRef}></div> : null;
 }

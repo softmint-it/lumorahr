@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\JobCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -14,34 +15,46 @@ class JobCategoryController extends Controller
      */
     public function index(Request $request)
     {
-        $query = JobCategory::withPermissionCheck();
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-job-categories')) {
+            $query = JobCategory::where(function ($q) {
+                if (Auth::user()->can('manage-any-job-categories')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-job-categories')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $jobCategories = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/recruitment/job-categories/index', [
+                'jobCategories' => $jobCategories,
+                'filters' => $request->all(['search', 'status', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('id', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $jobCategories = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/recruitment/job-categories/index', [
-            'jobCategories' => $jobCategories,
-            'filters' => $request->all(['search', 'status', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     /**

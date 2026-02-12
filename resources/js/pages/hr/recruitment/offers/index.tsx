@@ -11,12 +11,13 @@ import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import axios from 'axios';
 
 export default function Offers() {
   const { t } = useTranslation();
-  const { auth, offers, candidates, departments, employees, currentUser, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, offers, candidates, departments, employees, jobPostings, currentUser, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [statusFilter, setStatusFilter] = useState(pageFilters.status || '_empty_');
   const [candidateFilter, setCandidateFilter] = useState(pageFilters.candidate_id || '_empty_');
@@ -26,22 +27,22 @@ export default function Offers() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  
+
   const hasActiveFilters = () => {
     return statusFilter !== '_empty_' || candidateFilter !== '_empty_' || searchTerm !== '';
   };
-  
+
   const activeFilterCount = () => {
     return (statusFilter !== '_empty_' ? 1 : 0) + (candidateFilter !== '_empty_' ? 1 : 0) + (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.recruitment.offers.index'), { 
+    router.get(route('hr.recruitment.offers.index'), {
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -49,13 +50,13 @@ export default function Offers() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.recruitment.offers.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.recruitment.offers.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -63,14 +64,13 @@ export default function Offers() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
-        setFormMode('view');
-        setIsFormModalOpen(true);
+        router.get(route('hr.recruitment.offers.show', item.id));
         break;
       case 'edit':
         setFormMode('edit');
@@ -84,13 +84,13 @@ export default function Offers() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
     if (formMode === 'create') {
       toast.loading(t('Creating offer...'));
@@ -142,7 +142,7 @@ export default function Offers() {
       });
     }
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting offer...'));
 
@@ -168,7 +168,7 @@ export default function Offers() {
       }
     });
   };
-  
+
   const handleStatusUpdate = (formData: any) => {
     toast.loading(t('Updating status...'));
 
@@ -194,13 +194,13 @@ export default function Offers() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('_empty_');
     setCandidateFilter('_empty_');
     setShowFilters(false);
-    
+
     router.get(route('hr.recruitment.offers.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -208,7 +208,7 @@ export default function Offers() {
   };
 
   const pageActions = [];
-  
+
   if (hasPermission(permissions, 'create-offers')) {
     pageActions.push({
       label: t('Create Offer'),
@@ -237,50 +237,49 @@ export default function Offers() {
   };
 
   const columns = [
-    { 
-      key: 'candidate.full_name', 
+    {
+      key: 'candidate.full_name',
       label: t('Candidate'),
       render: (_, row) => (
         <div>
           <div className="font-medium">{row.candidate?.first_name} {row.candidate?.last_name}</div>
-          <div className="text-xs text-gray-500">{row.position}</div>
+          <div className="text-xs text-gray-500">{row.job?.title}</div>
         </div>
       )
     },
-    { 
-      key: 'salary', 
+    {
+      key: 'salary',
       label: t('Salary'),
       render: (value, row) => (
         <div>
           <div className="font-medium">{window.appSettings?.formatCurrency(value)}</div>
-          {row.bonus && <div className="text-xs text-gray-500">+{window.appSettings?.formatCurrency(row.bonus)} bonus</div>}
         </div>
       )
     },
-    { 
-      key: 'start_date', 
+    {
+      key: 'start_date',
       label: t('Start Date'),
-      sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      sortable: false,
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
-    { 
-      key: 'expiration_date', 
+    {
+      key: 'expiration_date',
       label: t('Expires'),
-      sortable: true,
+      sortable: false,
       render: (value) => {
         if (!value) return '-';
         const date = new Date(value);
         const isExpired = date < new Date();
         return (
           <div className={isExpired ? 'text-red-600' : ''}>
-            {window.appSettings?.formatDateTime(date, false)}
+            {window.appSettings?.formatDateTimeSimple(date, false)}
             {isExpired && <div className="text-xs">Expired</div>}
           </div>
         );
       }
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => (
         <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getStatusColor(value)}`}>
@@ -288,47 +287,49 @@ export default function Offers() {
         </span>
       )
     },
-    { 
-      key: 'offer_date', 
+    {
+      key: 'offer_date',
       label: t('Offer Date'),
-      sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      sortable: false,
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-offers'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
-      requiredPermission: 'edit-offers'
+      requiredPermission: 'edit-offers',
+      condition: (item: any) => !['Accepted', 'Declined'].includes(item.status)
     },
-    { 
-      label: t('Update Status'), 
-      icon: 'RefreshCw', 
-      action: 'update-status', 
+    {
+      label: t('Update Status'),
+      icon: 'RefreshCw',
+      action: 'update-status',
       className: 'text-green-500',
-      requiredPermission: 'edit-offers'
+      requiredPermission: 'edit-offers',
+      condition: (item: any) => !['Accepted', 'Declined'].includes(item.status)
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-offers'
     }
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses'), disabled: true },
     { value: 'Draft', label: t('Draft') },
     { value: 'Sent', label: t('Sent') },
     { value: 'Accepted', label: t('Accepted') },
@@ -338,7 +339,7 @@ export default function Offers() {
   ];
 
   const candidateOptions = [
-    { value: '_empty_', label: t('All Candidates') },
+    { value: '_empty_', label: t('All Candidates'), disabled: true },
     ...(candidates || []).map((candidate: any) => ({
       value: candidate.id.toString(),
       label: `${candidate.first_name} ${candidate.last_name}`
@@ -354,7 +355,6 @@ export default function Offers() {
   ];
 
   const departmentOptions = [
-    { value: '_empty_', label: t('Select Department') },
     ...(departments || []).map((dept: any) => ({
       value: dept.id.toString(),
       label: `${dept.name} - ${dept.branch?.name || 'No Branch'}`
@@ -370,8 +370,8 @@ export default function Offers() {
   ];
 
   return (
-    <PageTemplate 
-      title={t("Offers")} 
+    <PageTemplate
+      title={t("Offers")}
       url="/hr/recruitment/offers"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -389,7 +389,8 @@ export default function Offers() {
               type: 'select',
               value: statusFilter,
               onChange: setStatusFilter,
-              options: statusOptions
+              options: statusOptions,
+              searchable: true
             },
             {
               name: 'candidate_id',
@@ -397,7 +398,8 @@ export default function Offers() {
               type: 'select',
               value: candidateFilter,
               onChange: setCandidateFilter,
-              options: candidateOptions
+              options: candidateOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -408,8 +410,8 @@ export default function Offers() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.recruitment.offers.index'), { 
-              page: 1, 
+            router.get(route('hr.recruitment.offers.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               status: statusFilter !== '_empty_' ? statusFilter : undefined,
@@ -454,73 +456,83 @@ export default function Offers() {
         onSubmit={handleFormSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'candidate_id', 
-              label: t('Candidate'), 
-              type: 'select', 
-              required: true,
-              options: candidateSelectOptions.filter(opt => opt.value !== '_empty_')
+            {
+              name: 'candidate_id',
+              type: 'dependent-dropdown',
+              dependentConfig: [
+                {
+                  name: 'candidate_id',
+                  label: t('Candidate'),
+                  required: true,
+                  searchable: true,
+                  options: candidateSelectOptions.filter(opt => opt.value !== '_empty_')
+                },
+                {
+                  name: 'position',
+                  label: t('Position'),
+                  required: true,
+                  apiEndpoint: '/hr/recruitment/offers/candidate/{candidate_id}/job',
+                  showCurrentValue: true,
+                  searchable: true
+                },
+                {
+                  name: 'department_id',
+                  label: t('Department'),
+                  required: false,
+                  apiEndpoint: '/hr/recruitment/offers/job/{position}/departments',
+                  searchable: false,
+                  disabled: true,
+                  selectFirstOption: true
+                }
+              ]
             },
-            { 
-              name: 'position', 
-              label: t('Position'), 
-              type: 'text', 
-              required: true 
-            },
-            { 
-              name: 'department_id', 
-              label: t('Department'), 
-              type: 'select',
-              options: departmentOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'salary', 
-              label: t('Salary'), 
-              type: 'number', 
-              required: true,
-              min: 0,
-              step: 0.01
-            },
-            { 
-              name: 'bonus', 
-              label: t('Bonus'), 
+
+            {
+              name: 'salary',
+              label: t('Salary'),
               type: 'number',
+              required: true,
               min: 0,
               step: 0.01
             },
-            { 
-              name: 'equity', 
-              label: t('Equity'), 
-              type: 'text' 
+            {
+              name: 'start_date',
+              label: t('Start Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'start_date', 
-              label: t('Start Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'expiration_date',
+              label: t('Expiration Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'expiration_date', 
-              label: t('Expiration Date'), 
-              type: 'date', 
-              required: true 
-            },
-            { 
-              name: 'approved_by', 
-              label: t('Approved By'), 
+            {
+              name: 'approved_by',
+              label: t('Approved By'),
               type: 'select',
+              required: true,
               options: employeeOptions.filter(opt => opt.value !== '_empty_'),
               defaultValue: currentUser?.id?.toString()
             },
-            { 
-              name: 'benefits', 
-              label: t('Benefits'), 
-              type: 'textarea' 
+            {
+              name: 'benefits',
+              label: t('Benefits'),
+              type: 'textarea'
             }
           ],
           modalSize: 'xl'
         }}
-        initialData={currentItem}
+        initialData={formMode === 'create' ? {} : formMode === 'view' ? {
+          ...currentItem,
+          candidate_id: currentItem?.candidate ? `${currentItem.candidate.first_name} ${currentItem.candidate.last_name}` : currentItem?.candidate_id,
+          start_date: currentItem?.start_date ? new Date(currentItem.start_date).toISOString().split('T')[0] : currentItem?.start_date,
+          expiration_date: currentItem?.expiration_date ? new Date(currentItem.expiration_date).toISOString().split('T')[0] : currentItem?.expiration_date
+        } : {
+          ...currentItem,
+          start_date: currentItem?.start_date ? new Date(currentItem.start_date).toISOString().split('T')[0] : currentItem?.start_date,
+          expiration_date: currentItem?.expiration_date ? new Date(currentItem.expiration_date).toISOString().split('T')[0] : currentItem?.expiration_date
+        }}
         title={
           formMode === 'create'
             ? t('Create New Offer')

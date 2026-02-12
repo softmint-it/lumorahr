@@ -11,35 +11,46 @@ class LeaveTypeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = LeaveType::withPermissionCheck()
-            ->with(['creator']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-leave-types')) {
+            $query = LeaveType::with(['creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-leave-types')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-leave-types')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $leaveTypes = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/leave-types/index', [
+                'leaveTypes' => $leaveTypes,
+                'filters' => $request->all(['search', 'status', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('created_at', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $leaveTypes = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/leave-types/index', [
-            'leaveTypes' => $leaveTypes,
-            'filters' => $request->all(['search', 'status', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

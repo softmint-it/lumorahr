@@ -9,8 +9,12 @@ import { toast } from '@/components/custom-toast';
 import { useTranslation } from 'react-i18next';
 import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function OfferTemplates() {
   const { t } = useTranslation();
@@ -22,8 +26,11 @@ export default function OfferTemplates() {
   const [showFilters, setShowFilters] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   
   const hasActiveFilters = () => {
     return statusFilter !== '_empty_' || searchTerm !== '';
@@ -79,36 +86,21 @@ export default function OfferTemplates() {
         handleToggleStatus(item);
         break;
       case 'preview':
-        alert(`Template Preview:\n\n${item.template_content.substring(0, 500)}...`);
+        setCurrentItem(item);
+        setIsPreviewModalOpen(true);
         break;
       case 'generate':
-        const variables = {};
         if (item.variables && item.variables.length > 0) {
+          const initialValues = {};
           item.variables.forEach((variable: string) => {
-            const value = prompt(`Enter value for ${variable}:`);
-            if (value) variables[variable] = value;
+            initialValues[variable] = '';
           });
+          setVariableValues(initialValues);
+          setCurrentItem(item);
+          setIsGenerateModalOpen(true);
+        } else {
+          handleGenerate(item, {});
         }
-        
-        fetch(route('hr.recruitment.offer-templates.generate', item.id), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-          },
-          body: JSON.stringify({ variables })
-        })
-        .then(response => response.blob())
-        .then(blob => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${item.name}_${new Date().toISOString().split('T')[0]}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-        });
         break;
     }
   };
@@ -220,6 +212,34 @@ export default function OfferTemplates() {
     });
   };
   
+  const handleGenerate = (item: any, variables: Record<string, string>) => {
+    fetch(route('hr.recruitment.offer-templates.generate', item.id), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      body: JSON.stringify({ variables })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${item.name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    });
+  };
+
+  const handleGenerateSubmit = () => {
+    handleGenerate(currentItem, variableValues);
+    setIsGenerateModalOpen(false);
+    setVariableValues({});
+  };
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('_empty_');
@@ -301,7 +321,7 @@ export default function OfferTemplates() {
       key: 'created_at', 
       label: t('Created At'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -483,6 +503,70 @@ export default function OfferTemplates() {
         itemName={currentItem?.name || ''}
         entityName="offer template"
       />
+
+      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {t('Template Preview')}: {currentItem?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 overflow-y-auto max-h-[60vh] pr-1">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+              <pre className="whitespace-pre-wrap text-sm font-mono">
+                {currentItem?.template_content || t('No content available')}
+              </pre>
+            </div>
+            {currentItem?.variables && currentItem.variables.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">{t('Available Variables')}:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {currentItem.variables.map((variable: string, index: number) => (
+                    <span key={index} className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                      {`{{${variable}}}`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate Offer Modal Popup */}
+      <Dialog open={isGenerateModalOpen} onOpenChange={setIsGenerateModalOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              {t('Generate Offer')}
+            </DialogTitle>
+            <p className="text-sm text-gray-600">{currentItem?.name}</p>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[50vh] space-y-3 py-2 pr-2">
+            {currentItem?.variables?.map((variable: string) => (
+              <div key={variable} className="space-y-1">
+                <Label htmlFor={variable} className="text-sm font-medium">
+                  {variable.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </Label>
+                <Input
+                  id={variable}
+                  value={variableValues[variable] || ''}
+                  onChange={(e) => setVariableValues(prev => ({ ...prev, [variable]: e.target.value }))}
+                  placeholder={`Enter ${variable.replace(/_/g, ' ')}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end space-x-2 pt-2 border-t">
+            <Button variant="outline" onClick={() => setIsGenerateModalOpen(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleGenerateSubmit} className="bg-red-500 hover:bg-red-600">
+              {t('Generate PDF')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageTemplate>
   );
 }

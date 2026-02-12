@@ -2,29 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Lab404\Impersonate\Models\Impersonate;
-use App\Models\Plan;
-use App\Models\Referral;
-use App\Models\PayoutRequest;
 use App\Services\MailConfigService;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Log;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Str;
+use Lab404\Impersonate\Models\Impersonate;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends BaseAuthenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasRoles, HasFactory, Notifiable, Impersonate;
+    use HasFactory, HasRoles, Impersonate, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -41,11 +33,9 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
         'google2fa_secret',
         'status',
         'active_module',
+        'slug',
     ];
 
-    /**
-     * Get fillable attributes based on SaaS mode
-     */
     public function getFillable()
     {
         $fillable = parent::getFillable();
@@ -62,28 +52,19 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
                 'is_trial',
                 'trial_day',
                 'trial_expire_date',
-                'commission_amount'
+                'commission_amount',
             ]);
         }
+
         return $fillable;
     }
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
         'google2fa_secret',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -97,6 +78,18 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
             'google2fa_enable' => 'integer',
             'storage_limit' => 'float',
         ];
+    }
+
+    public $not_emp_type = [
+        'superadmin',
+        'company',
+    ];
+
+    public function scopeEmp($query, $additionalTypes = [], $includeTypes = [])
+    {
+        $excludeTypes = array_diff(array_merge($this->not_emp_type, $additionalTypes), $includeTypes);
+
+        return $query->whereNotIn('type', $excludeTypes);
     }
 
     /**
@@ -125,9 +118,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function isSuperAdmin()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return false; // No super admin in non-SaaS
         }
+
         return $this->type === 'superadmin' || $this->type === 'super admin';
     }
 
@@ -146,9 +140,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function plan()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return null; // No plans in non-SaaS
         }
+
         return $this->belongsTo(Plan::class);
     }
 
@@ -157,9 +152,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function isOnFreePlan()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return false; // No plans in non-SaaS
         }
+
         return $this->plan && $this->plan->is_default;
     }
 
@@ -168,7 +164,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function getCurrentPlan()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return null; // No plans in non-SaaS
         }
 
@@ -184,7 +180,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function hasActivePlan()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return true; // Always active in non-SaaS
         }
 
@@ -198,9 +194,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function isPlanExpired()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return false; // No expiration in non-SaaS
         }
+
         return $this->plan_expire_date && $this->plan_expire_date < now();
     }
 
@@ -209,9 +206,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function isTrialExpired()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return false; // No trials in non-SaaS
         }
+
         return $this->is_trial && $this->trial_expire_date && $this->trial_expire_date < now();
     }
 
@@ -220,7 +218,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function needsPlanSubscription()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return false; // No subscriptions in non-SaaS
         }
 
@@ -233,8 +231,8 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
         }
 
         // Check if user has no plan and no default plan exists
-        if (!$this->plan_id) {
-            return !Plan::getDefaultPlan();
+        if (! $this->plan_id) {
+            return ! Plan::getDefaultPlan();
         }
 
         // Check if trial is expired
@@ -243,7 +241,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
         }
 
         // Check if plan is expired (but not on trial)
-        if (!$this->is_trial && $this->isPlanExpired()) {
+        if (! $this->is_trial && $this->isPlanExpired()) {
             return true;
         }
 
@@ -263,9 +261,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function canImpersonate()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return false; // No impersonation in non-SaaS
         }
+
         return $this->isSuperAdmin();
     }
 
@@ -274,9 +273,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function referrals()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return $this->hasMany(Referral::class, 'user_id')->whereRaw('1 = 0'); // Empty relation in non-SaaS
         }
+
         return $this->hasMany(Referral::class, 'user_id');
     }
 
@@ -285,9 +285,10 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function payoutRequests()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return $this->hasMany(PayoutRequest::class, 'company_id')->whereRaw('1 = 0'); // Empty relation in non-SaaS
         }
+
         return $this->hasMany(PayoutRequest::class, 'company_id');
     }
 
@@ -312,12 +313,13 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
      */
     public function getReferralBalance()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return 0; // No referrals in non-SaaS
         }
 
         $totalEarned = $this->referrals()->sum('amount');
         $totalRequested = $this->payoutRequests()->whereIn('status', ['pending', 'approved'])->sum('amount');
+
         return $totalEarned - $totalRequested;
     }
 
@@ -329,15 +331,17 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
         try {
             MailConfigService::setDynamicConfig();
             parent::sendEmailVerificationNotification();
+
             return ['success' => true, 'message' => 'Verification email sent successfully'];
         } catch (\Exception $e) {
             Log::error('Email verification failed', [
                 'user_id' => $this->id,
                 'email' => $this->email,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return ['success' => false, 'message' => 'Failed to send verification email: ' . $e->getMessage()];
+
+            return ['success' => false, 'message' => 'Failed to send verification email: '.$e->getMessage()];
         }
     }
 
@@ -349,11 +353,11 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
         parent::boot();
 
         static::creating(function ($user) {
-            if (isSaas() && $user->type === 'company' && !$user->referral_code) {
+            if (isSaas() && $user->type === 'company' && ! $user->referral_code) {
                 // Generate referral code after the user is saved to get the ID
                 static::created(function ($createdUser) {
-                    if (!$createdUser->referral_code) {
-                        $createdUser->referral_code = 'REF' . str_pad($createdUser->id, 6, '0', STR_PAD_LEFT);
+                    if (! $createdUser->referral_code) {
+                        $createdUser->referral_code = 'REF'.str_pad($createdUser->id, 6, '0', STR_PAD_LEFT);
                         $createdUser->save();
                     }
                 });
@@ -362,7 +366,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
         static::created(function ($user) {
             // Assign default plan to company users only in SaaS mode
-            if (isSaas() && $user->type === 'company' && !$user->plan_id) {
+            if (isSaas() && $user->type === 'company' && ! $user->plan_id) {
                 $defaultPlan = Plan::getDefaultPlan();
                 if ($defaultPlan) {
                     $user->plan_id = $defaultPlan->id;
@@ -371,16 +375,44 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
                 }
             }
         });
+
+        // Generate Slug When New user Creating
+        static::creating(function ($user) {
+            if (empty($user->slug)) {
+                $user->slug = static::generateUniqueSlug($user->name);
+            }
+        });
+
+        // Generate Slug When Update the User if Slug is Empty then only
+        static::updating(function ($user) {
+            if (empty($user->slug) && ! empty($user->name)) {
+                $user->slug = static::generateUniqueSlug($user->name);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug($name)
+    {
+        $slug = Str::slug($name);
+        $originalSlug = $slug;
+        $counter = 1;
+
+        while (static::where('slug', $slug)->exists()) {
+            $slug = $originalSlug.'-'.$counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 
     public function planOrders()
     {
-        if (!isSaas()) {
+        if (! isSaas()) {
             return $this->hasMany(PlanOrder::class)->whereRaw('1 = 0'); // Empty relation in non-SaaS
         }
+
         return $this->hasMany(PlanOrder::class);
     }
-
 
     public function companyDefaultData($company)
     {
@@ -447,40 +479,47 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
             'edit-media-directories',
             'delete-media-directories',
 
-
             // Employee permissions
             'manage-employees',
+            'manage-own-employees',
             'view-employees',
 
             // Award permissions
             'manage-awards',
+            'manage-own-awards',
             'view-awards',
 
             // Promotion permissions
             'manage-promotions',
+            'manage-own-promotions',
             'view-promotions',
 
             // Resignation permissions
             'manage-resignations',
             'view-resignations',
+            'manage-own-resignations',
             'create-resignations',
             'edit-resignations',
             'delete-resignations',
 
             // Termination permissions
             'manage-terminations',
+            'manage-own-terminations',
             'view-terminations',
 
             // Warning permissions
             'manage-warnings',
+            'manage-own-warnings',
             'view-warnings',
 
             // Trip permissions
             'manage-trips',
+            'manage-own-trips',
             'view-trips',
 
             // Complaint permissions
             'manage-complaints',
+            'manage-own-complaints',
             'view-complaints',
             'create-complaints',
             'edit-complaints',
@@ -488,18 +527,22 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // Employee Transfer permissions
             'manage-employee-transfers',
+            'manage-own-employee-transfers',
             'view-employee-transfers',
 
             // Holiday permissions
             'manage-holidays',
+            'manage-any-holidays',
             'view-holidays',
 
             // Announcement permissions
             'manage-announcements',
+            'manage-any-announcements',
             'view-announcements',
 
             // Asset Type permissions
             'manage-asset-types',
+            'manage-any-asset-types',
             'view-asset-types',
 
             // Asset permissions
@@ -508,61 +551,71 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // Training Program permissions
             'manage-training-programs',
+            'manage-any-training-programs',
             'view-training-programs',
 
             // Training Session permissions
             'manage-training-sessions',
+            'manage-own-training-sessions',
             'view-training-sessions',
             'manage-attendance',
 
             // Employee Training permissions
             'manage-employee-trainings',
+            'manage-own-employee-trainings',
             'view-employee-trainings',
             'assign-trainings',
             'manage-assessments',
             'record-assessment-results',
 
-
             // Performance Indicators
             'manage-performance-indicators',
+            'manage-own-performance-indicators',
             'view-performance-indicators',
-
 
             // Employee Goals
             'manage-employee-goals',
+            'manage-own-employee-goals',
             'view-employee-goals',
 
             // Review Cycles
             'manage-review-cycles',
+            'manage-own-review-cycles',
             'view-review-cycles',
 
             // Employee Reviews
-
             'manage-employee-reviews',
+            'manage-own-employee-reviews',
             'view-employee-reviews',
 
             // Job Requisitions management
             'manage-job-requisitions',
+            'manage-    -job-requisitions',
             'view-job-requisitions',
 
             // Job Locations management
             'manage-job-locations',
+            'manage-any-job-locations',
             'view-job-locations',
 
             // Job Postings management
             'manage-job-postings',
+            'manage-any-job-postings',
             'view-job-postings',
 
             // Interview Rounds management
             'manage-interview-rounds',
+            'manage-any-interview-rounds',
             'view-interview-rounds',
 
             // Interviews management
             'manage-interviews',
+            'manage-own-interviews',
             'view-interviews',
 
             // Interview Feedback management
             'manage-interview-feedback',
+            'manage-own-interview-feedback',
             'view-interview-feedback',
             'create-interview-feedback',
             'edit-interview-feedback',
@@ -570,6 +623,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // Candidate Assessments management
             'manage-candidate-assessments',
+            'manage-own-candidate-assessments',
             'view-candidate-assessments',
             'create-candidate-assessments',
             'edit-candidate-assessments',
@@ -577,30 +631,34 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // Candidate Onboarding management
             'manage-candidate-onboarding',
+            'manage-own-candidate-onboarding',
             'view-candidate-onboarding',
-
 
             // Meetings management
             'manage-meetings',
+            'manage-own-meetings',
             'view-meetings',
 
             // Meeting Attendees management
             'manage-meeting-attendees',
+            'manage-any-meeting-attendees',
             'view-meeting-attendees',
             'edit-meeting-attendees',
 
             // Meeting Minutes management
             'manage-meeting-minutes',
+            'manage-own-meeting-minutes',
             'view-meeting-minutes',
 
             // Action Items management
             'manage-action-items',
+            'manage-own-action-items',
             'view-action-items',
 
             // Employee Contracts management
             'manage-employee-contracts',
+            'manage-own-employee-contracts',
             'view-employee-contracts',
-
 
             // Contract Renewals management
             'manage-contract-renewals',
@@ -608,17 +666,21 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // HR Documents management
             'manage-hr-documents',
+            'manage-any-hr-documents',
             'view-hr-documents',
 
             // Document Acknowledgments management
             'manage-document-acknowledgments',
+            'manage-own-document-acknowledgments',
             'view-document-acknowledgments',
 
             // Leave Policies management
             'manage-leave-policies',
+            'manage-any-leave-policies',
 
             // Leave Applications management
             'manage-leave-applications',
+            'manage-own-leave-applications',
             'view-leave-applications',
             'create-leave-applications',
             'edit-leave-applications',
@@ -626,18 +688,22 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // Leave Balances management
             'manage-leave-balances',
+            'manage-own-leave-balances',
             'view-leave-balances',
 
             // Shifts management
             'manage-shifts',
+            'manage-any-shifts',
             'view-shifts',
 
             // Attendance Policies management
             'manage-attendance-policies',
+            'manage-any-attendance-policies',
             'view-attendance-policies',
 
             // Attendance Records management
             'manage-attendance-records',
+            'manage-own-attendance-records',
             'view-attendance-records',
             'create-attendance-records',
             'edit-attendance-records',
@@ -646,6 +712,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
 
             // Attendance Regularizations management
             'manage-attendance-regularizations',
+            'manage-own-attendance-regularizations',
             'view-attendance-regularizations',
             'create-attendance-regularizations',
             'edit-attendance-regularizations',
@@ -658,20 +725,21 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
             'create-time-entries',
             'edit-time-entries',
 
-
             // Employee Salaries management
             'manage-employee-salaries',
+            'manage-own-employee-salaries',
             'view-employee-salaries',
 
             // Payslips management
             'manage-payslips',
+            'manage-own-payslips',
             'download-payslips',
         ];
     }
 
     private function getManagerPermissions(): array
     {
-        return  [
+        return [
             'manage-dashboard',
             'view-dashboard',
 
@@ -752,7 +820,6 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
             'create-award-types',
             'edit-award-types',
             'delete-award-types',
-
 
             // Award management
             'manage-awards',
@@ -1005,7 +1072,7 @@ class User extends BaseAuthenticatable implements MustVerifyEmail
             'manage-candidates',
             'manage-any-candidates',
             'view-candidates',
-            'create-candidates',
+            // 'create-candidates',
             'edit-candidates',
             'delete-candidates',
 

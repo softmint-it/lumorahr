@@ -209,7 +209,7 @@ export default function AssetDashboard() {
                       <div className="font-medium">{assignment.asset?.name}</div>
                       <div className="text-sm text-gray-500">{t('Assigned to')}: {assignment.employee?.name}</div>
                       <div className="text-xs text-gray-500">
-                        {window.appSettings?.formatDateTime(assignment.checkout_date, false) || format(new Date(assignment.checkout_date), 'MMM dd, yyyy')}
+                        {window.appSettings?.formatDateTimeSimple(assignment.checkout_date, false) || format(new Date(assignment.checkout_date), 'MMM dd, yyyy')}
                       </div>
                     </div>
                     <Button 
@@ -244,7 +244,7 @@ export default function AssetDashboard() {
                       <div className="font-medium">{maintenance.asset?.name}</div>
                       <div className="text-sm text-gray-500">{maintenance.maintenance_type}</div>
                       <div className="text-xs text-gray-500">
-                        {window.appSettings?.formatDateTime(maintenance.start_date, false) || format(new Date(maintenance.start_date), 'MMM dd, yyyy')}
+                        {window.appSettings?.formatDateTimeSimple(maintenance.start_date, false) || format(new Date(maintenance.start_date), 'MMM dd, yyyy')}
                       </div>
                     </div>
                     <Button 
@@ -277,7 +277,7 @@ export default function AssetDashboard() {
                       <div className="font-medium">{asset.name}</div>
                       <div className="text-sm text-gray-500">{asset.warranty_info}</div>
                       <div className="text-xs text-red-500">
-                        {t('Expires')}: {window.appSettings?.formatDateTime(asset.warranty_expiry_date, false) || format(new Date(asset.warranty_expiry_date), 'MMM dd, yyyy')}
+                        {t('Expires')}: {window.appSettings?.formatDateTimeSimple(asset.warranty_expiry_date, false) || format(new Date(asset.warranty_expiry_date), 'MMM dd, yyyy')}
                       </div>
                     </div>
                     <Button 

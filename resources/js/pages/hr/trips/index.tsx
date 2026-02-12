@@ -19,7 +19,7 @@ export default function Trips() {
   const { t } = useTranslation();
   const { auth, trips, employees, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   // State
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [selectedEmployee, setSelectedEmployee] = useState(pageFilters.employee_id || '');
@@ -34,32 +34,32 @@ export default function Trips() {
   const [isReimbursementStatusModalOpen, setIsReimbursementStatusModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  
+
   // Check if any filters are active
   const hasActiveFilters = () => {
-    return selectedEmployee !== '' || 
-           selectedStatus !== 'all' || 
-           dateFrom !== '' || 
-           dateTo !== '' || 
-           searchTerm !== '';
+    return selectedEmployee !== '' ||
+      selectedStatus !== 'all' ||
+      dateFrom !== '' ||
+      dateTo !== '' ||
+      searchTerm !== '';
   };
-  
+
   // Count active filters
   const activeFilterCount = () => {
-    return (selectedEmployee !== '' ? 1 : 0) + 
-           (selectedStatus !== 'all' ? 1 : 0) + 
-           (dateFrom !== '' ? 1 : 0) + 
-           (dateTo !== '' ? 1 : 0) + 
-           (searchTerm !== '' ? 1 : 0);
+    return (selectedEmployee !== '' ? 1 : 0) +
+      (selectedStatus !== 'all' ? 1 : 0) +
+      (dateFrom !== '' ? 1 : 0) +
+      (dateTo !== '' ? 1 : 0) +
+      (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.trips.index'), { 
+    router.get(route('hr.trips.index'), {
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -69,13 +69,13 @@ export default function Trips() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.trips.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.trips.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -85,10 +85,10 @@ export default function Trips() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
         setFormMode('view');
@@ -118,16 +118,16 @@ export default function Trips() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
     const data = formData;
-    
+
     if (formMode === 'create') {
       toast.loading(t('Creating trip...'));
 
@@ -152,7 +152,7 @@ export default function Trips() {
       });
     } else if (formMode === 'edit') {
       toast.loading(t('Updating trip...'));
-      
+
       router.put(route('hr.trips.update', currentItem.id), data, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
@@ -174,10 +174,10 @@ export default function Trips() {
       });
     }
   };
-  
+
   const handleStatusChange = (formData: any) => {
     toast.loading(t('Updating trip status...'));
-    
+
     router.put(route('hr.trips.change-status', currentItem.id), formData, {
       onSuccess: (page) => {
         setIsStatusModalOpen(false);
@@ -198,10 +198,10 @@ export default function Trips() {
       }
     });
   };
-  
+
   const handleAdvanceStatusChange = (formData: any) => {
     toast.loading(t('Updating advance status...'));
-    
+
     router.put(route('hr.trips.update-advance-status', currentItem.id), formData, {
       onSuccess: (page) => {
         setIsAdvanceStatusModalOpen(false);
@@ -222,10 +222,10 @@ export default function Trips() {
       }
     });
   };
-  
+
   const handleReimbursementStatusChange = (formData: any) => {
     toast.loading(t('Updating reimbursement status...'));
-    
+
     router.put(route('hr.trips.update-reimbursement-status', currentItem.id), formData, {
       onSuccess: (page) => {
         setIsReimbursementStatusModalOpen(false);
@@ -246,10 +246,10 @@ export default function Trips() {
       }
     });
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting trip...'));
-    
+
     router.delete(route('hr.trips.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
@@ -270,7 +270,7 @@ export default function Trips() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setSelectedEmployee('');
@@ -278,7 +278,7 @@ export default function Trips() {
     setDateFrom('');
     setDateTo('');
     setShowFilters(false);
-    
+
     router.get(route('hr.trips.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -287,7 +287,7 @@ export default function Trips() {
 
   // Define page actions
   const pageActions = [];
-  
+
   // Add the "Add New Trip" button if user has permission
   if (hasPermission(permissions, 'create-trips')) {
     pageActions.push({
@@ -306,9 +306,9 @@ export default function Trips() {
 
   // Define table columns
   const columns = [
-    { 
-      key: 'employee.name', 
-      label: t('Employee'), 
+    {
+      key: 'employee.name',
+      label: t('Employee'),
       render: (_, row) => (
         <div>
           <div className="font-medium">{row.employee?.name || '-'}</div>
@@ -316,30 +316,30 @@ export default function Trips() {
         </div>
       )
     },
-    { 
-      key: 'purpose', 
+    {
+      key: 'purpose',
       label: t('Purpose'),
       render: (value) => value || '-'
     },
-    { 
-      key: 'destination', 
+    {
+      key: 'destination',
       label: t('Destination'),
       render: (value) => value || '-'
     },
-    { 
-      key: 'start_date', 
+    {
+      key: 'start_date',
       label: t('Start Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
-    { 
-      key: 'end_date', 
+    {
+      key: 'end_date',
       label: t('End Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => {
         const statusClasses = {
@@ -348,7 +348,7 @@ export default function Trips() {
           'completed': 'bg-green-50 text-green-700 ring-green-600/20',
           'cancelled': 'bg-red-50 text-red-700 ring-red-600/20'
         };
-        
+
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusClasses[value] || ''}`}>
             {value.charAt(0).toUpperCase() + value.slice(1)}
@@ -356,19 +356,19 @@ export default function Trips() {
         );
       }
     },
-    { 
-      key: 'advance_amount', 
+    {
+      key: 'advance_amount',
       label: t('Advance'),
       render: (value, row) => {
         if (!value || parseFloat(value) === 0) return '-';
-        
+
         const advanceStatusClasses = {
           'requested': 'bg-blue-50 text-blue-700 ring-blue-600/20',
           'approved': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
           'paid': 'bg-green-50 text-green-700 ring-green-600/20',
           'reconciled': 'bg-purple-50 text-purple-700 ring-purple-600/20'
         };
-        
+
         return (
           <div>
             <div> {window.appSettings.formatCurrency(value)}</div>
@@ -381,18 +381,18 @@ export default function Trips() {
         );
       }
     },
-    { 
-      key: 'total_expenses', 
+    {
+      key: 'total_expenses',
       label: t('Expenses'),
       render: (value, row) => {
         if (!value || parseFloat(value) === 0) return '-';
-        
+
         const reimbursementStatusClasses = {
           'pending': 'bg-blue-50 text-blue-700 ring-blue-600/20',
           'approved': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
           'paid': 'bg-green-50 text-green-700 ring-green-600/20'
         };
-        
+
         return (
           <div>
             <div>{window.appSettings.formatCurrency(value)}</div>
@@ -405,8 +405,8 @@ export default function Trips() {
         );
       }
     },
-    { 
-      key: 'actions', 
+    {
+      key: 'actions',
       label: t('Actions'),
       render: (_, row) => (
         <div className="flex space-x-2">
@@ -442,47 +442,47 @@ export default function Trips() {
 
   // Define table actions
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-trips'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
       requiredPermission: 'edit-trips'
     },
-    { 
-      label: t('Change Status'), 
-      icon: 'RefreshCw', 
-      action: 'change-status', 
+    {
+      label: t('Change Status'),
+      icon: 'RefreshCw',
+      action: 'change-status',
       className: 'text-green-500',
       requiredPermission: 'edit-trips'
     },
-    { 
-      label: t('Advance Status'), 
-      icon: 'DollarSign', 
-      action: 'advance-status', 
+    {
+      label: t('Advance Status'),
+      icon: 'DollarSign',
+      action: 'advance-status',
       className: 'text-purple-500',
       requiredPermission: 'edit-trips',
       showWhen: (item) => item.advance_amount > 0
     },
-    { 
-      label: t('Reimbursement Status'), 
-      icon: 'CreditCard', 
-      action: 'reimbursement-status', 
+    {
+      label: t('Reimbursement Status'),
+      icon: 'CreditCard',
+      action: 'reimbursement-status',
       className: 'text-indigo-500',
       requiredPermission: 'edit-trips',
       showWhen: (item) => item.total_expenses > 0
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-trips'
     }
@@ -490,7 +490,7 @@ export default function Trips() {
 
   // Prepare employee options for filter
   const employeeOptions = [
-    { value: '', label: t('All Employees') },
+    { value: '', label: t('All Employees'), disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: `${emp.name} (${emp.employee_id})`
@@ -507,8 +507,8 @@ export default function Trips() {
   ];
 
   return (
-    <PageTemplate 
-      title={t("Trips")} 
+    <PageTemplate
+      title={t("Trips")}
       url="/hr/trips"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -527,7 +527,8 @@ export default function Trips() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true,
             },
             {
               name: 'status',
@@ -560,8 +561,8 @@ export default function Trips() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.trips.index'), { 
-              page: 1, 
+            router.get(route('hr.trips.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               employee_id: selectedEmployee || undefined,
@@ -611,50 +612,51 @@ export default function Trips() {
         onSubmit={handleFormSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'employee_id', 
-              label: t('Employee'), 
-              type: 'select', 
+            {
+              name: 'employee_id',
+              label: t('Employee'),
+              type: 'select',
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: employeeOptions.filter(opt => opt.value !== ''),
+              searchable: true
             },
-            { 
-              name: 'purpose', 
-              label: t('Purpose'), 
+            {
+              name: 'purpose',
+              label: t('Purpose'),
               type: 'text',
               required: true
             },
-            { 
-              name: 'destination', 
-              label: t('Destination'), 
+            {
+              name: 'destination',
+              label: t('Destination'),
               type: 'text',
               required: true
             },
-            { 
-              name: 'start_date', 
-              label: t('Start Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'start_date',
+              label: t('Start Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'end_date', 
-              label: t('End Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'end_date',
+              label: t('End Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'description', 
-              label: t('Description'), 
-              type: 'textarea' 
+            {
+              name: 'description',
+              label: t('Description'),
+              type: 'textarea'
             },
-            { 
-              name: 'expected_outcomes', 
-              label: t('Expected Outcomes'), 
-              type: 'textarea' 
+            {
+              name: 'expected_outcomes',
+              label: t('Expected Outcomes'),
+              type: 'textarea'
             },
-            { 
-              name: 'documents', 
-              label: t('Documents'), 
+            {
+              name: 'documents',
+              label: t('Documents'),
               type: 'custom',
               render: (field, formData, handleChange) => (
                 <MediaPicker
@@ -664,17 +666,17 @@ export default function Trips() {
                 />
               )
             },
-            { 
-              name: 'advance_amount', 
-              label: t('Advance Amount'), 
+            {
+              name: 'advance_amount',
+              label: t('Advance Amount'),
               type: 'number',
               min: 0,
               step: 0.01
             },
             ...(formMode === 'edit' ? [
-              { 
-                name: 'status', 
-                label: t('Status'), 
+              {
+                name: 'status',
+                label: t('Status'),
                 type: 'select',
                 options: [
                   { value: 'planned', label: t('Planned') },
@@ -683,9 +685,9 @@ export default function Trips() {
                   { value: 'cancelled', label: t('Cancelled') }
                 ]
               },
-              { 
-                name: 'advance_status', 
-                label: t('Advance Status'), 
+              {
+                name: 'advance_status',
+                label: t('Advance Status'),
                 type: 'select',
                 options: [
                   { value: 'requested', label: t('Requested') },
@@ -695,9 +697,9 @@ export default function Trips() {
                 ],
                 showWhen: (formData) => formData.advance_amount > 0
               },
-              { 
-                name: 'reimbursement_status', 
-                label: t('Reimbursement Status'), 
+              {
+                name: 'reimbursement_status',
+                label: t('Reimbursement Status'),
                 type: 'select',
                 options: [
                   { value: 'pending', label: t('Pending') },
@@ -706,9 +708,9 @@ export default function Trips() {
                 ],
                 showWhen: (formData) => formData.total_expenses > 0
               },
-              { 
-                name: 'trip_report', 
-                label: t('Trip Report'), 
+              {
+                name: 'trip_report',
+                label: t('Trip Report'),
                 type: 'textarea',
                 showWhen: (formData) => formData.status === 'completed'
               }
@@ -734,9 +736,9 @@ export default function Trips() {
         onSubmit={handleStatusChange}
         formConfig={{
           fields: [
-            { 
-              name: 'status', 
-              label: t('Status'), 
+            {
+              name: 'status',
+              label: t('Status'),
               type: 'select',
               required: true,
               options: [
@@ -762,9 +764,9 @@ export default function Trips() {
         onSubmit={handleAdvanceStatusChange}
         formConfig={{
           fields: [
-            { 
-              name: 'advance_status', 
-              label: t('Advance Status'), 
+            {
+              name: 'advance_status',
+              label: t('Advance Status'),
               type: 'select',
               required: true,
               options: [
@@ -790,9 +792,9 @@ export default function Trips() {
         onSubmit={handleReimbursementStatusChange}
         formConfig={{
           fields: [
-            { 
-              name: 'reimbursement_status', 
-              label: t('Reimbursement Status'), 
+            {
+              name: 'reimbursement_status',
+              label: t('Reimbursement Status'),
               type: 'select',
               required: true,
               options: [

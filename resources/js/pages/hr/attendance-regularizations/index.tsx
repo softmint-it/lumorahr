@@ -245,7 +245,7 @@ export default function AttendanceRegularizations() {
       key: 'date',
       label: t('Date'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     {
       key: 'original_times',
@@ -287,7 +287,7 @@ export default function AttendanceRegularizations() {
         };
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColors[value as keyof typeof statusColors]}`}>
-            {t(value)}
+            {value.charAt(0).toUpperCase() + value.slice(1)}
           </span>
         );
       }
@@ -296,7 +296,7 @@ export default function AttendanceRegularizations() {
       key: 'created_at',
       label: t('Requested On'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -345,7 +345,7 @@ export default function AttendanceRegularizations() {
 
   // Prepare options for filters and forms
   const employeeOptions = [
-    { value: 'all', label: t('All Employees') },
+    { value: 'all', label: t('All Employees') , disabled : true},
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -353,7 +353,7 @@ export default function AttendanceRegularizations() {
   ];
 
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses') , disabled : true},
     { value: 'pending', label: t('Pending') },
     { value: 'approved', label: t('Approved') },
     { value: 'rejected', label: t('Rejected') }
@@ -366,7 +366,7 @@ export default function AttendanceRegularizations() {
 
   return (
     <PageTemplate
-      title={t("Attendance Regularization Management")}
+      title={t("Attendance Regularizations")}
       url="/hr/attendance-regularizations"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -385,7 +385,8 @@ export default function AttendanceRegularizations() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable : true
             },
             {
               name: 'status',
@@ -489,11 +490,13 @@ export default function AttendanceRegularizations() {
             {
               name: 'employee_id',
               type: 'dependent-dropdown',
+              
               dependentConfig: [
                 {
                   name: 'employee_id',
                   label: t('Employee'),
                   required: true,
+                  searchable: true,
                   options: employees ? employees.map((emp: any) => ({
                     value: emp.id.toString(),
                     label: emp.name
@@ -503,7 +506,8 @@ export default function AttendanceRegularizations() {
                   name: 'attendance_record_id',
                   label: t('Attendance Record'),
                   apiEndpoint: '/hr/attendance-regularizations/get-employee-attendance/{employee_id}',
-                  showCurrentValue: true
+                  showCurrentValue: true,
+                  searchable: true
                 }
               ]
             },

@@ -10,12 +10,15 @@ import { toast } from '@/components/custom-toast';
 
 interface ReferralSettingsProps {
   settings: any;
-   currencySymbol?: string;
+  currencySymbol?: string;
+  globalSettings?: any;
+
 }
 
-export default function ReferralSettings({ settings , currencySymbol} : ReferralSettingsProps) {
+export default function ReferralSettings({ settings, currencySymbol, globalSettings }: ReferralSettingsProps) {
   const { t } = useTranslation();
 
+  console.log('globalSettings ', globalSettings);
 
   const { data, setData, post, processing, errors } = useForm({
     is_enabled: settings.is_enabled,
@@ -26,10 +29,32 @@ export default function ReferralSettings({ settings , currencySymbol} : Referral
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Updating referral settings...'));
+    }
+
     post(route('referral.settings.update'), {
-      onSuccess: () => {
-        toast.success(t('Referral settings updated successfully'));
+      onSuccess: (page) => {
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
+        if (page.props.flash.success) {
+          toast.success(t(page.props.flash.success));
+        } else if (page.props.flash.error) {
+          toast.error(t(page.props.flash.error));
+        }
       },
+      onError: (errors) => {
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
+        if (typeof errors === 'string') {
+          toast.error(t(errors));
+        } else {
+          toast.error(t('Failed to update referral settings: {{errors}}', { errors: Object.values(errors).join(', ') }));
+        }
+      }
     });
   };
 

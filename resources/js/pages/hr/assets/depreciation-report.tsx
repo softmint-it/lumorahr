@@ -272,7 +272,7 @@ export default function DepreciationReport() {
                     <TableRow key={asset.id}>
                       <TableCell className="font-medium">{asset.name}</TableCell>
                       <TableCell>
-                        {asset.purchase_date ? (window.appSettings?.formatDateTime(asset.purchase_date, false) || format(new Date(asset.purchase_date), 'MMM dd, yyyy')) : '-'}
+                        {asset.purchase_date ? (window.appSettings?.formatDateTimeSimple(asset.purchase_date, false) || format(new Date(asset.purchase_date), 'MMM dd, yyyy')) : '-'}
                       </TableCell>
                       <TableCell className="text-right">{window.appSettings?.formatCurrency(purchaseCost)}</TableCell>
                       <TableCell>

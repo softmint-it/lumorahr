@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DocumentCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -11,30 +12,42 @@ class DocumentCategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = DocumentCategory::withPermissionCheck()->withCount('documents');
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-document-categories')) {
+            $query = DocumentCategory::withCount('documents')->where(function ($q) {
+                if (Auth::user()->can('manage-any-document-categories')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-document-categories')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('is_mandatory') && $request->is_mandatory !== 'all') {
+                $query->where('is_mandatory', $request->is_mandatory === 'true');
+            }
+
+            $query->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
+            $documentCategories = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/documents/document-categories/index', [
+                'documentCategories' => $documentCategories,
+                'filters' => $request->all(['search', 'status', 'is_mandatory', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('is_mandatory') && $request->is_mandatory !== 'all') {
-            $query->where('is_mandatory', $request->is_mandatory === 'true');
-        }
-
-        $query->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
-        $documentCategories = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/documents/document-categories/index', [
-            'documentCategories' => $documentCategories,
-            'filters' => $request->all(['search', 'status', 'is_mandatory', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

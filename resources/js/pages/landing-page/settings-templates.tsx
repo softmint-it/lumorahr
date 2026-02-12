@@ -214,7 +214,7 @@ export default function TemplatesSection({
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
                 className={selectedCategory === category ? 'text-white' : ''}
-                style={selectedCategory === category ? { backgroundColor: '#10b981' } : {}}
+                style={selectedCategory === category ? { backgroundColor: '#10b77f' } : {}}
               >
                 {category.charAt(0).toUpperCase() + category.slice(1)}
               </Button>
@@ -274,7 +274,7 @@ export default function TemplatesSection({
                 type="button"
                 variant="outline"
                 className="border-2"
-                style={{ color: '#10b981', borderColor: '#10b981' }}
+                style={{ color: '#10b77f', borderColor: '#10b77f' }}
                 onClick={loadMoreTemplates}
               >
                 {t('Load More Templates')}

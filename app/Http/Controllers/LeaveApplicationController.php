@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\LeaveApplication;
 use App\Models\LeaveType;
 use App\Models\LeavePolicy;
@@ -15,62 +16,103 @@ class LeaveApplicationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = LeaveApplication::withPermissionCheck()
-            ->with(['employee', 'leaveType', 'leavePolicy', 'approver', 'creator']);
+        if (Auth::user()->can('manage-leave-applications')) {
+            $query = LeaveApplication::with(['employee', 'leaveType', 'leavePolicy', 'approver', 'creator'])
+                ->where(function ($q) {
+                    if (Auth::user()->can('manage-any-leave-applications')) {
+                        $q->whereIn('created_by',  getCompanyAndUsersId());
+                    } elseif (Auth::user()->can('manage-own-leave-applications')) {
+                        $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id())->orWhere('approved_by', Auth::id());
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                });
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('reason', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('employee', function ($subQ) use ($request) {
-                        $subQ->where('name', 'like', '%' . $request->search . '%');
-                    })
-                    ->orWhereHas('leaveType', function ($subQ) use ($request) {
-                        $subQ->where('name', 'like', '%' . $request->search . '%');
-                    });
+
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('reason', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('employee', function ($subQ) use ($request) {
+                            $subQ->where('name', 'like', '%' . $request->search . '%');
+                        })
+                        ->orWhereHas('leaveType', function ($subQ) use ($request) {
+                            $subQ->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+            // Handle leave type filter
+            if ($request->has('leave_type_id') && !empty($request->leave_type_id) && $request->leave_type_id !== 'all') {
+                $query->where('leave_type_id', $request->leave_type_id);
+            }
+
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $leaveApplications = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name']);
+
+            // Get leave types for filter dropdown
+            $leaveTypes = LeaveType::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->get(['id', 'name', 'color']);
+
+            return Inertia::render('hr/leave-applications/index', [
+                'leaveApplications' => $leaveApplications,
+                'employees' => $this->getFilteredEmployees(),
+                'leaveTypes' => $leaveTypes,
+                'filters' => $request->all(['search', 'employee_id', 'leave_type_id', 'status', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-leave-applications') && !Auth::user()->can('manage-any-leave-applications')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Handle leave type filter
-        if ($request->has('leave_type_id') && !empty($request->leave_type_id) && $request->leave_type_id !== 'all') {
-            $query->where('leave_type_id', $request->leave_type_id);
-        }
-
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
-        } else {
-            $query->orderBy('id', 'desc');
-        }
-
-        $leaveApplications = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
             ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name']);
-
-        // Get leave types for filter dropdown
-        $leaveTypes = LeaveType::whereIn('created_by', getCompanyAndUsersId())
             ->where('status', 'active')
-            ->get(['id', 'name', 'color']);
-
-        return Inertia::render('hr/leave-applications/index', [
-            'leaveApplications' => $leaveApplications,
-            'employees' => $employees,
-            'leaveTypes' => $leaveTypes,
-            'filters' => $request->all(['search', 'employee_id', 'leave_type_id', 'status', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
 
     public function store(Request $request)
@@ -104,9 +146,12 @@ class LeaveApplicationController extends Controller
         $validated['leave_policy_id'] = $leavePolicy->id;
 
         // Validate days per application
-        if ($validated['total_days'] < $leavePolicy->min_days_per_application || 
-            $validated['total_days'] > $leavePolicy->max_days_per_application) {
-            return redirect()->back()->with('error', 
+        if (
+            $validated['total_days'] < $leavePolicy->min_days_per_application ||
+            $validated['total_days'] > $leavePolicy->max_days_per_application
+        ) {
+            return redirect()->back()->with(
+                'error',
                 __('Leave days must be between :min and :max days.', [
                     'min' => $leavePolicy->min_days_per_application,
                     'max' => $leavePolicy->max_days_per_application
@@ -137,7 +182,8 @@ class LeaveApplicationController extends Controller
 
         // Check if enough balance available
         if ($leaveBalance->remaining_days < $validated['total_days']) {
-            return redirect()->back()->with('error', 
+            return redirect()->back()->with(
+                'error',
                 __('Insufficient leave balance. Available: :available days, Requested: :requested days', [
                     'available' => $leaveBalance->remaining_days,
                     'requested' => $validated['total_days']
@@ -261,7 +307,8 @@ class LeaveApplicationController extends Controller
                         ->first();
 
                     if ($leaveBalance && $leaveBalance->remaining_days < $leaveApplication->total_days) {
-                        return redirect()->back()->with('error', 
+                        return redirect()->back()->with(
+                            'error',
                             __('Cannot approve: Insufficient leave balance. Available: :available days, Required: :required days', [
                                 'available' => $leaveBalance->remaining_days,
                                 'required' => $leaveApplication->total_days

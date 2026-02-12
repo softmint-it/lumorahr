@@ -3,7 +3,6 @@ import { PageTemplate } from '@/components/page-template';
 import { usePage, router } from '@inertiajs/react';
 import { hasPermission } from '@/utils/authorization';
 import { CrudTable } from '@/components/CrudTable';
-import { CrudFormModal } from '@/components/CrudFormModal';
 import { CrudDeleteModal } from '@/components/CrudDeleteModal';
 import { toast } from '@/components/custom-toast';
 import { useTranslation } from 'react-i18next';
@@ -11,11 +10,10 @@ import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
 import React from 'react';
 import { Plus } from 'lucide-react';
-import { format } from 'date-fns';
 
 export default function JobPostings() {
   const { t } = useTranslation();
-  const { auth, jobPostings, requisitions, jobTypes, locations, departments, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, jobPostings, filters: pageFilters = {}, globalSettings } = usePage().props as any;
   const permissions = auth?.permissions || [];
   
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
@@ -23,9 +21,7 @@ export default function JobPostings() {
   const [publishedFilter, setPublishedFilter] = useState(pageFilters.is_published || '_empty_');
   const [showFilters, setShowFilters] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
-  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   
   const hasActiveFilters = () => {
     return statusFilter !== '_empty_' || publishedFilter !== '_empty_' || searchTerm !== '';
@@ -65,25 +61,26 @@ export default function JobPostings() {
   };
   
   const handleAction = (action: string, item: any) => {
-    setCurrentItem(item);
-    
     switch (action) {
       case 'view':
-        setFormMode('view');
-        setIsFormModalOpen(true);
+        router.get(route('hr.recruitment.job-postings.show', item.id));
         break;
       case 'edit':
-        setFormMode('edit');
-        setIsFormModalOpen(true);
+        router.get(route('hr.recruitment.job-postings.edit', item.id));
         break;
       case 'delete':
+        setCurrentItem(item);
         setIsDeleteModalOpen(true);
         break;
       case 'publish':
-        toast.loading(t('Publishing job posting...'));
+        if (!globalSettings?.is_demo) {
+          toast.loading(t('Publishing job posting...'));
+        }
         router.put(route('hr.recruitment.job-postings.publish', item.id), {}, {
           onSuccess: (page) => {
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (page.props.flash.success) {
               toast.success(t(page.props.flash.success));
             } else if (page.props.flash.error) {
@@ -91,7 +88,9 @@ export default function JobPostings() {
             }
           },
           onError: (errors) => {
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (typeof errors === 'string') {
               toast.error(t(errors));
             } else {
@@ -101,10 +100,14 @@ export default function JobPostings() {
         });
         break;
       case 'unpublish':
-        toast.loading(t('Unpublishing job posting...'));
+        if (!globalSettings?.is_demo) {
+          toast.loading(t('Unpublishing job posting...'));
+        }
         router.put(route('hr.recruitment.job-postings.unpublish', item.id), {}, {
           onSuccess: (page) => {
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (page.props.flash.success) {
               toast.success(t(page.props.flash.success));
             } else if (page.props.flash.error) {
@@ -112,7 +115,9 @@ export default function JobPostings() {
             }
           },
           onError: (errors) => {
-            toast.dismiss();
+            if (!globalSettings?.is_demo) {
+              toast.dismiss();
+            }
             if (typeof errors === 'string') {
               toast.error(t(errors));
             } else {
@@ -125,66 +130,25 @@ export default function JobPostings() {
   };
   
   const handleAddNew = () => {
-    setCurrentItem(null);
-    setFormMode('create');
-    setIsFormModalOpen(true);
+    router.get(route('hr.recruitment.job-postings.create'));
   };
   
   const handleFormSubmit = (formData: any) => {
-    if (formMode === 'create') {
-      toast.loading(t('Creating job posting...'));
-
-      router.post(route('hr.recruitment.job-postings.store'), formData, {
-        onSuccess: (page) => {
-          setIsFormModalOpen(false);
-          toast.dismiss();
-          if (page.props.flash.success) {
-            toast.success(t(page.props.flash.success));
-          } else if (page.props.flash.error) {
-            toast.error(t(page.props.flash.error));
-          }
-        },
-        onError: (errors) => {
-          toast.dismiss();
-          if (typeof errors === 'string') {
-            toast.error(t(errors));
-          } else {
-            toast.error(t('Failed to create job posting: {{errors}}', { errors: Object.values(errors).join(', ') }));
-          }
-        }
-      });
-    } else if (formMode === 'edit') {
-      toast.loading(t('Updating job posting...'));
-
-      router.put(route('hr.recruitment.job-postings.update', currentItem.id), formData, {
-        onSuccess: (page) => {
-          setIsFormModalOpen(false);
-          toast.dismiss();
-          if (page.props.flash.success) {
-            toast.success(t(page.props.flash.success));
-          } else if (page.props.flash.error) {
-            toast.error(t(page.props.flash.error));
-          }
-        },
-        onError: (errors) => {
-          toast.dismiss();
-          if (typeof errors === 'string') {
-            toast.error(t(errors));
-          } else {
-            toast.error(t('Failed to update job posting: {{errors}}', { errors: Object.values(errors).join(', ') }));
-          }
-        }
-      });
-    }
+    // This function is no longer needed as we use separate pages
   };
   
+  
   const handleDeleteConfirm = () => {
-    toast.loading(t('Deleting job posting...'));
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting job posting...'));
+    }
 
     router.delete(route('hr.recruitment.job-postings.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (page.props.flash.success) {
           toast.success(t(page.props.flash.success));
         } else if (page.props.flash.error) {
@@ -192,7 +156,9 @@ export default function JobPostings() {
         }
       },
       onError: (errors) => {
-        toast.dismiss();
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
         if (typeof errors === 'string') {
           toast.error(t(errors));
         } else {
@@ -233,10 +199,10 @@ export default function JobPostings() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Draft': return 'bg-gray-50 text-gray-600 ring-gray-500/10';
+      case 'Draft': return 'bg-yellow-50 text-yellow-700 ring-yellow-600/20';
       case 'Published': return 'bg-green-50 text-green-700 ring-green-600/20';
       case 'Closed': return 'bg-red-50 text-red-700 ring-red-600/10';
-      default: return 'bg-gray-50 text-gray-600 ring-gray-500/10';
+      default: return 'bg-yellow-50 text-yellow-700 ring-yellow-600/20';
     }
   };
 
@@ -285,13 +251,18 @@ export default function JobPostings() {
       }
     },
     { 
+      key: 'candidates_count', 
+      label: t('Applications'),
+      render: (value) => <div className="text-center">{value || 0}</div>
+    },
+    { 
       key: 'is_published', 
       label: t('Published'),
       render: (value) => (
         <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
           value 
             ? 'bg-green-50 text-green-700 ring-green-600/20' 
-            : 'bg-gray-50 text-gray-600 ring-gray-500/10'
+            : 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
         }`}>
           {value ? t('Yes') : t('No')}
         </span>
@@ -309,7 +280,7 @@ export default function JobPostings() {
     { 
       key: 'application_deadline', 
       label: t('Deadline'),
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -364,38 +335,6 @@ export default function JobPostings() {
     { value: '_empty_', label: t('All') },
     { value: 'true', label: t('Published') },
     { value: 'false', label: t('Draft') }
-  ];
-
-  const requisitionOptions = [
-    { value: '_empty_', label: t('Select Requisition') },
-    ...(requisitions || []).map((req: any) => ({
-      value: req.id.toString(),
-      label: `${req.requisition_code} - ${req.title}`
-    }))
-  ];
-
-  const jobTypeOptions = [
-    { value: '_empty_', label: t('Select Job Type') },
-    ...(jobTypes || []).map((type: any) => ({
-      value: type.id.toString(),
-      label: type.name
-    }))
-  ];
-
-  const locationOptions = [
-    { value: '_empty_', label: t('Select Location') },
-    ...(locations || []).map((loc: any) => ({
-      value: loc.id.toString(),
-      label: loc.name
-    }))
-  ];
-
-  const departmentOptions = [
-    { value: '_empty_', label: t('Select Department') },
-    ...(departments || []).map((dept: any) => ({
-      value: dept.id.toString(),
-      label: `${dept.name} (${dept.branch?.name || 'No Branch'})`
-    }))
   ];
 
   return (
@@ -476,111 +415,6 @@ export default function JobPostings() {
           onPageChange={(url) => router.get(url)}
         />
       </div>
-
-      <CrudFormModal
-        isOpen={isFormModalOpen}
-        onClose={() => setIsFormModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        formConfig={{
-          fields: [
-            { 
-              name: 'requisition_id', 
-              label: t('Job Requisition'), 
-              type: 'select', 
-              required: true,
-              options: requisitionOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'title', 
-              label: t('Title'), 
-              type: 'text', 
-              required: true 
-            },
-            { 
-              name: 'job_type_id', 
-              label: t('Job Type'), 
-              type: 'select', 
-              required: true,
-              options: jobTypeOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'location_id', 
-              label: t('Location'), 
-              type: 'select', 
-              required: true,
-              options: locationOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'department_id', 
-              label: t('Department'), 
-              type: 'select',
-              options: departmentOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'min_experience', 
-              label: t('Min Experience (Years)'), 
-              type: 'number', 
-              required: true,
-              min: 0
-            },
-            { 
-              name: 'max_experience', 
-              label: t('Max Experience (Years)'), 
-              type: 'number',
-              min: 0
-            },
-            { 
-              name: 'min_salary', 
-              label: t('Min Salary'), 
-              type: 'number',
-              min: 0,
-              step: 0.01
-            },
-            { 
-              name: 'max_salary', 
-              label: t('Max Salary'), 
-              type: 'number',
-              min: 0,
-              step: 0.01
-            },
-            { 
-              name: 'application_deadline', 
-              label: t('Application Deadline'), 
-              type: 'date'
-            },
-            { 
-              name: 'is_featured', 
-              label: t('Featured Job'), 
-              type: 'checkbox'
-            },
-            { 
-              name: 'description', 
-              label: t('Description'), 
-              type: 'textarea' 
-            },
-            { 
-              name: 'requirements', 
-              label: t('Requirements'), 
-              type: 'textarea' 
-            },
-            { 
-              name: 'benefits', 
-              label: t('Benefits'), 
-              type: 'textarea' 
-            }
-          ],
-          modalSize: 'xl'
-        }}
-        initialData={currentItem}
-        title={
-          formMode === 'create'
-            ? t('Add New Job Posting')
-            : formMode === 'edit'
-              ? t('Edit Job Posting')
-              : t('View Job Posting')
-        }
-        mode={formMode}
-      />
 
       <CrudDeleteModal
         isOpen={isDeleteModalOpen}

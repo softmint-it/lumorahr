@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { ArrowRight, Play } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { getImagePath } from '@/utils/helpers';
 
 interface HeroSectionProps {
   brandColor?: string;
@@ -23,14 +25,15 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ settings, sectionData, brandColor = '#3b82f6' }: HeroSectionProps) {
+  const { t } = useTranslation();
   const { globalSettings } = usePage().props as any;
   const isSaas = globalSettings?.is_saas;
-  
+
   // Helper to get full URL for images
   const getImageUrl = (path: string) => {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `${window.appSettings.imageUrl}${path}`;
+    if (path.startsWith('/screenshots/')) return `${window.appSettings.imageUrl}${path}`;
+    return getImagePath(path);
   };
 
   const heroImage = getImageUrl(sectionData.image);
@@ -48,11 +51,11 @@ export default function HeroSection({ settings, sectionData, brandColor = '#3b82
             )}
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight" role="banner" aria-label="Main heading">
-              {sectionData.title || 'Create Your Digital Business Card'}
+              {sectionData.title || t('Create Your Digital Business Card')}
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl font-medium">
-              {sectionData.subtitle || 'Manage employees, payroll, attendance, and more in one powerful platform.'}
+              {sectionData.subtitle || t('Manage employees, payroll, attendance, and more in one powerful platform.')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
@@ -63,7 +66,7 @@ export default function HeroSection({ settings, sectionData, brandColor = '#3b82
                   style={{ backgroundColor: brandColor }}
                   aria-label="Start free trial - Register for HRM"
                 >
-                  {sectionData.primary_button_text || 'Start Free Trial'}
+                  {sectionData.primary_button_text || t('Start Free Trial')}
                   <ArrowRight size={18} />
                 </Link>
               )}
@@ -74,7 +77,7 @@ export default function HeroSection({ settings, sectionData, brandColor = '#3b82
                 aria-label="Login to existing HRM account"
               >
                 <Play size={18} />
-                {sectionData.secondary_button_text || 'Login'}
+                {sectionData.secondary_button_text || t('Login')}
               </Link>
             </div>
 
@@ -94,15 +97,15 @@ export default function HeroSection({ settings, sectionData, brandColor = '#3b82
 
           {/* Right Content - Hero Image or Card */}
           <div className="relative">
-            
-              <div className="relative">
-                <img
-                  src={heroImage || getImageUrl(globalSettings?.is_saas ? '/screenshots/saas/hero-default.png' : '/screenshots/non-saas/hero-default.png')}
-                  alt="Hero"
-                  className="w-full h-auto rounded-2xl shadow-xl"
-                />
-              </div>
-            
+
+            <div className="relative">
+              <img
+                src={heroImage || getImageUrl(globalSettings?.is_saas ? '/screenshots/saas/hero-default.png' : '/screenshots/non-saas/hero-default.png')}
+                alt="Hero"
+                className="w-full h-auto rounded-2xl shadow-xl"
+              />
+            </div>
+
 
             {/* Simple Decorative Elements */}
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-gray-200 rounded-full opacity-50"></div>

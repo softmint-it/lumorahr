@@ -299,10 +299,10 @@ export default function Interviews() {
     { 
       key: 'scheduled_date', 
       label: t('Date & Time'),
-      sortable: true,
+      sortable: false,
       render: (_, row) => (
         <div>
-          <div className="font-medium">{window.appSettings?.formatDateTime(row.scheduled_date, false) || new Date(row.scheduled_date).toLocaleDateString()}</div>
+          <div className="font-medium">{window.appSettings?.formatDateTimeSimple(row.scheduled_date, false) || new Date(row.scheduled_date).toLocaleDateString()}</div>
           <div className="text-xs text-gray-500">{window.appSettings.formatTime(row.scheduled_time)} ({row.duration} min)</div>
         </div>
       )
@@ -381,7 +381,7 @@ export default function Interviews() {
   ];
 
   const candidateOptions = [
-    { value: '_empty_', label: t('All Candidates') },
+    { value: '_empty_', label: t('All Candidates') , disable: true },
     ...(candidates || []).map((candidate: any) => ({
       value: candidate.id.toString(),
       label: `${candidate.first_name} ${candidate.last_name}`
@@ -429,7 +429,8 @@ export default function Interviews() {
               type: 'select',
               value: statusFilter,
               onChange: setStatusFilter,
-              options: statusOptions
+              options: statusOptions,
+              searchable: true
             },
             {
               name: 'candidate_id',
@@ -437,7 +438,8 @@ export default function Interviews() {
               type: 'select',
               value: candidateFilter,
               onChange: setCandidateFilter,
-              options: candidateOptions
+              options: candidateOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -517,7 +519,7 @@ export default function Interviews() {
                     <SelectTrigger>
                       <SelectValue placeholder={t('Select Candidate')} />
                     </SelectTrigger>
-                    <SelectContent className="z-[60000]">
+                    <SelectContent className="z-[60000]" searchable={true}>
                       {candidateSelectOptions.filter(opt => opt.value !== '_empty_').map(option => (
                         <SelectItem key={option.value} value={String(option.value)}>
                           {option.label}
@@ -533,6 +535,7 @@ export default function Interviews() {
               label: t('Interview Round'), 
               type: 'select', 
               required: true,
+              searchable: true,
               key: `round-${selectedCandidate}`,
               options: availableRounds.map((round: any) => ({
                 value: round.id.toString(),
@@ -544,7 +547,8 @@ export default function Interviews() {
               label: t('Interview Type'), 
               type: 'select', 
               required: true,
-              options: interviewTypeOptions.filter(opt => opt.value !== '_empty_')
+              options: interviewTypeOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
             },
             { 
               name: 'scheduled_date', 
@@ -589,7 +593,8 @@ export default function Interviews() {
         }}
         initialData={currentItem ? {
           ...currentItem,
-          candidate_id: currentItem.candidate_id?.toString()
+          candidate_id: currentItem.candidate_id?.toString(),
+          scheduled_date: currentItem.scheduled_date ? window.appSettings.formatDateTimeSimple(currentItem.scheduled_date, false) : currentItem.scheduled_date
         } : null}
         title={
           formMode === 'create'

@@ -366,7 +366,7 @@ export default function AssetShow() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Purchase Date')}</h3>
-                  <p>{asset.purchase_date ? (window.appSettings?.formatDateTime(asset.purchase_date, false) || new Date(asset.purchase_date).toLocaleDateString()) : '-'}</p>
+                  <p>{asset.purchase_date ? (window.appSettings?.formatDateTimeSimple(asset.purchase_date, false) || new Date(asset.purchase_date).toLocaleDateString()) : '-'}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Purchase Cost')}</h3>
@@ -396,7 +396,7 @@ export default function AssetShow() {
                     {asset.warranty_info || '-'}
                     {asset.warranty_expiry_date && (
                       <span className="block text-xs text-gray-500">
-                        {t('Expires')}: {window.appSettings?.formatDateTime(asset.warranty_expiry_date, false) || format(new Date(asset.warranty_expiry_date), 'MMM dd, yyyy')}
+                        {t('Expires')}: {window.appSettings?.formatDateTimeSimple(asset.warranty_expiry_date, false) || format(new Date(asset.warranty_expiry_date), 'MMM dd, yyyy')}
                       </span>
                     )}
                   </p>
@@ -471,13 +471,13 @@ export default function AssetShow() {
                               {assignment.employee?.name || '-'}
                             </TableCell>
                             <TableCell>
-                              {window.appSettings?.formatDateTime(assignment.checkout_date, false) || format(new Date(assignment.checkout_date), 'MMM dd, yyyy')}
+                              {window.appSettings?.formatDateTimeSimple(assignment.checkout_date, false) || format(new Date(assignment.checkout_date), 'MMM dd, yyyy')}
                             </TableCell>
                             <TableCell>
                               {assignment.checkin_date 
-                                ? (window.appSettings?.formatDateTime(assignment.checkin_date, false) || format(new Date(assignment.checkin_date), 'MMM dd, yyyy')) 
+                                ? (window.appSettings?.formatDateTimeSimple(assignment.checkin_date, false) || format(new Date(assignment.checkin_date), 'MMM dd, yyyy')) 
                                 : assignment.expected_return_date 
-                                  ? `${t('Expected')}: ${window.appSettings?.formatDateTime(assignment.expected_return_date, false) || format(new Date(assignment.expected_return_date), 'MMM dd, yyyy')}` 
+                                  ? `${t('Expected')}: ${window.appSettings?.formatDateTimeSimple(assignment.expected_return_date, false) || format(new Date(assignment.expected_return_date), 'MMM dd, yyyy')}` 
                                   : '-'}
                             </TableCell>
                             <TableCell>
@@ -524,11 +524,11 @@ export default function AssetShow() {
                               {maintenance.maintenance_type}
                             </TableCell>
                             <TableCell>
-                              {window.appSettings?.formatDateTime(maintenance.start_date, false) || format(new Date(maintenance.start_date), 'MMM dd, yyyy')}
+                              {window.appSettings?.formatDateTimeSimple(maintenance.start_date, false) || format(new Date(maintenance.start_date), 'MMM dd, yyyy')}
                             </TableCell>
                             <TableCell>
                               {maintenance.end_date 
-                                ? (window.appSettings?.formatDateTime(maintenance.end_date, false) || format(new Date(maintenance.end_date), 'MMM dd, yyyy')) 
+                                ? (window.appSettings?.formatDateTimeSimple(maintenance.end_date, false) || format(new Date(maintenance.end_date), 'MMM dd, yyyy')) 
                                 : '-'}
                             </TableCell>
                             <TableCell>
@@ -601,7 +601,7 @@ export default function AssetShow() {
                           <h3 className="text-sm font-medium text-gray-500">{t('Last Calculated')}</h3>
                           <p>
                             {asset.depreciation.last_calculated_date 
-                              ? (window.appSettings?.formatDateTime(asset.depreciation.last_calculated_date, false) || format(new Date(asset.depreciation.last_calculated_date), 'MMM dd, yyyy')) 
+                              ? (window.appSettings?.formatDateTimeSimple(asset.depreciation.last_calculated_date, false) || format(new Date(asset.depreciation.last_calculated_date), 'MMM dd, yyyy')) 
                               : '-'}
                           </p>
                         </div>
@@ -646,12 +646,12 @@ export default function AssetShow() {
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">{t('Checkout Date')}</h3>
-                    <p>{window.appSettings?.formatDateTime(asset.current_assignment.checkout_date, false) || format(new Date(asset.current_assignment.checkout_date), 'MMM dd, yyyy')}</p>
+                    <p>{window.appSettings?.formatDateTimeSimple(asset.current_assignment.checkout_date, false) || format(new Date(asset.current_assignment.checkout_date), 'MMM dd, yyyy')}</p>
                   </div>
                   {asset.current_assignment.expected_return_date && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">{t('Expected Return')}</h3>
-                      <p>{window.appSettings?.formatDateTime(asset.current_assignment.expected_return_date, false) || format(new Date(asset.current_assignment.expected_return_date), 'MMM dd, yyyy')}</p>
+                      <p>{window.appSettings?.formatDateTimeSimple(asset.current_assignment.expected_return_date, false) || format(new Date(asset.current_assignment.expected_return_date), 'MMM dd, yyyy')}</p>
                     </div>
                   )}
                   {asset.current_assignment.notes && (

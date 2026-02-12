@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\MeetingAttendee;
 use App\Models\Meeting;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -13,47 +15,87 @@ class MeetingAttendeeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = MeetingAttendee::withPermissionCheck()->with(['meeting.type', 'user']);
+        if (Auth::user()->can('manage-meeting-attendees')) {
+            $query = MeetingAttendee::with(['meeting.type', 'user'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-meeting-attendees')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-meeting-attendees')) {
+                    $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
 
-        if ($request->has('search') && !empty($request->search)) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%');
-            })->orWhereHas('meeting', function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%');
+            if ($request->has('search') && !empty($request->search)) {
+                $query->whereHas('user', function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%');
+                })->orWhereHas('meeting', function ($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('rsvp_status') && !empty($request->rsvp_status) && $request->rsvp_status !== 'all') {
+                $query->where('rsvp_status', $request->rsvp_status);
+            }
+
+            if ($request->has('attendance_status') && !empty($request->attendance_status) && $request->attendance_status !== 'all') {
+                $query->where('attendance_status', $request->attendance_status);
+            }
+
+            if ($request->has('meeting_id') && !empty($request->meeting_id) && $request->meeting_id !== 'all') {
+                $query->where('meeting_id', $request->meeting_id);
+            }
+
+            $query->orderBy('id', 'desc');
+            $meetingAttendees = $query->paginate($request->per_page ?? 10);
+
+            $meetings = Meeting::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'title', 'meeting_date')
+                ->orderBy('meeting_date', 'desc')
+                ->get();
+
+            $employees = User::whereIn('created_by', getCompanyAndUsersId())
+                ->where('type', 'employee')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('meetings/meeting-attendees/index', [
+                'meetingAttendees' => $meetingAttendees,
+                'meetings' => $meetings,
+                'employees' => $this->getFilteredEmployees(),
+                'filters' => $request->all(['search', 'rsvp_status', 'attendance_status', 'meeting_id', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-meeting-attendees') && !Auth::user()->can('manage-any-meeting-attendees')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        if ($request->has('rsvp_status') && !empty($request->rsvp_status) && $request->rsvp_status !== 'all') {
-            $query->where('rsvp_status', $request->rsvp_status);
-        }
-
-        if ($request->has('attendance_status') && !empty($request->attendance_status) && $request->attendance_status !== 'all') {
-            $query->where('attendance_status', $request->attendance_status);
-        }
-
-        if ($request->has('meeting_id') && !empty($request->meeting_id) && $request->meeting_id !== 'all') {
-            $query->where('meeting_id', $request->meeting_id);
-        }
-
-        $query->orderBy('id', 'desc');
-        $meetingAttendees = $query->paginate($request->per_page ?? 10);
-
-        $meetings = Meeting::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'title', 'meeting_date')
-            ->orderBy('meeting_date', 'desc')
-            ->get();
-
-        $employees = User::whereIn('created_by', getCompanyAndUsersId())
-            ->where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
+            ->whereIn('created_by', getCompanyAndUsersId())
+            ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('meetings/meeting-attendees/index', [
-            'meetingAttendees' => $meetingAttendees,
-            'meetings' => $meetings,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'rsvp_status', 'attendance_status', 'meeting_id', 'per_page']),
-        ]);
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
 
     public function store(Request $request)

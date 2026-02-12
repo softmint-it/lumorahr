@@ -254,9 +254,9 @@ export default function TrainingSessions() {
       sortField: 'start_date',
       render: (_, row) => (
         <div>
-          <div>{window.appSettings?.formatDateTime(row.start_date, false) || format(new Date(row.start_date), 'MMM dd, yyyy')}</div>
+          <div>{window.appSettings?.formatDateTimeSimple(row.start_date, false) || format(new Date(row.start_date), 'MMM dd, yyyy')}</div>
           <div className="text-xs text-gray-500">
-            {window.appSettings?.formatDateTime(row.start_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(row.start_date), 'h:mm a')} - {window.appSettings?.formatDateTime(row.end_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(row.end_date), 'h:mm a')}
+            {window.appSettings?.formatDateTimeSimple(row.start_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(row.start_date), 'h:mm a')} - {window.appSettings?.formatDateTimeSimple(row.end_date, true)?.split(' ').slice(-2).join(' ') || format(new Date(row.end_date), 'h:mm a')}
           </div>
         </div>
       )
@@ -586,10 +586,6 @@ export default function TrainingSessions() {
         }}
         initialData={currentItem ? {
           ...currentItem,
-          start_date: currentItem.start_date ? currentItem.start_date.split(' ')[0] : '',
-          start_time: currentItem.start_date ? currentItem.start_date.split(' ')[1]?.substring(0, 5) : '',
-          end_date: currentItem.end_date ? currentItem.end_date.split(' ')[0] : '',
-          end_time: currentItem.end_date ? currentItem.end_date.split(' ')[1]?.substring(0, 5) : '',
           start_date: currentItem.start_date ? currentItem.start_date.split(' ')[0] : '',
           start_time: currentItem.start_date ? currentItem.start_date.split(' ')[1]?.substring(0, 5) : '',
           end_date: currentItem.end_date ? currentItem.end_date.split(' ')[0] : '',

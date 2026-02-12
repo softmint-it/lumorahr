@@ -204,14 +204,14 @@ export default function HolidayCalendar() {
             <div>
               <p className="text-sm text-muted-foreground">{t('Start Date')}</p>
               <p className="font-medium">
-                {selectedEvent?.start ? new Date(selectedEvent.start).toLocaleDateString() : ''}
+                {selectedEvent?.start ? window.appSettings?.formatDateTimeSimple(selectedEvent.start, false) || new Date(selectedEvent.start).toLocaleDateString() : ''}
               </p>
             </div>
             {selectedEvent?.end && (
               <div>
                 <p className="text-sm text-muted-foreground">{t('End Date')}</p>
                 <p className="font-medium">
-                  {new Date(selectedEvent.end).toLocaleDateString()}
+                  {window.appSettings?.formatDateTimeSimple(selectedEvent.end, false) || new Date(selectedEvent.end).toLocaleDateString()}
                 </p>
               </div>
             )}

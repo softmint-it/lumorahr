@@ -9,6 +9,7 @@ import { Layout, Type, Image, Users, BarChart3, Trash2, Plus } from 'lucide-reac
 import MediaPicker from '@/components/MediaPicker';
 import { useBrand } from '@/contexts/BrandContext';
 import { THEME_COLORS } from '@/hooks/use-appearance';
+import { getImagePath } from '@/utils/helpers';
 
 export default function AboutSection({ data, setData, errors, handleInputChange, getSectionData, updateSectionData, updateSectionVisibility, t = (key) => key }) {
   const { themeColor, customColor } = useBrand();
@@ -25,8 +26,8 @@ export default function AboutSection({ data, setData, errors, handleInputChange,
   // Helper function to convert relative path to full URL for display
   const getDisplayUrl = (path: string): string => {
     if (!path) return path;
-    if (path.startsWith('http')) return path;
-    return `${window.location.origin}${path}`;
+   if (path.startsWith('/screenshots/')) return `${window.appSettings.imageUrl}${path}`;
+    return getImagePath(path);
   };
   return (
     <div className="space-y-6">

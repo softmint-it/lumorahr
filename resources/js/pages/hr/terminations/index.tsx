@@ -19,7 +19,7 @@ export default function Terminations() {
   const { t } = useTranslation();
   const { auth, terminations, employees, terminationTypes, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   // State
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [selectedEmployee, setSelectedEmployee] = useState(pageFilters.employee_id || '');
@@ -33,34 +33,34 @@ export default function Terminations() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  
+
   // Check if any filters are active
   const hasActiveFilters = () => {
-    return selectedEmployee !== '' || 
-           selectedTerminationType !== '' || 
-           selectedStatus !== 'all' || 
-           dateFrom !== '' || 
-           dateTo !== '' || 
-           searchTerm !== '';
+    return selectedEmployee !== '' ||
+      selectedTerminationType !== '' ||
+      selectedStatus !== 'all' ||
+      dateFrom !== '' ||
+      dateTo !== '' ||
+      searchTerm !== '';
   };
-  
+
   // Count active filters
   const activeFilterCount = () => {
-    return (selectedEmployee !== '' ? 1 : 0) + 
-           (selectedTerminationType !== '' ? 1 : 0) + 
-           (selectedStatus !== 'all' ? 1 : 0) + 
-           (dateFrom !== '' ? 1 : 0) + 
-           (dateTo !== '' ? 1 : 0) + 
-           (searchTerm !== '' ? 1 : 0);
+    return (selectedEmployee !== '' ? 1 : 0) +
+      (selectedTerminationType !== '' ? 1 : 0) +
+      (selectedStatus !== 'all' ? 1 : 0) +
+      (dateFrom !== '' ? 1 : 0) +
+      (dateTo !== '' ? 1 : 0) +
+      (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.terminations.index'), { 
+    router.get(route('hr.terminations.index'), {
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -71,13 +71,13 @@ export default function Terminations() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.terminations.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.terminations.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       employee_id: selectedEmployee || undefined,
@@ -88,10 +88,10 @@ export default function Terminations() {
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
         setFormMode('view');
@@ -112,16 +112,16 @@ export default function Terminations() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
     const data = formData;
-    
+
     if (formMode === 'create') {
       toast.loading(t('Creating termination...'));
 
@@ -146,7 +146,7 @@ export default function Terminations() {
       });
     } else if (formMode === 'edit') {
       toast.loading(t('Updating termination...'));
-      
+
       router.put(route('hr.terminations.update', currentItem.id), data, {
         onSuccess: (page) => {
           setIsFormModalOpen(false);
@@ -168,10 +168,10 @@ export default function Terminations() {
       });
     }
   };
-  
+
   const handleStatusChange = (formData: any) => {
     toast.loading(t('Updating termination status...'));
-    
+
     router.put(route('hr.terminations.change-status', currentItem.id), formData, {
       onSuccess: (page) => {
         setIsStatusModalOpen(false);
@@ -192,10 +192,10 @@ export default function Terminations() {
       }
     });
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting termination...'));
-    
+
     router.delete(route('hr.terminations.destroy', currentItem.id), {
       onSuccess: (page) => {
         setIsDeleteModalOpen(false);
@@ -216,7 +216,7 @@ export default function Terminations() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setSelectedEmployee('');
@@ -225,7 +225,7 @@ export default function Terminations() {
     setDateFrom('');
     setDateTo('');
     setShowFilters(false);
-    
+
     router.get(route('hr.terminations.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -234,7 +234,7 @@ export default function Terminations() {
 
   // Define page actions
   const pageActions = [];
-  
+
   // Add the "Add New Termination" button if user has permission
   if (hasPermission(permissions, 'create-terminations')) {
     pageActions.push({
@@ -253,9 +253,9 @@ export default function Terminations() {
 
   // Define table columns
   const columns = [
-    { 
-      key: 'employee.name', 
-      label: t('Employee'), 
+    {
+      key: 'employee.name',
+      label: t('Employee'),
       render: (_, row) => (
         <div>
           <div className="font-medium">{row.employee?.name || '-'}</div>
@@ -263,30 +263,30 @@ export default function Terminations() {
         </div>
       )
     },
-    { 
-      key: 'termination_type', 
+    {
+      key: 'termination_type',
       label: t('Type'),
       render: (value) => value || '-'
     },
-    { 
-      key: 'termination_date', 
+    {
+      key: 'termination_date',
       label: t('Termination Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
-    { 
-      key: 'notice_date', 
+    {
+      key: 'notice_date',
       label: t('Notice Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleString()) : '-'
     },
-    { 
-      key: 'reason', 
+    {
+      key: 'reason',
       label: t('Reason'),
       render: (value) => value || '-'
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => {
         const statusClasses = {
@@ -294,7 +294,7 @@ export default function Terminations() {
           'in progress': 'bg-blue-50 text-blue-700 ring-blue-600/20',
           'completed': 'bg-green-50 text-green-700 ring-green-600/20'
         };
-        
+
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusClasses[value] || ''}`}>
             {value.charAt(0).toUpperCase() + value.slice(1)}
@@ -302,11 +302,11 @@ export default function Terminations() {
         );
       }
     },
-    { 
-      key: 'documents', 
+    {
+      key: 'documents',
       label: t('Documents'),
       render: (value, row) => value && value.trim() !== '' ? (
-        <span 
+        <span
           className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
@@ -321,31 +321,31 @@ export default function Terminations() {
 
   // Define table actions
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-terminations'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
       requiredPermission: 'edit-terminations'
     },
-    { 
-      label: t('Change Status'), 
-      icon: 'RefreshCw', 
-      action: 'change-status', 
+    {
+      label: t('Change Status'),
+      icon: 'RefreshCw',
+      action: 'change-status',
       className: 'text-green-500',
       requiredPermission: 'edit-terminations'
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-terminations'
     }
@@ -390,8 +390,8 @@ export default function Terminations() {
   ];
 
   return (
-    <PageTemplate 
-      title={t("Terminations")} 
+    <PageTemplate
+      title={t("Terminations")}
       url="/hr/terminations"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -404,14 +404,15 @@ export default function Terminations() {
           onSearchChange={setSearchTerm}
           onSearch={handleSearch}
           filters={[
-            {
+            ...(hasPermission(permissions, 'manage-any-terminations') ? [{
               name: 'employee_id',
               label: t('Employee'),
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
-            },
+              options: employeeOptions,
+              searchable: true
+            }] : []),
             {
               name: 'termination_type',
               label: t('Type'),
@@ -451,8 +452,8 @@ export default function Terminations() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.terminations.index'), { 
-              page: 1, 
+            router.get(route('hr.terminations.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               employee_id: selectedEmployee || undefined,
@@ -503,51 +504,53 @@ export default function Terminations() {
         onSubmit={handleFormSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'employee_id', 
-              label: t('Employee'), 
-              type: 'select', 
+            {
+              name: 'employee_id',
+              label: t('Employee'),
+              type: 'select',
               required: true,
-              options: employeeOptions.filter(opt => opt.value !== '')
+              options: employeeOptions.filter(opt => opt.value !== ''),
+              searchable: true
             },
-            { 
-              name: 'termination_type', 
-              label: t('Termination Type'), 
-              type: 'select', 
+            {
+              name: 'termination_type',
+              label: t('Termination Type'),
+              type: 'select',
               required: true,
-              options: terminationTypeFormOptions
+              options: terminationTypeFormOptions,
+              searchable: true
             },
-            { 
-              name: 'notice_date', 
-              label: t('Notice Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'notice_date',
+              label: t('Notice Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'termination_date', 
-              label: t('Termination Date'), 
-              type: 'date', 
-              required: true 
+            {
+              name: 'termination_date',
+              label: t('Termination Date'),
+              type: 'date',
+              required: true
             },
-            { 
-              name: 'notice_period', 
-              label: t('Notice Period'), 
+            {
+              name: 'notice_period',
+              label: t('Notice Period'),
               type: 'text',
               placeholder: 'e.g. 1 month, 2 weeks'
             },
-            { 
-              name: 'reason', 
-              label: t('Reason'), 
-              type: 'text' 
+            {
+              name: 'reason',
+              label: t('Reason'),
+              type: 'text'
             },
-            { 
-              name: 'description', 
-              label: t('Description'), 
-              type: 'textarea' 
+            {
+              name: 'description',
+              label: t('Description'),
+              type: 'textarea'
             },
-            { 
-              name: 'documents', 
-              label: t('Documents'), 
+            {
+              name: 'documents',
+              label: t('Documents'),
               type: 'custom',
               render: (field, formData, handleChange) => (
                 <MediaPicker
@@ -558,9 +561,9 @@ export default function Terminations() {
               )
             },
             ...(formMode === 'edit' ? [
-              { 
-                name: 'status', 
-                label: t('Status'), 
+              {
+                name: 'status',
+                label: t('Status'),
                 type: 'select',
                 options: [
                   { value: 'planned', label: t('Planned') },
@@ -568,20 +571,20 @@ export default function Terminations() {
                   { value: 'completed', label: t('Completed') }
                 ]
               },
-              { 
-                name: 'exit_interview_conducted', 
-                label: t('Exit Interview Conducted'), 
+              {
+                name: 'exit_interview_conducted',
+                label: t('Exit Interview Conducted'),
                 type: 'checkbox'
               },
-              { 
-                name: 'exit_interview_date', 
-                label: t('Exit Interview Date'), 
+              {
+                name: 'exit_interview_date',
+                label: t('Exit Interview Date'),
                 type: 'date',
                 showWhen: (formData) => formData.exit_interview_conducted
               },
-              { 
-                name: 'exit_feedback', 
-                label: t('Exit Feedback'), 
+              {
+                name: 'exit_feedback',
+                label: t('Exit Feedback'),
                 type: 'textarea',
                 showWhen: (formData) => formData.status === 'completed'
               }
@@ -589,7 +592,11 @@ export default function Terminations() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          notice_date: currentItem.notice_date ? window.appSettings.formatDateTimeSimple(currentItem.notice_date, false) : currentItem.notice_date,
+          termination_date: currentItem.termination_date ? window.appSettings.formatDateTimeSimple(currentItem.termination_date, false) : currentItem.termination_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Termination')
@@ -607,9 +614,9 @@ export default function Terminations() {
         onSubmit={handleStatusChange}
         formConfig={{
           fields: [
-            { 
-              name: 'status', 
-              label: t('Status'), 
+            {
+              name: 'status',
+              label: t('Status'),
               type: 'select',
               required: true,
               options: [
@@ -619,21 +626,21 @@ export default function Terminations() {
               ],
               defaultValue: currentItem?.status
             },
-            { 
-              name: 'exit_interview_conducted', 
-              label: t('Exit Interview Conducted'), 
+            {
+              name: 'exit_interview_conducted',
+              label: t('Exit Interview Conducted'),
               type: 'checkbox',
               showWhen: (formData) => formData.status === 'completed'
             },
-            { 
-              name: 'exit_interview_date', 
-              label: t('Exit Interview Date'), 
+            {
+              name: 'exit_interview_date',
+              label: t('Exit Interview Date'),
               type: 'date',
               showWhen: (formData) => formData.status === 'completed' && formData.exit_interview_conducted
             },
-            { 
-              name: 'exit_feedback', 
-              label: t('Exit Feedback'), 
+            {
+              name: 'exit_feedback',
+              label: t('Exit Feedback'),
               type: 'textarea',
               showWhen: (formData) => formData.status === 'completed'
             }

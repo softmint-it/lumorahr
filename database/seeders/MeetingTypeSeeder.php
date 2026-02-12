@@ -33,7 +33,7 @@ class MeetingTypeSeeder extends Seeder
             [
                 'name' => 'One-on-One',
                 'description' => 'Individual meetings between manager and team member for performance discussions and feedback',
-                'color' => '#10B981',
+                'color' => '#10b77f',
                 'default_duration' => 30,
                 'status' => 'active'
             ],

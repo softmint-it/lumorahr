@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OnboardingChecklist;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -11,30 +12,42 @@ class OnboardingChecklistController extends Controller
 {
     public function index(Request $request)
     {
-        $query = OnboardingChecklist::withPermissionCheck()->withCount('checklistItems');
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-onboarding-checklists')) {
+            $query = OnboardingChecklist::withCount('checklistItems')->where(function ($q) {
+                if (Auth::user()->can('manage-any-onboarding-checklists')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-onboarding-checklists')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('is_default') && $request->is_default !== 'all') {
+                $query->where('is_default', $request->is_default === 'true');
+            }
+
+            $query->orderBy('is_default', 'desc')->orderBy('id', 'desc');
+            $onboardingChecklists = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/recruitment/onboarding-checklists/index', [
+                'onboardingChecklists' => $onboardingChecklists,
+                'filters' => $request->all(['search', 'status', 'is_default', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('is_default') && $request->is_default !== 'all') {
-            $query->where('is_default', $request->is_default === 'true');
-        }
-
-        $query->orderBy('is_default', 'desc')->orderBy('id', 'desc');
-        $onboardingChecklists = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/recruitment/onboarding-checklists/index', [
-            'onboardingChecklists' => $onboardingChecklists,
-            'filters' => $request->all(['search', 'status', 'is_default', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

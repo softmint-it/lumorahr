@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm, usePage, router } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
@@ -14,6 +14,7 @@ import { PageTemplate } from '@/components/page-template';
 import { CrudTable } from '@/components/CrudTable';
 import { CrudDeleteModal } from '@/components/CrudDeleteModal';
 import { toast } from '@/components/custom-toast';
+import { useTranslation } from 'react-i18next';
 import { Toaster } from '@/components/ui/toaster';
 
 interface CustomPage {
@@ -36,14 +37,14 @@ interface PageProps {
 }
 
 export default function CustomPagesIndex() {
-  const { pages, flash, filters: pageFilters = {} } = usePage<PageProps>().props;
+  const { t } = useTranslation();
+  const { pages, flash, filters: pageFilters = {}, globalSettings } = usePage<PageProps>().props;
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<CustomPage | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingPage, setDeletingPage] = useState<CustomPage | null>(null);
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
-
-  const { data, setData, post, put, processing, errors, reset } = useForm({
+  const [formData, setFormData] = useState({
     title: '',
     content: '',
     meta_title: '',
@@ -54,28 +55,70 @@ export default function CustomPagesIndex() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (editingPage) {
-      put(route('landing-page.custom-pages.update', editingPage.id), {
-        onSuccess: () => {
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Updating page...'));
+      }
+
+      router.put(route('landing-page.custom-pages.update', editingPage.id), formData, {
+        onSuccess: (page) => {
           setEditingPage(null);
-          reset();
-          toast.success('Page updated successfully!');
+          resetForm();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
+          if (page.props.flash?.success) {
+            toast.success(t(page.props.flash.success));
+          } else if (page.props.flash?.error) {
+            toast.error(t(page.props.flash.error));
+          }
+        },
+        onError: (errors) => {
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
+          if (typeof errors === 'string') {
+            toast.error(t(errors));
+          } else {
+            toast.error(t('Failed to update page: {{errors}}', { errors: Object.values(errors).join(', ') }));
+          }
         }
       });
     } else {
-      post(route('landing-page.custom-pages.store'), {
-        onSuccess: () => {
+      if (!globalSettings?.is_demo) {
+        toast.loading(t('Creating page...'));
+      }
+
+      router.post(route('landing-page.custom-pages.store'), formData, {
+        onSuccess: (page) => {
           setIsCreateOpen(false);
-          reset();
-          toast.success('Page created successfully!');
+          resetForm();
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
+          if (page.props.flash?.success) {
+            toast.success(t(page.props.flash.success));
+          } else if (page.props.flash?.error) {
+            toast.error(t(page.props.flash.error));
+          }
+        },
+        onError: (errors) => {
+          if (!globalSettings?.is_demo) {
+            toast.dismiss();
+          }
+          if (typeof errors === 'string') {
+            toast.error(t(errors));
+          } else {
+            toast.error(t('Failed to create page: {{errors}}', { errors: Object.values(errors).join(', ') }));
+          }
         }
       });
     }
   };
 
   const handleEdit = (page: CustomPage) => {
-    setData({
+    setFormData({
       title: page.title,
       content: page.content,
       meta_title: page.meta_title || '',
@@ -92,22 +135,45 @@ export default function CustomPagesIndex() {
   };
 
   const handleDeleteConfirm = () => {
-    if (deletingPage) {
-      router.delete(route('landing-page.custom-pages.destroy', deletingPage.id), {
-        onSuccess: () => {
-          setIsDeleteModalOpen(false);
-          setDeletingPage(null);
-          toast.success('Page deleted successfully!');
-        },
-        onError: () => {
-          toast.error('Failed to delete page.');
-        }
-      });
+    if (!globalSettings?.is_demo) {
+      toast.loading(t('Deleting page...'));
     }
+
+    router.delete(route('landing-page.custom-pages.destroy', deletingPage.id), {
+      onSuccess: (page) => {
+        setIsDeleteModalOpen(false);
+        setDeletingPage(null);
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
+        if (page.props.flash?.success) {
+          toast.success(t(page.props.flash.success));
+        } else if (page.props.flash?.error) {
+          toast.error(t(page.props.flash.error));
+        }
+      },
+      onError: (errors) => {
+        if (!globalSettings?.is_demo) {
+          toast.dismiss();
+        }
+        if (typeof errors === 'string') {
+          toast.error(t(errors));
+        } else {
+          toast.error(t('Failed to delete page: {{errors}}', { errors: Object.values(errors).join(', ') }));
+        }
+      }
+    });
   };
 
   const resetForm = () => {
-    reset();
+    setFormData({
+      title: '',
+      content: '',
+      meta_title: '',
+      meta_description: '',
+      is_active: true,
+      sort_order: 0
+    });
     setEditingPage(null);
     setIsCreateOpen(false);
   };
@@ -131,10 +197,10 @@ export default function CustomPagesIndex() {
 
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'desc' ? 'asc' : 'desc';
-    const params: any = { 
-      sort_field: field, 
-      sort_direction: direction, 
-      page: 1 
+    const params: any = {
+      sort_field: field,
+      sort_direction: direction,
+      page: 1
     };
     if (searchTerm) {
       params.search = searchTerm;
@@ -143,16 +209,16 @@ export default function CustomPagesIndex() {
   };
 
   const columns = [
-    { 
-      key: 'title', 
-      label: 'Title', 
+    {
+      key: 'title',
+      label: 'Title',
       sortable: true,
       render: (value: string) => (
         <div className="font-medium">{value}</div>
       )
     },
-    { 
-      key: 'content', 
+    {
+      key: 'content',
       label: 'Content',
       render: (value: string) => (
         <div className="max-w-xs truncate" title={value.replace(/<[^>]*>/g, '')}>
@@ -160,45 +226,45 @@ export default function CustomPagesIndex() {
         </div>
       )
     },
-    { 
-      key: 'is_active', 
+    {
+      key: 'is_active',
       label: 'Status',
       render: (value: boolean) => (
-        <div className="flex items-center space-x-1">
-          {value ? (
-            <><Eye className="w-4 h-4 text-green-600" /><span className="text-green-600">Active</span></>
-          ) : (
-            <><EyeOff className="w-4 h-4 text-gray-400" /><span className="text-gray-400">Inactive</span></>
-          )}
-        </div>
+        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+          value 
+            ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20'
+            : 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+        }`}>
+          {value ? 'Active' : 'Inactive'}
+        </span>
       )
     },
-    { 
-      key: 'created_at', 
-      label: 'Created', 
+    {
+      key: 'created_at',
+      label: 'Created',
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
   const actions = [
-    { 
-      label: 'Edit', 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: 'Edit',
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500'
     },
-    { 
-      label: 'Delete', 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: 'Delete',
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500'
     }
   ];
 
   return (
-    <PageTemplate 
-      title="Custom Pages" 
+    <PageTemplate
+      title="Custom Pages"
       url="/landing-page/custom-pages"
       breadcrumbs={[
         { title: 'Dashboard', href: route('dashboard') },
@@ -222,10 +288,10 @@ export default function CustomPagesIndex() {
           onSearch={handleSearch}
           filters={[]}
           showFilters={false}
-          setShowFilters={() => {}}
+          setShowFilters={() => { }}
           hasActiveFilters={() => false}
           activeFilterCount={() => 0}
-          onResetFilters={() => {}}
+          onResetFilters={() => { }}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
             const params: any = { page: 1, per_page: parseInt(value) };
@@ -274,30 +340,28 @@ export default function CustomPagesIndex() {
               <Label htmlFor="edit_title">Page Title</Label>
               <Input
                 id="edit_title"
-                value={data.title}
-                onChange={(e) => setData('title', e.target.value)}
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
                 placeholder="About Us"
               />
-              {errors.title && <p className="text-red-600 text-sm">{errors.title}</p>}
             </div>
 
             <div>
               <Label htmlFor="edit_content">Content</Label>
               <RichTextEditor
-                content={data.content}
-                onChange={(content) => setData('content', content)}
+                content={formData.content}
+                onChange={(content) => setFormData({...formData, content})}
                 placeholder="Page content..."
                 className="min-h-[200px]"
               />
-              {errors.content && <p className="text-red-600 text-sm">{errors.content}</p>}
             </div>
 
             <div>
               <Label htmlFor="edit_meta_title">Meta Title (SEO)</Label>
               <Input
                 id="edit_meta_title"
-                value={data.meta_title}
-                onChange={(e) => setData('meta_title', e.target.value)}
+                value={formData.meta_title}
+                onChange={(e) => setFormData({...formData, meta_title: e.target.value})}
                 placeholder="SEO title"
               />
             </div>
@@ -306,8 +370,8 @@ export default function CustomPagesIndex() {
               <Label htmlFor="edit_meta_description">Meta Description (SEO)</Label>
               <Textarea
                 id="edit_meta_description"
-                value={data.meta_description}
-                onChange={(e) => setData('meta_description', e.target.value)}
+                value={formData.meta_description}
+                onChange={(e) => setFormData({...formData, meta_description: e.target.value})}
                 placeholder="SEO description"
                 rows={3}
               />
@@ -316,8 +380,8 @@ export default function CustomPagesIndex() {
             <div className="flex items-center space-x-2">
               <Switch
                 id="edit_is_active"
-                checked={data.is_active}
-                onCheckedChange={(checked) => setData('is_active', checked)}
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
               />
               <Label htmlFor="edit_is_active">Active</Label>
             </div>
@@ -326,8 +390,8 @@ export default function CustomPagesIndex() {
               <Button type="button" variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={processing}>
-                {processing ? 'Updating...' : 'Update Page'}
+              <Button type="submit">
+                Update Page
               </Button>
             </div>
           </form>
@@ -345,30 +409,28 @@ export default function CustomPagesIndex() {
               <Label htmlFor="title">Page Title</Label>
               <Input
                 id="title"
-                value={data.title}
-                onChange={(e) => setData('title', e.target.value)}
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
                 placeholder="About Us"
               />
-              {errors.title && <p className="text-red-600 text-sm">{errors.title}</p>}
             </div>
 
             <div>
               <Label htmlFor="content">Content</Label>
               <RichTextEditor
-                content={data.content}
-                onChange={(content) => setData('content', content)}
+                content={formData.content}
+                onChange={(content) => setFormData({...formData, content})}
                 placeholder="Page content..."
                 className="min-h-[200px]"
               />
-              {errors.content && <p className="text-red-600 text-sm">{errors.content}</p>}
             </div>
 
             <div>
               <Label htmlFor="meta_title">Meta Title (SEO)</Label>
               <Input
                 id="meta_title"
-                value={data.meta_title}
-                onChange={(e) => setData('meta_title', e.target.value)}
+                value={formData.meta_title}
+                onChange={(e) => setFormData({...formData, meta_title: e.target.value})}
                 placeholder="SEO title"
               />
             </div>
@@ -377,8 +439,8 @@ export default function CustomPagesIndex() {
               <Label htmlFor="meta_description">Meta Description (SEO)</Label>
               <Textarea
                 id="meta_description"
-                value={data.meta_description}
-                onChange={(e) => setData('meta_description', e.target.value)}
+                value={formData.meta_description}
+                onChange={(e) => setFormData({...formData, meta_description: e.target.value})}
                 placeholder="SEO description"
                 rows={3}
               />
@@ -387,8 +449,8 @@ export default function CustomPagesIndex() {
             <div className="flex items-center space-x-2">
               <Switch
                 id="is_active"
-                checked={data.is_active}
-                onCheckedChange={(checked) => setData('is_active', checked)}
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
               />
               <Label htmlFor="is_active">Active</Label>
             </div>
@@ -397,8 +459,8 @@ export default function CustomPagesIndex() {
               <Button type="button" variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={processing}>
-                {processing ? 'Creating...' : 'Create Page'}
+              <Button type="submit">
+                Create Page
               </Button>
             </div>
           </form>

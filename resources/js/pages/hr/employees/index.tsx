@@ -263,17 +263,26 @@ export default function Employees() {
       }
     },
     { 
-      key: 'status', 
-      label: t('Status'),
+      key: 'employee_status', 
+      label: t('Employee Status'),
       render: (value: any, row: any) => {
-        const status = row.status || 'inactive';
+        const status = row.employee?.employee_status || 'active';
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
             status === 'active' 
               ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20' 
-              : 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+              : status === 'inactive'
+                ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+                : status === 'probation'
+                  ? 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20'
+                  : status === 'terminated'
+                    ? 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
+                    : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
           }`}>
-            {status === 'active' ? t('Active') : t('Inactive')}
+            {status === 'active' && t('Active')}
+            {status === 'inactive' && t('Inactive')}
+            {status === 'probation' && t('Probation')}
+            {status === 'terminated' && t('Terminated')}
           </span>
         );
       }
@@ -284,7 +293,7 @@ export default function Employees() {
       sortable: false,
       render: (value: any, row: any) => {
         const joinDate = row.employee?.date_of_joining;
-        return joinDate ? (window.appSettings?.formatDateTime(joinDate, false) || new Date(joinDate).toLocaleDateString()) : '-';
+        return joinDate ? (window.appSettings?.formatDateTimeSimple(joinDate, false) || new Date(joinDate).toLocaleDateString()) : '-';
       }
     }
   ];
@@ -363,7 +372,7 @@ export default function Employees() {
 
   return (
     <PageTemplate 
-      title={t("Employee Management")} 
+      title={t("Employees")} 
       url="/hr/employees"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -382,7 +391,8 @@ export default function Employees() {
               type: 'select',
               value: selectedBranch,
               onChange: setSelectedBranch,
-              options: branchOptions
+              options: branchOptions,
+              searchable: true,
             },
             {
               name: 'department',
@@ -390,7 +400,8 @@ export default function Employees() {
               type: 'select',
               value: selectedDepartment,
               onChange: setSelectedDepartment,
-              options: departmentOptions
+              options: departmentOptions,
+              searchable: true,
             },
             {
               name: 'designation',
@@ -398,7 +409,8 @@ export default function Employees() {
               type: 'select',
               value: selectedDesignation,
               onChange: setSelectedDesignation,
-              options: designationOptions
+              options: designationOptions,
+              searchable: true,
             },
             {
               name: 'status',
@@ -485,13 +497,22 @@ export default function Employees() {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{employee.name}</h3>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">{employee.email}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{employee.employee?.employee_id || '-'}</p>
-                        <div className="flex items-center">
-                          <div className={`h-2 w-2 rounded-full mr-2 ${
-                            employee.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                          }`}></div>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {employee.status === 'active' ? t('Active') : t('Inactive')}
-                          </span>
+                        <div className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                          employee.employee?.employee_status === 'active' 
+                            ? 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20' 
+                            : employee.employee?.employee_status === 'inactive'
+                              ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20'
+                              : employee.employee?.employee_status === 'probation'
+                                ? 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20'
+                                : employee.employee?.employee_status === 'terminated'
+                                  ? 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
+                                  : 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-600/20'
+                        }`}>
+                          {employee.employee?.employee_status === 'active' && t('Active')}
+                          {employee.employee?.employee_status === 'inactive' && t('Inactive')}
+                          {employee.employee?.employee_status === 'probation' && t('Probation')}
+                          {employee.employee?.employee_status === 'terminated' && t('Terminated')}
+                          {!employee.employee?.employee_status && t('Active')}
                         </div>
                       </div>
                     </div>
@@ -554,7 +575,7 @@ export default function Employees() {
                 
                   {/* Joined date */}
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    {t("Joined:")} {employee.employee?.date_of_joining ? (window.appSettings?.formatDateTime(employee.employee.date_of_joining, false) || new Date(employee.employee.date_of_joining).toLocaleDateString()) : '-'}
+                    {t("Joined:")} {employee.employee?.date_of_joining ? (window.appSettings?.formatDateTimeSimple(employee.employee.date_of_joining, false) || new Date(employee.employee.date_of_joining).toLocaleDateString()) : '-'}
                   </div>
                 
                   {/* Action buttons */}

@@ -15,7 +15,7 @@ import ReferralSettings from './components/referral-settings';
 export default function Referral() {
   const { t } = useTranslation();
   const { props } = usePage();
-  const { userType, settings, stats, payoutRequests, referralLink ,currencySymbol} = props as any;
+  const { userType, settings, stats, payoutRequests, referralLink, currencySymbol, globalSettings } = props as any;
   const [activeSection, setActiveSection] = useState('dashboard');
   
    const breadcrumbs = [
@@ -161,7 +161,7 @@ export default function Referral() {
           {userType === 'superadmin' && (
             <section id="settings" ref={settingsRef} className="mb-8">
               <h2 className="text-xl font-semibold mb-4">{t('Settings')}</h2>
-              <ReferralSettings settings={settings}  currencySymbol={currencySymbol}/>
+              <ReferralSettings settings={settings} currencySymbol={currencySymbol} globalSettings={globalSettings} />
             </section>
           )}
         </div>

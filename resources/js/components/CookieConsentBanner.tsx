@@ -28,6 +28,7 @@ export default function CookieConsentBanner() {
     contactUsUrl: globalSettings.contactUsUrl || '#'
   };
 
+  
   useEffect(() => {
     const enableLogging = globalSettings.enableLogging === '1' || globalSettings.enableLogging === 1 || globalSettings.enableLogging === true;
     const isDemoMode = globalSettings.is_demo === '1' || globalSettings.is_demo === 1 || globalSettings.is_demo === true;
@@ -183,7 +184,7 @@ export default function CookieConsentBanner() {
   return (
     <>
       {/* Main Cookie Banner */}
-      <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:max-w-md">
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full mx-4">
         <Card className="p-4 shadow-lg border">
           <div className="flex justify-between items-start mb-3">
             <h3 className="font-semibold text-sm">

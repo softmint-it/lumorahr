@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\Employee;
 use App\Models\User;
 use App\Models\EmployeeTransfer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
@@ -19,75 +21,141 @@ class EmployeeTransferController extends Controller
      */
     public function index(Request $request)
     {
-        $query = EmployeeTransfer::withPermissionCheck()->with([
-            'employee',
-            'fromBranch:id,name',
-            'toBranch:id,name',
-            'fromDepartment:id,name',
-            'toDepartment:id,name',
-            'fromDesignation:id,name',
-            'toDesignation:id,name',
-            'approver'
-        ]);
+        if (Auth::user()->can('manage-employee-transfers')) {
+            $query = EmployeeTransfer::with([
+                'employee',
+                'fromBranch:id,name',
+                'toBranch:id,name',
+                'fromDepartment:id,name',
+                'toDepartment:id,name',
+                'fromDesignation:id,name',
+                'toDesignation:id,name',
+                'approver'
+            ])->where(function ($q) {
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->whereHas('employee', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('employee_id', 'like', '%' . $request->search . '%');
-            })
-                ->orWhere('reason', 'like', '%' . $request->search . '%')
-                ->orWhere('notes', 'like', '%' . $request->search . '%');
-        }
-
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id)) {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Handle branch filter
-        if ($request->has('branch_id') && !empty($request->branch_id)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('from_branch_id', $request->branch_id)
-                    ->orWhere('to_branch_id', $request->branch_id);
+                if (Auth::user()->can('manage-any-employee-transfers')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-employee-transfers')) {
+                    $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle department filter
-        if ($request->has('department_id') && !empty($request->department_id)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('from_department_id', $request->department_id)
-                    ->orWhere('to_department_id', $request->department_id);
-            });
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->whereHas('employee', function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('employee_id', 'like', '%' . $request->search . '%');
+                })
+                    ->orWhere('reason', 'like', '%' . $request->search . '%')
+                    ->orWhere('notes', 'like', '%' . $request->search . '%');
+            }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id)) {
+                $query->where('employee_id', $request->employee_id);
+            }
 
-        // Handle date range filter
-        if ($request->has('date_from') && !empty($request->date_from)) {
-            $query->whereDate('transfer_date', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && !empty($request->date_to)) {
-            $query->whereDate('transfer_date', '<=', $request->date_to);
-        }
+            // Handle branch filter
+            if ($request->has('branch_id') && !empty($request->branch_id)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('from_branch_id', $request->branch_id)
+                        ->orWhere('to_branch_id', $request->branch_id);
+                });
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle department filter
+            if ($request->has('department_id') && !empty($request->department_id)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('from_department_id', $request->department_id)
+                        ->orWhere('to_department_id', $request->department_id);
+                });
+            }
+
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle date range filter
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->whereDate('transfer_date', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->whereDate('transfer_date', '<=', $request->date_to);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $transfers = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::with('employee')
+                ->where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name', 'type')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'employee_id' => $user->employee->employee_id ?? '',
+                        'type' => $user->type,
+                    ];
+                });
+
+            // Get branches for filter dropdown
+            $branches = Branch::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name')
+                ->get();
+
+            // Get departments for filter dropdown
+            $departments = Department::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name', 'branch_id')
+                ->get();
+
+            // Get designations for form dropdown
+            $designations = \App\Models\Designation::whereIn('created_by', getCompanyAndUsersId())
+                ->with('department:id,name,branch_id')
+                ->select('id', 'name', 'department_id')
+                ->get();
+
+            return Inertia::render('hr/transfers/index', [
+                'transfers' => $transfers,
+                'employees' => $this->getFilteredEmployees(),
+                'branches' => $branches,
+                'departments' => $departments,
+                'designations' => $designations,
+                'filters' => $request->all(['search', 'employee_id', 'branch_id', 'department_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('id', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-employee-transfers') && !Auth::user()->can('manage-any-employee-transfers')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
+            });
         }
 
-        $transfers = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::with('employee')
-            ->where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
             ->whereIn('created_by', getCompanyAndUsersId())
             ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
             ->select('id', 'name')
             ->get()
             ->map(function ($user) {
@@ -97,32 +165,9 @@ class EmployeeTransferController extends Controller
                     'employee_id' => $user->employee->employee_id ?? ''
                 ];
             });
-
-        // Get branches for filter dropdown
-        $branches = Branch::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name')
-            ->get();
-
-        // Get departments for filter dropdown
-        $departments = Department::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name', 'branch_id')
-            ->get();
-
-        // Get designations for form dropdown
-        $designations = \App\Models\Designation::whereIn('created_by', getCompanyAndUsersId())
-            ->with('department:id,name,branch_id')
-            ->select('id', 'name', 'department_id')
-            ->get();
-
-        return Inertia::render('hr/transfers/index', [
-            'transfers' => $transfers,
-            'employees' => $employees,
-            'branches' => $branches,
-            'departments' => $departments,
-            'designations' => $designations,
-            'filters' => $request->all(['search', 'employee_id', 'branch_id', 'department_id', 'status', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+        return $employees;
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -416,11 +461,11 @@ class EmployeeTransferController extends Controller
         }
 
         $filePath = getStorageFilePath($transfer->documents);
-        
+
         if (!file_exists($filePath)) {
             return redirect()->back()->with('error', __('Document file not found'));
         }
-        
+
         return response()->download($filePath);
     }
 
@@ -447,7 +492,7 @@ class EmployeeTransferController extends Controller
         }
     }
 
-      public function getDesignation($departmentId)
+    public function getDesignation($departmentId)
     {
         try {
             $department = Department::with('desginations')->find($departmentId);

@@ -226,11 +226,6 @@ export default function GoalTypes() {
       sortable: true
     },
     { 
-      key: 'description', 
-      label: t('Description'),
-      render: (value: string) => value || '-'
-    },
-    { 
       key: 'status', 
       label: t('Status'),
       render: (value: string) => {
@@ -249,7 +244,7 @@ export default function GoalTypes() {
       key: 'created_at', 
       label: t('Created At'), 
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     }
   ];
 

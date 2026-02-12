@@ -21,13 +21,13 @@ trait AutoApplyPermissionCheck
 
     /**
      * Apply permission scope to the query based on user's permissions
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     *https://temp-file.workdo.io/download/FjkuKXEofvEcEkCmnOQerQ0Q7YN6aD08
+     * @param \Illuminate\Database\Eloquent\Builder $queryquery
      * @param string $module The module name (e.g., 'roles', 'permissions')
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function applyPermissionScope($query, $module)
-    {   
+    {
         // Skip permission check if no authenticated user (e.g., in console commands)
         if (!auth()->check()) {
             return $query;
@@ -43,18 +43,32 @@ trait AutoApplyPermissionCheck
         // For company users, show their records and their employees' records
         if ($user->hasRole(['company'])) {
             if (Schema::hasColumn($query->getModel()->getTable(), 'created_by')) {
-                return $query->whereIn('created_by',  getCompanyAndUsersId());
+                return $query->whereIn('created_by', getCompanyAndUsersId());
             }
         }
 
         try {
             // Check for specific permissions first (works for all roles)
+            // $module = str_replace('_', '-', $module);
+            // if ($user->hasPermissionTo("manage-own-{$module}")) {
+            //     if (Schema::hasColumn($query->getModel()->getTable(), 'created_by')) {
+            //         return $query->where('created_by', $user->id)->orWhere('employee_id', $user->id);
+            //     }
+            //     return $query;
+            // }
+
             $module = str_replace('_', '-', $module);
             if ($user->hasPermissionTo("manage-own-{$module}")) {
-                if (Schema::hasColumn($query->getModel()->getTable(), 'created_by')) {
-                    return $query->where('created_by', $user->id);
-                }
-                return $query;
+                $table = $query->getModel()->getTable();
+                return $query->where(function ($q) use ($user, $table) {
+                    if (Schema::hasColumn($table, 'created_by')) {
+                        $q->where('created_by', $user->id);
+                    }
+                    if (Schema::hasColumn($table, 'employee_id')) {
+                        // Use OR only if created_by already applied
+                        $q->orWhere('employee_id', $user->id);
+                    }
+                });
             }
 
             // If user has permission to list all items, return the query without filtering

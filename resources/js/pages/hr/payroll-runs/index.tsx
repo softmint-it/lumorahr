@@ -275,8 +275,8 @@ export default function PayrollRuns() {
       label: t('Pay Period'),
       render: (value: any, row: any) => (
         <div className="text-sm">
-          <div>{window.appSettings?.formatDateTime(row.pay_period_start, false) || new Date(row.pay_period_start).toLocaleDateString()}</div>
-          <div className="text-gray-500">to {window.appSettings?.formatDateTime(row.pay_period_end, false) || new Date(row.pay_period_end).toLocaleDateString()}</div>
+          <div>{window.appSettings?.formatDateTimeSimple(row.pay_period_start, false) || new Date(row.pay_period_start).toLocaleDateString()}</div>
+          <div className="text-gray-500">to {window.appSettings?.formatDateTimeSimple(row.pay_period_end, false) || new Date(row.pay_period_end).toLocaleDateString()}</div>
         </div>
       )
     },
@@ -284,7 +284,7 @@ export default function PayrollRuns() {
       key: 'pay_date',
       label: t('Pay Date'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     {
       key: 'employee_count',
@@ -371,7 +371,7 @@ export default function PayrollRuns() {
 
   // Prepare options for filters
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses'), disabled: true },
     { value: 'draft', label: t('Draft') },
     { value: 'processing', label: t('Processing') },
     { value: 'completed', label: t('Completed') },
@@ -380,7 +380,7 @@ export default function PayrollRuns() {
 
   return (
     <PageTemplate
-      title={t("Payroll Run Management")}
+      title={t("Payroll Runs")}
       url="/hr/payroll-runs"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

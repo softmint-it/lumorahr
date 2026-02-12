@@ -7,6 +7,7 @@ type LayoutContextType = {
     effectivePosition: LayoutPosition;
     updatePosition: (val: LayoutPosition) => void;
     isRtl: boolean;
+    saveLayoutPosition: (position: LayoutPosition) => void;
 };
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
@@ -18,7 +19,7 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const isDemo = (window as any).page?.props?.globalSettings?.is_demo || false;
         let storedPosition: LayoutPosition | null = null;
-        
+
         if (isDemo) {
             // In demo mode, use cookies
             const getCookie = (name: string): string | null => {
@@ -41,16 +42,16 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
         if (storedPosition === 'left' || storedPosition === 'right') {
             setPosition(storedPosition);
         }
-        
+
         // Check if the document is in RTL mode
         const checkRtl = () => {
             const rtl = document.documentElement.dir === 'rtl';
-            setIsRtl(rtl);
+            setIsRtl(false);
         };
-        
+
         // Initial check
         checkRtl();
-        
+
         // Set up a mutation observer to detect changes to the dir attribute
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -59,19 +60,19 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
                 }
             });
         });
-        
+
         observer.observe(document.documentElement, { attributes: true });
-        
+
         return () => observer.disconnect();
-    }, []);
+    }, [(window as any).page?.props?.globalSettings]);
 
     const updatePosition = (val: LayoutPosition) => {
         setPosition(val);
     };
-    
+
     const saveLayoutPosition = () => {
         const isDemo = (window as any).page?.props?.globalSettings?.is_demo || false;
-        
+
         if (isDemo) {
             const setCookie = (name: string, value: string, days = 365) => {
                 if (typeof document === 'undefined') return;
@@ -81,11 +82,12 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
             setCookie('layoutPosition', position);
         }
     };
-    
+
     // Calculate effective position based on RTL mode
-    const effectivePosition: LayoutPosition = isRtl ? 
-        (position === 'left' ? 'right' : 'left') : 
-        position;
+    const effectivePosition: LayoutPosition = position === 'right' ? 'right' : 'left';
+    // const effectivePosition: LayoutPosition = isRtl ? 
+    //     (position === 'left' ? 'right' : 'left') : 
+    //     position;
 
     return <LayoutContext.Provider value={{ position, effectivePosition, updatePosition, saveLayoutPosition, isRtl }}>{children}</LayoutContext.Provider>;
 };

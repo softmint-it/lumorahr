@@ -143,14 +143,24 @@ export function NavMain({ items = [], position }: { items: NavItem[]; position: 
                             // Regular submenu item
                             <SidebarMenuSubItem>
                                 <SidebarMenuSubButton asChild isActive={isActive(child.href)}>
-                                    <Link
-                                        href={child.href || '#'}
-                                        prefetch
-                                        target={child.target}
-                                        className={`flex items-center gap-2 ${effectivePosition === 'right' ? 'justify-end text-right' : 'justify-start text-left'}`}
-                                    >
-                                        <span>{child.title}</span>
-                                    </Link>
+                                    {child.target === '_blank' ? (
+                                        <a
+                                            href={child.href || '#'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`flex items-center gap-2 ${effectivePosition === 'right' ? 'justify-end text-right' : 'justify-start text-left'}`}
+                                        >
+                                            <span>{child.title}</span>
+                                        </a>
+                                    ) : (
+                                        <Link
+                                            href={child.href || '#'}
+                                            prefetch
+                                            className={`flex items-center gap-2 ${effectivePosition === 'right' ? 'justify-end text-right' : 'justify-start text-left'}`}
+                                        >
+                                            <span>{child.title}</span>
+                                        </Link>
+                                    )}
                                 </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                         )}

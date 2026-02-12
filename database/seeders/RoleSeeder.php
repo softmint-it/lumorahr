@@ -41,6 +41,7 @@ class RoleSeeder extends Seeder
             'manage-dashboard',
             'view-dashboard',
             'manage-users',
+            'manage-any-users',
             'create-users',
             'edit-users',
             'delete-users',
@@ -48,6 +49,7 @@ class RoleSeeder extends Seeder
             'reset-password-users',
             'toggle-status-users',
             'manage-roles',
+            'manage-any-roles',
             'create-roles',
             'edit-roles',
             'delete-roles',
@@ -188,8 +190,8 @@ class RoleSeeder extends Seeder
             'assign-complaints',
             'resolve-complaints',
             'manage-employee-transfers',
-            'manage-any-transfers',
-            'manage-own-transfers',
+            'manage-any-employee-transfers',
+            'manage-own-employee-transfers',
             'view-employee-transfers',
             'create-employee-transfers',
             'edit-employee-transfers',
@@ -361,7 +363,8 @@ class RoleSeeder extends Seeder
             'manage-any-candidates',
             'manage-own-candidates',
             'view-candidates',
-            'create-candidates',
+            'convert-to-employee',
+            // 'create-candidates',
             'edit-candidates',
             'delete-candidates',
             'manage-interview-types',
@@ -392,6 +395,13 @@ class RoleSeeder extends Seeder
             'create-interview-feedback',
             'edit-interview-feedback',
             'delete-interview-feedback',
+            'manage-custom-questions',
+            'manage-any-custom-questions',
+            'manage-own-custom-questions',
+            'view-custom-questions',
+            'create-custom-questions',
+            'edit-custom-questions',
+            'delete-custom-questions',
             'manage-candidate-assessments',
             'manage-any-candidate-assessments',
             'manage-own-candidate-assessments',
@@ -431,6 +441,7 @@ class RoleSeeder extends Seeder
             'manage-candidate-onboarding',
             'manage-any-candidate-onboarding',
             'manage-own-candidate-onboarding',
+            'manage-candidate-onboarding-status',
             'view-candidate-onboarding',
             'create-candidate-onboarding',
             'edit-candidate-onboarding',
@@ -648,7 +659,26 @@ class RoleSeeder extends Seeder
             'view-payslips',
             'create-payslips',
             'download-payslips',
-            'send-payslips'
+            'send-payslips',
+
+            // Manage Working day
+            'manage-working-days-settings',
+            'update-working-days-settings',
+
+            //Biomatric Attedance 
+            'manage-biomatric-attedance-settings',
+            'manage-biometric-attendance',
+            'sync-biometric-attendance',
+            'view-biometric-attendance',
+
+            // Ip Restriction
+            'manage-ip-restriction-settings',
+            'create-ip-restriction',
+            'edit-ip-restriction',
+            'delete-ip-restriction',
+
+            // career page
+            'manage-career-page',
         ];
 
         // Add SaaS-specific permissions

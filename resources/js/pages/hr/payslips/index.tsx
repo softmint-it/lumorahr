@@ -79,11 +79,12 @@ export default function Payslips() {
 
     window.location.href = route('hr.payslips.download', payslip.id);
     
-    // Clear loading toast after a delay
+    // Clear loading toast and refresh data after download
     setTimeout(() => {
       toast.dismiss();
       toast.success(t('Payslip downloaded successfully'));
-    }, 1000);
+      router.reload({ only: ['payslips'] });
+    }, 100);
   };
 
   const handleResetFilters = () => {
@@ -129,8 +130,8 @@ export default function Payslips() {
       label: t('Pay Period'),
       render: (value: any, row: any) => (
         <div className="text-sm">
-          <div>{window.appSettings?.formatDateTime(row.pay_period_start, false) || new Date(row.pay_period_start).toLocaleDateString()}</div>
-          <div className="text-gray-500">to {window.appSettings?.formatDateTime(row.pay_period_end, false) || new Date(row.pay_period_end).toLocaleDateString()}</div>
+          <div>{window.appSettings?.formatDateTimeSimple(row.pay_period_start, false) || new Date(row.pay_period_start).toLocaleDateString()}</div>
+          <div className="text-gray-500">to {window.appSettings?.formatDateTimeSimple(row.pay_period_end, false) || new Date(row.pay_period_end).toLocaleDateString()}</div>
         </div>
       )
     },
@@ -138,7 +139,7 @@ export default function Payslips() {
       key: 'pay_date',
       label: t('Pay Date'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     {
       key: 'net_pay',
@@ -160,7 +161,7 @@ export default function Payslips() {
         };
         return (
           <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColors[value as keyof typeof statusColors]}`}>
-            {t(value)}
+            {t(value.charAt(0).toUpperCase() + value.slice(1))}
           </span>
         );
       }
@@ -169,7 +170,7 @@ export default function Payslips() {
       key: 'created_at',
       label: t('Generated On'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
@@ -202,7 +203,7 @@ export default function Payslips() {
 
   return (
     <PageTemplate
-      title={t("Payslip Management")}
+      title={t("Payslips")}
       url="/hr/payslips"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

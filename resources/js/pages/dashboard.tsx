@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageTemplate } from '@/components/page-template';
-import { RefreshCw, Users, Building2, Briefcase, UserPlus, Calendar, Clock, TrendingUp, BarChart3, Bell } from 'lucide-react';
+import { RefreshCw, Users, Building2, Briefcase, UserPlus, Calendar, Clock, TrendingUp, BarChart3, Bell, ExternalLink, Copy, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { usePage } from '@inertiajs/react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line, AreaChart, Area } from 'recharts';
-import { format } from 'date-fns';
+import { hasPermission } from '@/utils/authorization';
 
 interface CompanyDashboardData {
   stats: {
@@ -49,7 +49,25 @@ interface PageAction {
 
 export default function Dashboard({ dashboardData }: { dashboardData: CompanyDashboardData }) {
   const { t } = useTranslation();
-  const { auth } = usePage().props as any;
+  const { auth, companySlug } = usePage().props as any;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCareerLink = () => {
+    const careerUrl = companySlug ? 
+      route('career.index', companySlug) : 
+      route('career.index');
+    navigator.clipboard.writeText(careerUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const openCareerPage = () => {
+    const careerUrl = companySlug ? 
+      route('career.index', companySlug) : 
+      route('career.index');
+    window.open(careerUrl, '_blank');
+  };
 
   const pageActions: PageAction[] = [
     {
@@ -101,10 +119,15 @@ export default function Dashboard({ dashboardData }: { dashboardData: CompanyDas
       'pending': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
       'rejected': 'bg-red-50 text-red-700 ring-red-600/20',
       'New': 'bg-blue-50 text-blue-700 ring-blue-600/20',
-      'Screening': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
+      'Screening': 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
       'Interview': 'bg-purple-50 text-purple-700 ring-purple-600/20',
+      'Offer': 'bg-orange-50 text-orange-700 ring-orange-600/20',
       'Hired': 'bg-green-50 text-green-700 ring-green-600/20',
-      'Rejected': 'bg-red-50 text-red-700 ring-red-600/20'
+      'Rejected': 'bg-red-50 text-red-700 ring-red-600/10',
+      'Scheduled': 'bg-blue-50 text-blue-700 ring-blue-600/20',
+      'In Progress': 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+      'Completed': 'bg-green-50 text-green-700 ring-green-600/20',
+      'Cancelled': 'bg-red-50 text-red-700 ring-red-600/10'
     };
     return colors[status] || 'bg-gray-50 text-gray-700 ring-gray-600/20';
   };
@@ -210,6 +233,82 @@ export default function Dashboard({ dashboardData }: { dashboardData: CompanyDas
             </CardContent>
           </Card>
         </div>
+
+        {/* Career Section */}
+        {stats.activeJobPostings > 0 && hasPermission(auth?.permissions || [], 'manage-career-page') && (
+        <Card className="relative overflow-hidden bg-white border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          {/* Floating bubbles */}
+          <div className="absolute top-4 right-8 w-3 h-3 bg-primary/20 rounded-full animate-bounce" style={{animationDelay: '0s', animationDuration: '3s'}}></div>
+          <div className="absolute top-12 right-16 w-2 h-2 bg-primary/30 rounded-full animate-bounce" style={{animationDelay: '1s', animationDuration: '4s'}}></div>
+          <div className="absolute bottom-8 left-12 w-4 h-4 bg-primary/15 rounded-full animate-bounce" style={{animationDelay: '2s', animationDuration: '5s'}}></div>
+          <div className="absolute bottom-16 left-20 w-1.5 h-1.5 bg-primary/25 rounded-full animate-bounce" style={{animationDelay: '0.5s', animationDuration: '3.5s'}}></div>
+          <div className="absolute top-8 left-1/3 w-2.5 h-2.5 bg-primary/20 rounded-full animate-pulse" style={{animationDelay: '1.5s'}}></div>
+          
+          {/* Background elements */}
+          <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full -translate-y-10 translate-x-10 opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-primary/15 rounded-full translate-y-8 -translate-x-8 opacity-40 group-hover:scale-105 transition-transform duration-700"></div>
+          
+          <CardContent className="relative p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-5">
+                <div className="relative group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Briefcase className="h-7 w-7 text-primary-foreground group-hover:rotate-12 transition-transform duration-300" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm animate-pulse">
+                    <div className="w-2 h-2 bg-white rounded-full animate-ping" style={{animationDuration: '2s'}}></div>
+                  </div>
+                  {/* Orbiting dots */}
+                  <div className="absolute -top-2 -left-2 w-2 h-2 bg-primary/60 rounded-full animate-spin" style={{animationDuration: '8s'}}></div>
+                  <div className="absolute -bottom-2 -right-2 w-1.5 h-1.5 bg-primary/40 rounded-full animate-spin" style={{animationDuration: '6s', animationDirection: 'reverse'}}></div>
+                </div>
+                <div className="group-hover:translate-x-2 transition-transform duration-300">
+                  <h3 className="text-xl font-bold text-gray-800 mb-1 group-hover:text-primary transition-colors duration-300">{t('Join Our Team')}</h3>
+                  <p className="text-gray-600 mb-3 group-hover:text-gray-700 transition-colors duration-300">{t('Discover amazing career opportunities')}</p>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-primary/70 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                        <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                      </div>
+                      <span className="text-primary font-semibold text-sm group-hover:scale-105 transition-transform duration-200">{stats.activeJobPostings} {t('open positions')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col space-y-3 group-hover:translate-x-1 transition-transform duration-300">
+                <Button
+                  onClick={handleCopyCareerLink}
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 hover:scale-105 transition-all duration-200 shadow-sm"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2 text-primary animate-pulse" />
+                      {t('Copied!')}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform duration-200" />
+                      {t('Copy Link')}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={openCareerPage}
+                  className="bg-primary hover:bg-primary/90 hover:scale-105 text-primary-foreground transition-all duration-200 shadow-md hover:shadow-lg relative overflow-hidden"
+                >
+                  {/* Button shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  <ExternalLink className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform duration-200 relative z-10" />
+                  <span className="relative z-10">{t('View Careers')}</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        )}
 
         {/* Charts Section */}
         <div className="grid gap-6 lg:grid-cols-2">
@@ -377,7 +476,7 @@ export default function Dashboard({ dashboardData }: { dashboardData: CompanyDas
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium">{leave.employee?.name || 'Employee'}</p>
                           <Badge variant="outline" className={`text-xs ring-1 ring-inset ${getStatusColor(leave.status)}`}>
-                            {leave.status}
+                            {t(leave.status.charAt(0).toUpperCase() + leave.status.slice(1))}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -541,7 +640,7 @@ export default function Dashboard({ dashboardData }: { dashboardData: CompanyDas
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium">{meeting.title}</p>
                           <Badge variant="outline" className={`text-xs ring-1 ring-inset ${getStatusColor(meeting.status)}`}>
-                            {meeting.status}
+                            {t(meeting.status)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">

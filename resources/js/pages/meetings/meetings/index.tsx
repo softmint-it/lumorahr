@@ -9,7 +9,7 @@ import { toast } from '@/components/custom-toast';
 import { useTranslation } from 'react-i18next';
 import { Pagination } from '@/components/ui/pagination';
 import { SearchAndFilterBar } from '@/components/ui/search-and-filter-bar';
-import { Plus, Clock, Calendar, User } from 'lucide-react';
+import { Plus, Clock, Calendar, User, DiscAlbum } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function Meetings() {
@@ -263,11 +263,11 @@ export default function Meetings() {
         <div>
           <div className="font-medium flex items-center gap-1">
             <Calendar className="h-4 w-4 text-gray-500" />
-            {window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()}
+            {window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()}
           </div>
           <div className="text-xs text-gray-500 flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {window.appSettings.formatTime(row.start_time)} - {window.appSettings.formatTime(row.end_time)} ({row.duration} min)
+            {window.appSettings.formatTime(row.start_time)} - {window.appSettings.formatTime(row.end_time)} 
           </div>
         </div>
       )
@@ -339,7 +339,7 @@ export default function Meetings() {
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses'), disabled: true },
     { value: 'Scheduled', label: t('Scheduled') },
     { value: 'In Progress', label: t('In Progress') },
     { value: 'Completed', label: t('Completed') },
@@ -347,7 +347,7 @@ export default function Meetings() {
   ];
 
   const typeOptions = [
-    { value: '_empty_', label: t('All Types') },
+    { value: '_empty_', label: t('All Types'), disabled: true },
     ...(meetingTypes || []).map((type: any) => ({
       value: type.id.toString(),
       label: type.name
@@ -355,7 +355,7 @@ export default function Meetings() {
   ];
 
   const organizerOptions = [
-    { value: '_empty_', label: t('All Organizers') },
+    { value: '_empty_', label: t('All Organizers'), disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -406,7 +406,8 @@ export default function Meetings() {
               type: 'select',
               value: statusFilter,
               onChange: setStatusFilter,
-              options: statusOptions
+              options: statusOptions,
+              
             },
             {
               name: 'type_id',
@@ -414,7 +415,8 @@ export default function Meetings() {
               type: 'select',
               value: typeFilter,
               onChange: setTypeFilter,
-              options: typeOptions
+              options: typeOptions,
+              searchable : true
             },
             {
               name: 'organizer_id',
@@ -422,7 +424,8 @@ export default function Meetings() {
               type: 'select',
               value: organizerFilter,
               onChange: setOrganizerFilter,
-              options: organizerOptions
+              options: organizerOptions,
+              searchable : true
             }
           ]}
           showFilters={showFilters}
@@ -496,13 +499,15 @@ export default function Meetings() {
               label: t('Meeting Type'), 
               type: 'select', 
               required: true,
-              options: typeSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: typeSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable : true
             },
             { 
               name: 'room_id', 
               label: t('Meeting Room'), 
               type: 'select',
-              options: roomSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: roomSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable : true
             },
             { 
               name: 'meeting_date', 
@@ -527,7 +532,8 @@ export default function Meetings() {
               label: t('Organizer'), 
               type: 'select', 
               required: true,
-              options: organizerSelectOptions.filter(opt => opt.value !== '_empty_')
+              options: organizerSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable : true
             },
             { 
               name: 'recurrence', 
@@ -556,7 +562,10 @@ export default function Meetings() {
           ],
           modalSize: 'xl'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          meeting_date: currentItem.meeting_date ? window.appSettings.formatDateTimeSimple(currentItem.meeting_date, false) : currentItem.meeting_date
+        } : null}
         title={
           formMode === 'create'
             ? t('Schedule New Meeting')

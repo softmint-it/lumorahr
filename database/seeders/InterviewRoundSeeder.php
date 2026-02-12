@@ -25,26 +25,20 @@ class InterviewRoundSeeder extends Seeder
         // Fixed interview rounds for different job types
         $interviewRounds = [
             'technical' => [
-                ['name' => 'Phone Screening', 'sequence' => 1, 'description' => 'Initial phone screening to assess basic qualifications and interest'],
-                ['name' => 'Technical Assessment', 'sequence' => 2, 'description' => 'Technical skills evaluation and coding assessment'],
-                ['name' => 'Technical Interview', 'sequence' => 3, 'description' => 'In-depth technical discussion with senior developers'],
-                ['name' => 'Final Interview', 'sequence' => 4, 'description' => 'Final interview with hiring manager and team lead']
+                ['name' => 'Technical Assessment', 'sequence' => 1, 'description' => 'Technical skills evaluation and coding assessment'],
+                ['name' => 'Technical Interview', 'sequence' => 2, 'description' => 'In-depth technical discussion with senior developers']
             ],
             'management' => [
-                ['name' => 'HR Screening', 'sequence' => 1, 'description' => 'Initial HR screening for basic qualifications and cultural fit'],
-                ['name' => 'Behavioral Interview', 'sequence' => 2, 'description' => 'Assessment of leadership skills and behavioral competencies'],
-                ['name' => 'Case Study Presentation', 'sequence' => 3, 'description' => 'Business case study analysis and presentation'],
-                ['name' => 'Panel Interview', 'sequence' => 4, 'description' => 'Final panel interview with senior management team']
+                ['name' => 'Behavioral Interview', 'sequence' => 1, 'description' => 'Assessment of leadership skills and behavioral competencies'],
+                ['name' => 'Panel Interview', 'sequence' => 2, 'description' => 'Final panel interview with senior management team']
             ],
             'sales' => [
                 ['name' => 'Phone Interview', 'sequence' => 1, 'description' => 'Initial phone interview to assess communication and sales aptitude'],
-                ['name' => 'Sales Presentation', 'sequence' => 2, 'description' => 'Sales pitch presentation and role-playing exercise'],
-                ['name' => 'Manager Interview', 'sequence' => 3, 'description' => 'Interview with sales manager for final assessment']
+                ['name' => 'Sales Presentation', 'sequence' => 2, 'description' => 'Sales pitch presentation and role-playing exercise']
             ],
             'general' => [
                 ['name' => 'Initial Screening', 'sequence' => 1, 'description' => 'Basic qualification and interest assessment'],
-                ['name' => 'Competency Interview', 'sequence' => 2, 'description' => 'Skills and competency evaluation interview'],
-                ['name' => 'Final Interview', 'sequence' => 3, 'description' => 'Final interview with hiring manager']
+                ['name' => 'Final Interview', 'sequence' => 2, 'description' => 'Final interview with hiring manager']
             ]
         ];
 
@@ -73,6 +67,14 @@ class InterviewRoundSeeder extends Seeder
                 $rounds = $interviewRounds[$roundType];
 
                 foreach ($rounds as $roundData) {
+                    // Check if round already exists for this job
+                    if (InterviewRound::where('job_id', $jobPosting->id)
+                        ->where('name', $roundData['name'])
+                        ->where('sequence_number', $roundData['sequence'])
+                        ->exists()) {
+                        continue;
+                    }
+
                     try {
                         InterviewRound::create([
                             'job_id' => $jobPosting->id,
@@ -83,7 +85,7 @@ class InterviewRoundSeeder extends Seeder
                             'created_by' => $company->id,
                         ]);
                     } catch (\Exception $e) {
-                        $this->command->error('Failed to create interview round: ' . $roundData['name'] . ' for job: ' . $jobPosting->title . ' in company: ' . $company->name);
+                        $this->command->error('Failed to create interview round: ' . $roundData['name'] . ' for job: ' . $jobPosting->title);
                         continue;
                     }
                 }

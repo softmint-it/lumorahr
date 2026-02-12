@@ -198,7 +198,8 @@ class DocumentTemplateController extends Controller
 
         switch ($fileFormat) {
             case 'pdf':
-                $pdf = Pdf::loadHTML('<pre>' . htmlspecialchars($generatedContent) . '</pre>');
+                $html = '<div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">' . nl2br($generatedContent) . '</div>';
+                $pdf = Pdf::loadHTML($html);
                 return $pdf->download($filename . '.pdf');
                 
             case 'doc':

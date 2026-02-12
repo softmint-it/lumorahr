@@ -84,8 +84,8 @@ return [
         'action_items',
         'contract_types',
         'employee_contracts',
-        'contract_amendments',
-        'contract_renewals',
+        // 'contract_amendments',
+        // 'contract_renewals',
         'contract_templates',
         'document_categories',
         'hr_documents',
@@ -108,6 +108,11 @@ return [
         'leave_balances',
         'payslips',
         'payroll_adjustments',
-        'calendar'
+        'working_days',
+        'biometric_attendance',
+        'ip_restriction',
+        'calendar',
+        'custom_questions',
+        'career'
     ]
 ];

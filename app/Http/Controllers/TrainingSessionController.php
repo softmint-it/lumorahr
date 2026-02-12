@@ -121,7 +121,7 @@ class TrainingSessionController extends Controller
             $statusColors = [
                 'scheduled' => '#3788d8',
                 'in_progress' => '#f59e0b',
-                'completed' => '#10b981',
+                'completed' => '#10b77f',
                 'cancelled' => '#ef4444',
             ];
 

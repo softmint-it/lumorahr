@@ -212,7 +212,7 @@ export default function AttendanceRecords() {
       key: 'date',
       label: t('Date'),
       sortable: true,
-      render: (value: string) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value: string) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
     {
       key: 'shift',
@@ -223,7 +223,7 @@ export default function AttendanceRecords() {
       key: 'clock_in',
       label: t('Clock In'),
       render: (value: string) => (
-        
+
         <span className="font-mono text-green-600">{window.appSettings.formatTime(value) || '-'}</span>
       )
     },
@@ -283,12 +283,12 @@ export default function AttendanceRecords() {
             className: 'bg-purple-50 text-purple-700 ring-purple-600/20'
           }
         };
-        
+
         const config = statusConfig[value as keyof typeof statusConfig] || {
           label: value || '-',
           className: 'bg-gray-50 text-gray-700 ring-gray-600/20'
         };
-        
+
         return (
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${config.className}`}>
@@ -342,7 +342,7 @@ export default function AttendanceRecords() {
 
   // Prepare options for filters and forms
   const employeeOptions = [
-    { value: 'all', label: t('All Employees') },
+    { value: 'all', label: t('All Employees'), disabled: true },
     ...(employees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
@@ -350,7 +350,7 @@ export default function AttendanceRecords() {
   ];
 
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses'), disabled: true },
     { value: 'present', label: t('Present') },
     { value: 'absent', label: t('Absent') },
     { value: 'half_day', label: t('Half Day') },
@@ -360,7 +360,7 @@ export default function AttendanceRecords() {
 
   return (
     <PageTemplate
-      title={t("Attendance Record Management")}
+      title={t("Attendance Records")}
       url="/hr/attendance-records"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -379,7 +379,8 @@ export default function AttendanceRecords() {
               type: 'select',
               value: selectedEmployee,
               onChange: setSelectedEmployee,
-              options: employeeOptions
+              options: employeeOptions,
+              searchable: true
             },
             {
               name: 'status',
@@ -468,6 +469,7 @@ export default function AttendanceRecords() {
               label: t('Employee'),
               type: 'select',
               required: true,
+              searchable: true,
               options: employees ? employees.map((emp: any) => ({
                 value: emp.id.toString(),
                 label: emp.name
@@ -495,7 +497,10 @@ export default function AttendanceRecords() {
           ],
           modalSize: 'lg'
         }}
-        initialData={currentItem}
+        initialData={currentItem ? {
+          ...currentItem,
+          date: currentItem.date ? window.appSettings.formatDateTimeSimple(currentItem.date, false) : currentItem.date
+        } : null}
         title={
           formMode === 'create'
             ? t('Add New Attendance Record')

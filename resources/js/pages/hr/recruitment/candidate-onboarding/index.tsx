@@ -14,63 +14,62 @@ import { format } from 'date-fns';
 
 export default function CandidateOnboarding() {
   const { t } = useTranslation();
-  const { auth, candidateOnboarding, candidates, checklists, employees, filters: pageFilters = {} } = usePage().props as any;
+  const { auth, candidateOnboarding, employees, checklists, buddyEmployees, filters: pageFilters = {} } = usePage().props as any;
   const permissions = auth?.permissions || [];
-  
+
   const [searchTerm, setSearchTerm] = useState(pageFilters.search || '');
   const [statusFilter, setStatusFilter] = useState(pageFilters.status || '_empty_');
-  const [candidateFilter, setCandidateFilter] = useState(pageFilters.candidate_id || '_empty_');
+  const [employeeFilter, setEmployeeFilter] = useState(pageFilters.employee_id || '_empty_');
   const [showFilters, setShowFilters] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
-  
+
   const hasActiveFilters = () => {
-    return statusFilter !== '_empty_' || candidateFilter !== '_empty_' || searchTerm !== '';
+    return statusFilter !== '_empty_' || employeeFilter !== '_empty_' || searchTerm !== '';
   };
-  
+
   const activeFilterCount = () => {
-    return (statusFilter !== '_empty_' ? 1 : 0) + (candidateFilter !== '_empty_' ? 1 : 0) + (searchTerm !== '' ? 1 : 0);
+    return (statusFilter !== '_empty_' ? 1 : 0) + (employeeFilter !== '_empty_' ? 1 : 0) + (searchTerm !== '' ? 1 : 0);
   };
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
   };
-  
+
   const applyFilters = () => {
-    router.get(route('hr.recruitment.candidate-onboarding.index'), { 
+    router.get(route('hr.recruitment.candidate-onboarding.index'), {
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
-      candidate_id: candidateFilter !== '_empty_' ? candidateFilter : undefined,
+      employee_id: employeeFilter !== '_empty_' ? employeeFilter : undefined,
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleSort = (field: string) => {
     const direction = pageFilters.sort_field === field && pageFilters.sort_direction === 'asc' ? 'desc' : 'asc';
-    
-    router.get(route('hr.recruitment.candidate-onboarding.index'), { 
-      sort_field: field, 
-      sort_direction: direction, 
+
+    router.get(route('hr.recruitment.candidate-onboarding.index'), {
+      sort_field: field,
+      sort_direction: direction,
       page: 1,
       search: searchTerm || undefined,
       status: statusFilter !== '_empty_' ? statusFilter : undefined,
-      candidate_id: candidateFilter !== '_empty_' ? candidateFilter : undefined,
+      employee_id: employeeFilter !== '_empty_' ? employeeFilter : undefined,
       per_page: pageFilters.per_page
     }, { preserveState: true, preserveScroll: true });
   };
-  
+
   const handleAction = (action: string, item: any) => {
     setCurrentItem(item);
-    
+
     switch (action) {
       case 'view':
-        setFormMode('view');
-        setIsFormModalOpen(true);
+        router.get(route('hr.recruitment.candidate-onboarding.show', item.id));
         break;
       case 'edit':
         setFormMode('edit');
@@ -84,14 +83,19 @@ export default function CandidateOnboarding() {
         break;
     }
   };
-  
+
   const handleAddNew = () => {
     setCurrentItem(null);
     setFormMode('create');
     setIsFormModalOpen(true);
   };
-  
+
   const handleFormSubmit = (formData: any) => {
+    // Filter out selected employee from buddy options before submission
+    const filteredBuddyOptions = buddyEmployeeOptions.filter(opt => 
+      opt.value === '_empty_' || opt.value !== formData.employee_id
+    );
+    
     if (formMode === 'create') {
       toast.loading(t('Creating candidate onboarding...'));
 
@@ -138,7 +142,7 @@ export default function CandidateOnboarding() {
       });
     }
   };
-  
+
   const handleDeleteConfirm = () => {
     toast.loading(t('Deleting candidate onboarding...'));
 
@@ -162,7 +166,7 @@ export default function CandidateOnboarding() {
       }
     });
   };
-  
+
   const handleStatusUpdate = (formData: any) => {
     toast.loading(t('Updating status...'));
 
@@ -186,13 +190,13 @@ export default function CandidateOnboarding() {
       }
     });
   };
-  
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('_empty_');
-    setCandidateFilter('_empty_');
+    setEmployeeFilter('_empty_');
     setShowFilters(false);
-    
+
     router.get(route('hr.recruitment.candidate-onboarding.index'), {
       page: 1,
       per_page: pageFilters.per_page
@@ -200,7 +204,7 @@ export default function CandidateOnboarding() {
   };
 
   const pageActions = [];
-  
+
   if (hasPermission(permissions, 'create-candidate-onboarding')) {
     pageActions.push({
       label: t('Start Onboarding'),
@@ -226,34 +230,36 @@ export default function CandidateOnboarding() {
   };
 
   const columns = [
-    { 
-      key: 'candidate.full_name', 
-      label: t('Candidate'),
+    {
+      key: 'employee.name',
+      label: t('Employee'),
       render: (_, row) => (
-        <div>
-          <div className="font-medium">{row.candidate?.first_name} {row.candidate?.last_name}</div>
-          <div className="text-xs text-gray-500">{row.candidate?.email}</div>
-        </div>
+        row.employee?.name ? (
+          <div>
+            <div className="font-medium">{row.employee.name}</div>
+            <div className="text-xs text-gray-500">{row.employee.email || '-'}</div>
+          </div>
+        ) : '-'
       )
     },
-    { 
-      key: 'checklist.name', 
+    {
+      key: 'checklist.name',
       label: t('Checklist'),
       render: (_, row) => row.checklist?.name || '-'
     },
-    { 
-      key: 'start_date', 
+    {
+      key: 'start_date',
       label: t('Start Date'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     },
-    { 
-      key: 'buddy_employee.name', 
+    {
+      key: 'buddy_employee.name',
       label: t('Buddy'),
       render: (_, row) => row.buddy_employee?.name || '-'
     },
-    { 
-      key: 'status', 
+    {
+      key: 'status',
       label: t('Status'),
       render: (value) => (
         <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getStatusColor(value)}`}>
@@ -261,65 +267,65 @@ export default function CandidateOnboarding() {
         </span>
       )
     },
-    { 
-      key: 'created_at', 
+    {
+      key: 'created_at',
       label: t('Created'),
       sortable: true,
-      render: (value) => window.appSettings?.formatDateTime(value, false) || new Date(value).toLocaleDateString()
+      render: (value) => window.appSettings?.formatDateTimeSimple(value, false) || new Date(value).toLocaleDateString()
     }
   ];
 
   const actions = [
-    { 
-      label: t('View'), 
-      icon: 'Eye', 
-      action: 'view', 
+    {
+      label: t('View'),
+      icon: 'Eye',
+      action: 'view',
       className: 'text-blue-500',
       requiredPermission: 'view-candidate-onboarding'
     },
-    { 
-      label: t('Edit'), 
-      icon: 'Edit', 
-      action: 'edit', 
+    {
+      label: t('Edit'),
+      icon: 'Edit',
+      action: 'edit',
       className: 'text-amber-500',
       requiredPermission: 'edit-candidate-onboarding'
     },
-    { 
-      label: t('Update Status'), 
-      icon: 'RefreshCw', 
-      action: 'update-status', 
+    {
+      label: t('Update Status'),
+      icon: 'RefreshCw',
+      action: 'update-status',
       className: 'text-green-500',
-      requiredPermission: 'edit-candidate-onboarding'
+      requiredPermission: 'manage-candidate-onboarding-status'
     },
-    { 
-      label: t('Delete'), 
-      icon: 'Trash2', 
-      action: 'delete', 
+    {
+      label: t('Delete'),
+      icon: 'Trash2',
+      action: 'delete',
       className: 'text-red-500',
       requiredPermission: 'delete-candidate-onboarding'
     }
   ];
 
   const statusOptions = [
-    { value: '_empty_', label: t('All Statuses') },
+    { value: '_empty_', label: t('All Statuses'), disabled: true },
     { value: 'Pending', label: t('Pending') },
     { value: 'In Progress', label: t('In Progress') },
     { value: 'Completed', label: t('Completed') }
   ];
 
-  const candidateOptions = [
-    { value: '_empty_', label: t('All Candidates') },
-    ...(candidates || []).map((candidate: any) => ({
-      value: candidate.id.toString(),
-      label: `${candidate.first_name} ${candidate.last_name}`
+  const employeeOptions = [
+    { value: '_empty_', label: t('All Employees') , disabled: true},
+    ...(employees || []).map((employee: any) => ({
+      value: employee.id.toString(),
+      label: employee.name
     }))
   ];
 
-  const candidateSelectOptions = [
-    { value: '_empty_', label: t('Select Candidate') },
-    ...(candidates || []).map((candidate: any) => ({
-      value: candidate.id.toString(),
-      label: `${candidate.first_name} ${candidate.last_name}`
+  const employeeSelectOptions = [
+    { value: '_empty_', label: t('Select Employee') },
+    ...(employees || []).map((employee: any) => ({
+      value: employee.id.toString(),
+      label: employee.name
     }))
   ];
 
@@ -331,17 +337,17 @@ export default function CandidateOnboarding() {
     }))
   ];
 
-  const employeeOptions = [
+  const buddyEmployeeOptions = [
     { value: '_empty_', label: t('Select Buddy') },
-    ...(employees || []).map((emp: any) => ({
+    ...(buddyEmployees || []).map((emp: any) => ({
       value: emp.id.toString(),
       label: emp.name
     }))
   ];
 
   return (
-    <PageTemplate 
-      title={t("Candidate Onboarding")} 
+    <PageTemplate
+      title={t("Candidate Onboarding")}
       url="/hr/recruitment/candidate-onboarding"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -359,15 +365,17 @@ export default function CandidateOnboarding() {
               type: 'select',
               value: statusFilter,
               onChange: setStatusFilter,
-              options: statusOptions
+              options: statusOptions,
+              searchable: true
             },
             {
-              name: 'candidate_id',
-              label: t('Candidate'),
+              name: 'employee_id',
+              label: t('Employee'),
               type: 'select',
-              value: candidateFilter,
-              onChange: setCandidateFilter,
-              options: candidateOptions
+              value: employeeFilter,
+              onChange: setEmployeeFilter,
+              options: employeeOptions,
+              searchable: true
             }
           ]}
           showFilters={showFilters}
@@ -378,12 +386,12 @@ export default function CandidateOnboarding() {
           onApplyFilters={applyFilters}
           currentPerPage={pageFilters.per_page?.toString() || "10"}
           onPerPageChange={(value) => {
-            router.get(route('hr.recruitment.candidate-onboarding.index'), { 
-              page: 1, 
+            router.get(route('hr.recruitment.candidate-onboarding.index'), {
+              page: 1,
               per_page: parseInt(value),
               search: searchTerm || undefined,
               status: statusFilter !== '_empty_' ? statusFilter : undefined,
-              candidate_id: candidateFilter !== '_empty_' ? candidateFilter : undefined
+              employee_id: employeeFilter !== '_empty_' ? employeeFilter : undefined
             }, { preserveState: true, preserveScroll: true });
           }}
         />
@@ -424,31 +432,64 @@ export default function CandidateOnboarding() {
         onSubmit={handleFormSubmit}
         formConfig={{
           fields: [
-            { 
-              name: 'candidate_id', 
-              label: t('Candidate'), 
-              type: 'select', 
-              required: true,
-              options: candidateSelectOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'checklist_id', 
-              label: t('Onboarding Checklist'), 
-              type: 'select', 
-              required: true,
-              options: checklistOptions.filter(opt => opt.value !== '_empty_')
-            },
-            { 
-              name: 'start_date', 
-              label: t('Start Date'), 
-              type: 'date', 
-              required: true 
-            },
-            { 
-              name: 'buddy_employee_id', 
-              label: t('Buddy Employee'), 
+            {
+              name: 'employee_id',
+              label: t('Employee'),
               type: 'select',
-              options: employeeOptions.filter(opt => opt.value !== '_empty_')
+              required: true,
+              options: employeeSelectOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true,
+              onChange: (value, setFieldValue) => {
+                // Clear buddy employee if same as selected employee
+                const currentBuddy = currentItem?.buddy_employee_id || '';
+                if (currentBuddy === value) {
+                  setFieldValue('buddy_employee_id', '');
+                }
+              }
+            },
+            {
+              name: 'checklist_id',
+              label: t('Onboarding Checklist'),
+              type: 'select',
+              required: true,
+              options: checklistOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true
+            },
+            {
+              name: 'start_date',
+              label: t('Start Date'),
+              type: 'date',
+              required: true
+            },
+            {
+              name: 'buddy_employee_id',
+              label: t('Buddy Employee'),
+              type: 'select',
+              required: true,
+              options: buddyEmployeeOptions.filter(opt => opt.value !== '_empty_'),
+              searchable: true,
+              render: (field, formData, handleChange) => {
+                const filteredOptions = buddyEmployees.filter(emp => 
+                  emp.id.toString() !== formData.employee_id
+                ).map(emp => ({
+                  value: emp.id.toString(),
+                  label: emp.name
+                }));
+                return (
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    value={formData[field.name] || ''}
+                    onChange={(e) => handleChange(field.name, e.target.value)}
+                  >
+                    <option value="" selected disabled>{t('Select Buddy')}</option>
+                    {filteredOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                );
+              }
             }
           ]
         }}
@@ -467,7 +508,7 @@ export default function CandidateOnboarding() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteConfirm}
-        itemName={currentItem ? `${currentItem.candidate?.first_name} ${currentItem.candidate?.last_name}` : ''}
+        itemName={currentItem ? currentItem.employee?.name : ''}
         entityName="onboarding record"
       />
 

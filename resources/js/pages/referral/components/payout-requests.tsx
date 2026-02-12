@@ -38,19 +38,37 @@ export default function PayoutRequests({ userType, payoutRequests, settings, sta
   const handleCreatePayout = (e: React.FormEvent) => {
     e.preventDefault();
     post(route('referral.payout-request.create'), {
-      onSuccess: () => {
+      onSuccess: (page) => {
         setShowCreateDialog(false);
         reset();
-        toast.success(t('Payout request submitted successfully'));
+        if (page.props.flash.success) {
+          toast.success(t(page.props.flash.success));
+        } else if (page.props.flash.error) {
+          toast.error(t(page.props.flash.error));
+        }
       },
+      onError: (errors) => {
+        if (typeof errors === 'string') {
+          toast.error(t(errors));
+        }
+      }
     });
   };
 
   const handleApprove = (request: any) => {
     post(route('referral.payout-request.approve', request.id), {
-      onSuccess: () => {
-        toast.success(t('Payout request approved'));
+      onSuccess: (page) => {
+        if (page.props.flash.success) {
+          toast.success(t(page.props.flash.success));
+        } else if (page.props.flash.error) {
+          toast.error(t(page.props.flash.error));
+        }
       },
+      onError: (errors) => {
+        if (typeof errors === 'string') {
+          toast.error(t(errors));
+        }
+      }
     });
   };
 
@@ -58,25 +76,40 @@ export default function PayoutRequests({ userType, payoutRequests, settings, sta
     e.preventDefault();
     if (selectedRequest) {
       postReject(route('referral.payout-request.reject', selectedRequest.id), {
-        onSuccess: () => {
+        onSuccess: (page) => {
           setShowRejectDialog(false);
           setSelectedRequest(null);
           setRejectData('notes', '');
-          toast.success(t('Payout request rejected'));
+          if (page.props.flash.success) {
+            toast.success(t(page.props.flash.success));
+          } else if (page.props.flash.error) {
+            toast.error(t(page.props.flash.error));
+          }
         },
+        onError: (errors) => {
+          if (typeof errors === 'string') {
+            toast.error(t(errors));
+          }
+        }
       });
     }
   };
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      pending: 'default',
-      approved: 'success',
+      pending: 'secondary',
+      approved: 'default',
       rejected: 'destructive',
     } as const;
 
+    const colors = {
+      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+      approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    } as const;
+
     return (
-      <Badge variant={variants[status as keyof typeof variants] || 'default'}>
+      <Badge className={colors[status as keyof typeof colors] || colors.pending}>
         {t(status.charAt(0).toUpperCase() + status.slice(1))}
       </Badge>
     );

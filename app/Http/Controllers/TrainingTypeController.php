@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Department;
 use App\Models\TrainingType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -16,56 +17,70 @@ class TrainingTypeController extends Controller
      */
     public function index(Request $request)
     {
-        $query = TrainingType::withPermissionCheck()->with(['departments.branch', 'branch'])
-            ->withCount('trainingPrograms');
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
-            });
-        }
+        if (Auth::user()->can('manage-training-types')) {
+            $query = TrainingType::with(['departments.branch', 'branch'])
+                ->withCount('trainingPrograms')
+                ->where(function ($q) {
+                    if (Auth::user()->can('manage-any-training-types')) {
+                        $q->whereIn('created_by',  getCompanyAndUsersId());
+                    } elseif (Auth::user()->can('manage-own-training-types')) {
+                        $q->where('created_by', Auth::id());
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                });
 
-        // Handle branch filter
-        if ($request->has('branch_id') && !empty($request->branch_id)) {
-            $query->whereHas('departments', function ($q) use ($request) {
-                $q->where('departments.branch_id', $request->branch_id);
-            });
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
 
-        // Handle department filter
-        if ($request->has('department_id') && !empty($request->department_id)) {
-            $query->whereHas('departments', function ($q) use ($request) {
-                $q->where('departments.id', $request->department_id);
-            });
-        }
+            // Handle branch filter
+            if ($request->has('branch_id') && !empty($request->branch_id)) {
+                $query->whereHas('departments', function ($q) use ($request) {
+                    $q->where('departments.branch_id', $request->branch_id);
+                });
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle department filter
+            if ($request->has('department_id') && !empty($request->department_id)) {
+                $query->whereHas('departments', function ($q) use ($request) {
+                    $q->where('departments.id', $request->department_id);
+                });
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            $trainingTypes = $query->paginate($request->per_page ?? 10);
+
+            // Get branches for filter dropdown
+            $branches = Branch::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name')
+                ->get();
+
+            // Get departments for filter dropdown
+            $departments = Department::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name', 'branch_id')
+                ->get();
+
+            return Inertia::render('hr/training/types/index', [
+                'trainingTypes' => $trainingTypes,
+                'branches' => $branches,
+                'departments' => $departments,
+                'filters' => $request->all(['search', 'branch_id', 'department_id', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('id', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        $trainingTypes = $query->paginate($request->per_page ?? 10);
-
-        // Get branches for filter dropdown
-        $branches = Branch::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name')
-            ->get();
-
-        // Get departments for filter dropdown
-        $departments = Department::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name', 'branch_id')
-            ->get();
-
-        return Inertia::render('hr/training/types/index', [
-            'trainingTypes' => $trainingTypes,
-            'branches' => $branches,
-            'departments' => $departments,
-            'filters' => $request->all(['search', 'branch_id', 'department_id', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     /**
@@ -208,7 +223,7 @@ class TrainingTypeController extends Controller
 
         // Detach all departments
         $trainingType->departments()->detach();
-        
+
         // Delete the training type
         $trainingType->delete();
 

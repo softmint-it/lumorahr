@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Storage;
 
 class Payslip extends BaseModel
@@ -22,7 +21,7 @@ class Payslip extends BaseModel
         'status',
         'sent_at',
         'downloaded_at',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
@@ -63,10 +62,10 @@ class Payslip extends BaseModel
     public static function generatePayslipNumber($employeeId, $payDate)
     {
         $date = \Carbon\Carbon::parse($payDate);
-        $prefix = 'PS-' . $date->format('Ym') . '-';
+        $prefix = 'PS-'.$date->format('Ym').'-';
         $employeeCode = str_pad($employeeId, 4, '0', STR_PAD_LEFT);
-        
-        return $prefix . $employeeCode;
+
+        return $prefix.$employeeCode;
     }
 
     /**
@@ -75,8 +74,8 @@ class Payslip extends BaseModel
     public function generatePDF()
     {
         $payrollEntry = $this->payrollEntry()->with(['employee', 'payrollRun'])->first();
-        
-        if (!$payrollEntry) {
+
+        if (! $payrollEntry) {
             throw new \Exception('Payroll entry not found');
         }
 
@@ -87,17 +86,19 @@ class Payslip extends BaseModel
             'payrollRun' => $payrollEntry->payrollRun,
             'earnings' => $payrollEntry->earnings_breakdown ?? [],
             'deductions' => $payrollEntry->deductions_breakdown ?? [],
+            'employeeData' => $payrollEntry->employee->employee,
+            'companySettings' => settings(),
         ];
 
         $pdf = Pdf::loadView('payslips.template', $data);
-        
-        $fileName = 'payslip-' . $this->payslip_number . '.pdf';
-        $filePath = 'payslips/' . $fileName;
-        
+
+        $fileName = 'payslip-'.$this->payslip_number.'.pdf';
+        $filePath = 'payslips/'.$fileName;
+
         Storage::disk('public')->put($filePath, $pdf->output());
-        
+
         $this->update(['file_path' => $filePath]);
-        
+
         return $filePath;
     }
 
@@ -109,7 +110,7 @@ class Payslip extends BaseModel
         if ($this->file_path) {
             return Storage::disk('public')->url($this->file_path);
         }
-        
+
         return null;
     }
 

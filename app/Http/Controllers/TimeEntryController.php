@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\TimeEntry;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,70 +13,110 @@ class TimeEntryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = TimeEntry::withPermissionCheck()
-            ->with(['employee', 'approver', 'creator']);
+        if (Auth::user()->can('manage-time-entries')) {
+            $query = TimeEntry::with(['employee', 'approver', 'creator'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-time-entries')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-time-entries')) {
+                    $q->where('created_by', Auth::id())->orWhere('employee_id', Auth::id())->orWhere('approved_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
+            });
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('description', 'like', '%' . $request->search . '%')
-                    ->orWhere('project', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('employee', function ($subQ) use ($request) {
-                        $subQ->where('name', 'like', '%' . $request->search . '%');
-                    });
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('description', 'like', '%' . $request->search . '%')
+                        ->orWhere('project', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('employee', function ($subQ) use ($request) {
+                            $subQ->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            // Handle employee filter
+            if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
+                $query->where('employee_id', $request->employee_id);
+            }
+
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Handle project filter
+            if ($request->has('project') && !empty($request->project) && $request->project !== 'all') {
+                $query->where('project', $request->project);
+            }
+
+            // Handle date range filter
+            if ($request->has('date_from') && !empty($request->date_from)) {
+                $query->where('date', '>=', $request->date_from);
+            }
+            if ($request->has('date_to') && !empty($request->date_to)) {
+                $query->where('date', '<=', $request->date_to);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('date', 'desc');
+            }
+
+            $timeEntries = $query->paginate($request->per_page ?? 10);
+
+            // Get employees for filter dropdown
+            $employees = User::where('type', 'employee')
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->get(['id', 'name']);
+
+            // Get unique projects for filter dropdown
+            $projects = TimeEntry::whereIn('created_by', getCompanyAndUsersId())
+                ->whereNotNull('project')
+                ->distinct()
+                ->pluck('project');
+
+            return Inertia::render('hr/time-entries/index', [
+                'timeEntries' => $timeEntries,
+                'employees' => $this->getFilteredEmployees(),
+                'projects' => $projects,
+                'filters' => $request->all(['search', 'employee_id', 'status', 'project', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
+    }
+
+    private function getFilteredEmployees()
+    {
+        // Get employees for filter dropdown (compatible with getFilteredEmployees logic)
+        $employeeQuery = Employee::whereIn('created_by', getCompanyAndUsersId());
+
+        if (Auth::user()->can('manage-own-time-entries') && !Auth::user()->can('manage-any-time-entries')) {
+            $employeeQuery->where(function ($q) {
+                $q->where('created_by', Auth::id())->orWhere('user_id', Auth::id());
             });
         }
 
-        // Handle employee filter
-        if ($request->has('employee_id') && !empty($request->employee_id) && $request->employee_id !== 'all') {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        // Handle project filter
-        if ($request->has('project') && !empty($request->project) && $request->project !== 'all') {
-            $query->where('project', $request->project);
-        }
-
-        // Handle date range filter
-        if ($request->has('date_from') && !empty($request->date_from)) {
-            $query->where('date', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && !empty($request->date_to)) {
-            $query->where('date', '<=', $request->date_to);
-        }
-
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
-        } else {
-            $query->orderBy('date', 'desc');
-        }
-
-        $timeEntries = $query->paginate($request->per_page ?? 10);
-
-        // Get employees for filter dropdown
-        $employees = User::where('type', 'employee')
+        $employees = User::emp()
+            ->with('employee')
             ->whereIn('created_by', getCompanyAndUsersId())
-            ->get(['id', 'name']);
-
-        // Get unique projects for filter dropdown
-        $projects = TimeEntry::whereIn('created_by', getCompanyAndUsersId())
-            ->whereNotNull('project')
-            ->distinct()
-            ->pluck('project');
-
-        return Inertia::render('hr/time-entries/index', [
-            'timeEntries' => $timeEntries,
-            'employees' => $employees,
-            'projects' => $projects,
-            'filters' => $request->all(['search', 'employee_id', 'status', 'project', 'date_from', 'date_to', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
+            ->where('status', 'active')
+            ->whereIn('id', $employeeQuery->pluck('user_id'))
+            ->select('id', 'name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'employee_id' => $user->employee->employee_id ?? '',
+                ];
+            });
+        return $employees;
     }
+
 
     public function store(Request $request)
     {

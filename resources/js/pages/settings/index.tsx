@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { useEffect, useRef, useState } from 'react';
-import { Settings as SettingsIcon, Building, DollarSign, Users, RefreshCw, Palette, BookOpen, Award, FileText, Mail, Bell, Link2, CreditCard, Calendar, HardDrive, Shield, Bot, Cookie, Search, Webhook, Wallet } from 'lucide-react';
+import { Settings as SettingsIcon, Building, DollarSign, Users, RefreshCw, Palette, BookOpen, Award, FileText, Mail, Bell, Link2, CreditCard, Calendar, HardDrive, Shield, Bot, Cookie, Search, Webhook, Wallet, Clock, Fingerprint, Network } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import SystemSettings from './components/system-settings';
 import { usePage } from '@inertiajs/react';
@@ -21,6 +21,9 @@ import SeoSettings from './components/seo-settings';
 import CacheSettings from './components/cache-settings';
 import WebhookSettings from './components/webhook-settings';
 import GoogleCalendarSettings from './components/google-calendar-settings';
+import WorkingDaysSettings from './components/working-days-settings';
+import ZektoSettings from './components/zekto-settings';
+import IpRestrictionSettings from './components/ip-restriction-settings';
 import { Toaster } from '@/components/ui/toaster';
 import { useTranslation } from 'react-i18next';
 import { hasPermission } from '@/utils/permissions';
@@ -29,7 +32,8 @@ import { useLayout } from '@/contexts/LayoutContext';
 export default function Settings() {
   const { t } = useTranslation();
   const { position } = useLayout();
-  const { systemSettings = {}, cacheSize = '0.00', timezones = {}, dateFormats = {}, timeFormats = {}, paymentSettings = {}, webhooks = [], auth = {}, globalSettings = {} } = usePage().props as any;
+
+  const { systemSettings = {}, cacheSize = '0.00', timezones = {}, dateFormats = {}, timeFormats = {}, paymentSettings = {}, webhooks = [], auth = {}, globalSettings = {}, zektoSettings = {} } = usePage().props as any;
   const isSaas = globalSettings?.is_saas;
   const [activeSection, setActiveSection] = useState('system-settings');
 
@@ -58,6 +62,24 @@ export default function Settings() {
       href: '#email-settings',
       icon: <Mail className="h-4 w-4 mr-2" />,
       permission: 'manage-email-settings'
+    },
+    {
+      title: t('Working Days Settings'),
+      href: '#working-days-settings',
+      icon: <Clock className="h-4 w-4 mr-2" />,
+      permission: 'manage-working-days-settings'
+    },
+    {
+      title: t('IP Restriction Settings'),
+      href: '#ip-restriction-settings',
+      icon: <Network className="h-4 w-4 mr-2" />,
+      permission: 'manage-ip-restriction-settings'
+    },
+    {
+      title: t('Zekto Settings'),
+      href: '#zekto-settings',
+      icon: <Fingerprint className="h-4 w-4 mr-2" />,
+      permission: 'manage-biomatric-attedance-settings'
     },
     {
       title: t('Payment Settings'),
@@ -119,6 +141,16 @@ export default function Settings() {
   // }
   // Filter sidebar items based on user permissions
   const sidebarNavItems = allSidebarNavItems.filter(item => {
+    // Exclude Working Days Settings from superadmin
+    if (item.permission === 'manage-working-days-settings' && auth.user?.type === 'superadmin') {
+      return false;
+    }
+    if (item.permission === 'manage-biomatric-attedance-settings' && auth.user?.type === 'superadmin') {
+      return false;
+    }
+    if (item.permission === 'manage-ip-restriction-settings' && auth.user?.type === 'superadmin') {
+      return false;
+    }
     // If no permission is required or user has the permission
     if (!item.permission || (auth.permissions && auth.permissions.includes(item.permission))) {
       return true;
@@ -126,9 +158,9 @@ export default function Settings() {
     // For company users, show different settings based on SaaS mode
     if (auth.user && auth.user.type === 'company') {
       // In non-SaaS mode, allow additional settings
-      const allowedPermissions = ['manage-system-settings', 'manage-email-settings', 'manage-currency-settings', 'manage-brand-settings', 'manage-webhook-settings', 'settings'];
+      const allowedPermissions = ['manage-system-settings', 'manage-email-settings', 'manage-currency-settings', 'manage-brand-settings', 'manage-webhook-settings', 'manage-working-days-settings', 'manage-biomatric-attedance-settings', 'manage-ip-restriction-settings', 'settings'];
       if (!isSaas) {
-        allowedPermissions.push('manage-storage-settings', 'manage-recaptcha-settings', 'manage-chatgpt-settings', 'manage-cookie-settings', 'manage-seo-settings', 'manage-cache-settings');
+        allowedPermissions.push('manage-storage-settings', 'manage-recaptcha-settings', 'manage-chatgpt-settings', 'manage-cookie-settings', 'manage-seo-settings', 'manage-cache-settings', 'manage-working-days-settings', 'manage-biomatric-attedance-settings', 'manage-ip-restriction-settings');
       }
       return allowedPermissions.includes(item.permission);
     }
@@ -140,6 +172,7 @@ export default function Settings() {
   const brandSettingsRef = useRef<HTMLDivElement>(null);
 
   const currencySettingsRef = useRef<HTMLDivElement>(null);
+  const workingDaysSettingsRef = useRef<HTMLDivElement>(null);
   const emailSettingsRef = useRef<HTMLDivElement>(null);
   const paymentSettingsRef = useRef<HTMLDivElement>(null);
   const storageSettingsRef = useRef<HTMLDivElement>(null);
@@ -151,6 +184,8 @@ export default function Settings() {
   const webhookSettingsRef = useRef<HTMLDivElement>(null);
   const googleCalendarSettingsRef = useRef<HTMLDivElement>(null);
   const googleWalletSettingsRef = useRef<HTMLDivElement>(null);
+  const zektoSettingsRef = useRef<HTMLDivElement>(null);
+  const ipRestrictionSettingsRef = useRef<HTMLDivElement>(null);
 
 
   // Smart scroll functionality
@@ -163,6 +198,7 @@ export default function Settings() {
       const brandSettingsPosition = brandSettingsRef.current?.offsetTop || 0;
 
       const currencySettingsPosition = currencySettingsRef.current?.offsetTop || 0;
+      const workingDaysSettingsPosition = workingDaysSettingsRef.current?.offsetTop || 0;
       const emailSettingsPosition = emailSettingsRef.current?.offsetTop || 0;
       const paymentSettingsPosition = paymentSettingsRef.current?.offsetTop || 0;
       const storageSettingsPosition = storageSettingsRef.current?.offsetTop || 0;
@@ -174,6 +210,8 @@ export default function Settings() {
       const webhookSettingsPosition = webhookSettingsRef.current?.offsetTop || 0;
       const googleCalendarSettingsPosition = googleCalendarSettingsRef.current?.offsetTop || 0;
       const googleWalletSettingsPosition = googleWalletSettingsRef.current?.offsetTop || 0;
+      const zektoSettingsPosition = zektoSettingsRef.current?.offsetTop || 0;
+      const ipRestrictionSettingsPosition = ipRestrictionSettingsRef.current?.offsetTop || 0;
 
       // Determine active section based on scroll position
       // if (scrollPosition >= googleCalendarSettingsPosition) {
@@ -182,7 +220,11 @@ export default function Settings() {
       //  if (scrollPosition >= webhookSettingsPosition) {
       //   setActiveSection('webhook-settings');
       // } 
-      if (scrollPosition >= cacheSettingsPosition) {
+      if (scrollPosition >= zektoSettingsPosition) {
+        setActiveSection('zekto-settings');
+      } else if (scrollPosition >= ipRestrictionSettingsPosition) {
+        setActiveSection('ip-restriction-settings');
+      } else if (scrollPosition >= cacheSettingsPosition) {
         setActiveSection('cache-settings');
       } else if (scrollPosition >= seoSettingsPosition) {
         setActiveSection('seo-settings');
@@ -196,6 +238,8 @@ export default function Settings() {
         setActiveSection('storage-settings');
       } else if (scrollPosition >= paymentSettingsPosition) {
         setActiveSection('payment-settings');
+      } else if (scrollPosition >= workingDaysSettingsPosition) {
+        setActiveSection('working-days-settings');
       } else if (scrollPosition >= emailSettingsPosition) {
         setActiveSection('email-settings');
       } else if (scrollPosition >= currencySettingsPosition) {
@@ -245,12 +289,13 @@ export default function Settings() {
         { title: t('Settings') }
       ]}
     >
-      <div className={`flex flex-col md:flex-row gap-8 ${position === 'right' ? 'md:flex-row-reverse' : ''}`}>
+      <div className={`flex flex-col md:flex-row gap-8`} dir={position === 'right' ? 'rtl' : 'ltr'}>
+        {/* <div className={`flex flex-col md:flex-row gap-8 ${position === 'rtl' ? 'md:flex-row-reverse' : ''}`}> */}
         {/* Sidebar Navigation */}
         <div className="md:w-64 flex-shrink-0">
           <div className="sticky top-20">
             <ScrollArea className="h-[calc(100vh-5rem)]">
-              <div className={`space-y-1 ${position === 'right' ? 'pl-4' : 'pr-4'}`}>
+              <div className={`space-y-1 ${position === 'rtl' ? 'pl-4' : 'pr-4'}`}>
                 {sidebarNavItems.map((item) => (
                   <Button
                     key={item.href}
@@ -304,6 +349,27 @@ export default function Settings() {
           {(auth.permissions?.includes('manage-email-settings') || auth.user?.type === 'superadmin') && (
             <section id="email-settings" ref={emailSettingsRef} className="mb-8">
               <EmailSettings />
+            </section>
+          )}
+
+          {/* Working Days Settings Section */}
+          {auth.user?.type !== 'superadmin' && (auth.permissions?.includes('manage-working-days-settings') || auth.user?.type === 'company') && (
+            <section id="working-days-settings" ref={workingDaysSettingsRef} className="mb-8">
+              <WorkingDaysSettings settings={systemSettings} />
+            </section>
+          )}
+
+          {/* IP Restriction Settings Section */}
+          {auth.user?.type === 'company' && (auth.permissions?.includes('manage-ip-restriction-settings')) && (
+            <section id="ip-restriction-settings" ref={ipRestrictionSettingsRef} className="mb-8">
+              <IpRestrictionSettings />
+            </section>
+          )}
+
+          {/* Zekto Settings Section */}
+          {auth.user?.type === 'company' && (auth.permissions?.includes('manage-biomatric-attedance-settings')) && (
+            <section id="zekto-settings" ref={zektoSettingsRef} className="mb-8">
+              <ZektoSettings settings={zektoSettings} />
             </section>
           )}
 

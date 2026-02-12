@@ -9,64 +9,78 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class ActionItemController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ActionItem::withPermissionCheck()->with(['meeting.type', 'assignee']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('assignee', function ($aq) use ($request) {
-                        $aq->where('name', 'like', '%' . $request->search . '%');
-                    });
+        if (Auth::user()->can('manage-action-items')) {
+            $query = ActionItem::with(['meeting.type', 'assignee'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-action-items')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-action-items')) {
+                    $q->where('created_by', Auth::id())->orWhere('assigned_to', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('assignee', function ($aq) use ($request) {
+                            $aq->where('name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('priority') && !empty($request->priority) && $request->priority !== 'all') {
+                $query->where('priority', $request->priority);
+            }
+
+            if ($request->has('assigned_to') && !empty($request->assigned_to) && $request->assigned_to !== 'all') {
+                $query->where('assigned_to', $request->assigned_to);
+            }
+
+            if ($request->has('meeting_id') && !empty($request->meeting_id) && $request->meeting_id !== 'all') {
+                $query->where('meeting_id', $request->meeting_id);
+            }
+
+            // Auto-update overdue items
+            ActionItem::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', '!=', 'Completed')
+                ->where('due_date', '<', Carbon::today())
+                ->update(['status' => 'Overdue']);
+
+            $query->orderBy('id', 'desc');
+            $actionItems = $query->paginate($request->per_page ?? 10);
+
+            $meetings = Meeting::whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'title', 'meeting_date')
+                ->orderBy('meeting_date', 'desc')
+                ->get();
+
+            $employees = User::whereIn('created_by', getCompanyAndUsersId())
+                ->where('type', 'employee')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('meetings/action-items/index', [
+                'actionItems' => $actionItems,
+                'meetings' => $meetings,
+                'employees' => $employees,
+                'filters' => $request->all(['search', 'status', 'priority', 'assigned_to', 'meeting_id', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('priority') && !empty($request->priority) && $request->priority !== 'all') {
-            $query->where('priority', $request->priority);
-        }
-
-        if ($request->has('assigned_to') && !empty($request->assigned_to) && $request->assigned_to !== 'all') {
-            $query->where('assigned_to', $request->assigned_to);
-        }
-
-        if ($request->has('meeting_id') && !empty($request->meeting_id) && $request->meeting_id !== 'all') {
-            $query->where('meeting_id', $request->meeting_id);
-        }
-
-        // Auto-update overdue items
-        ActionItem::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', '!=', 'Completed')
-            ->where('due_date', '<', Carbon::today())
-            ->update(['status' => 'Overdue']);
-
-        $query->orderBy('id', 'desc');
-        $actionItems = $query->paginate($request->per_page ?? 10);
-
-        $meetings = Meeting::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'title', 'meeting_date')
-            ->orderBy('meeting_date', 'desc')
-            ->get();
-
-        $employees = User::whereIn('created_by', getCompanyAndUsersId())
-            ->where('type', 'employee')
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('meetings/action-items/index', [
-            'actionItems' => $actionItems,
-            'meetings' => $meetings,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'status', 'priority', 'assigned_to', 'meeting_id', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)
@@ -88,7 +102,7 @@ class ActionItemController extends Controller
 
         $status = 'Not Started';
         $progress = $request->progress_percentage ?? 0;
-        
+
         if ($progress > 0 && $progress < 100) {
             $status = 'In Progress';
         } elseif ($progress == 100) {

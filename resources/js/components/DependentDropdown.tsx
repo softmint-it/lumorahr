@@ -7,6 +7,8 @@ interface DropdownField {
     options?: { value: string; label: string }[];
     dependencies?: Record<string, { value: string; label: string }[]>;
     apiEndpoint?: string;
+    disabled?: boolean;
+    selectFirstOption?: boolean;
 }
 
 interface DependentDropdownProps {
@@ -135,6 +137,13 @@ export default function DependentDropdown({ fields, values, onChange, disabled =
                     [nextField.name]: options,
                 }));
 
+                // Auto-select first option if configured
+                if (nextField.selectFirstOption && options.length > 0) {
+                    setTimeout(() => {
+                        onChange(nextField.name, options[0].value);
+                    }, 100);
+                }
+
                 // Pass selected info with loaded options
                 onChange(fieldName, value, { selectedInfo, loadedOptions: options });
                 return;
@@ -178,7 +187,7 @@ export default function DependentDropdown({ fields, values, onChange, disabled =
                         <select
                             value={values[field.name] || ''}
                             onChange={(e) => handleFieldChange(field.name, e.target.value, index)}
-                            disabled={isDisabled || isLoading}
+                            disabled={isDisabled || isLoading || field.disabled}
                             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <option 

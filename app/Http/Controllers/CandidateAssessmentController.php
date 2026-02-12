@@ -6,6 +6,7 @@ use App\Models\CandidateAssessment;
 use App\Models\Candidate;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
@@ -13,53 +14,63 @@ class CandidateAssessmentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = CandidateAssessment::withPermissionCheck()->with(['candidate', 'conductor']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('assessment_name', 'like', '%' . $request->search . '%')
-                    ->orWhereHas('candidate', function ($cq) use ($request) {
-                        $cq->where('first_name', 'like', '%' . $request->search . '%')
-                            ->orWhere('last_name', 'like', '%' . $request->search . '%');
-                    });
-            });
-        }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('pass_fail_status', $request->status);
-        }
-
-        if ($request->has('candidate_id') && !empty($request->candidate_id) && $request->candidate_id !== 'all') {
-            $query->where('candidate_id', $request->candidate_id);
-        }
-
-        $query->orderBy('id', 'desc');
-        $assessments = $query->paginate($request->per_page ?? 10);
-
-        $candidates = Candidate::whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'first_name', 'last_name')
-            ->get();
-
-        $employees = User::with('employee')
-            ->whereIn('type', ['manager', 'hr', 'employee'])
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'employee_id' => $user->employee->employee_id ?? ''
-                ];
+        if (Auth::user()->can('manage-candidate-assessments')) {
+            $query = CandidateAssessment::with(['candidate', 'conductor'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-candidate-assessments')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-candidate-assessments')) {
+                    $q->where('created_by', Auth::id())->orWhere('conducted_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
 
-        return Inertia::render('hr/recruitment/candidate-assessments/index', [
-            'assessments' => $assessments,
-            'candidates' => $candidates,
-            'employees' => $employees,
-            'filters' => $request->all(['search', 'status', 'candidate_id', 'per_page']),
-        ]);
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('assessment_name', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('candidate', function ($cq) use ($request) {
+                            $cq->where('first_name', 'like', '%' . $request->search . '%')
+                                ->orWhere('last_name', 'like', '%' . $request->search . '%');
+                        });
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('pass_fail_status', $request->status);
+            }
+
+            if ($request->has('candidate_id') && !empty($request->candidate_id) && $request->candidate_id !== 'all') {
+                $query->where('candidate_id', $request->candidate_id);
+            }
+
+            $query->orderBy('id', 'desc');
+            $assessments = $query->paginate($request->per_page ?? 10);
+
+            $candidates = Candidate::whereIn('created_by', getCompanyAndUsersId())->where('is_employee',0)->get();
+
+            $employees = User::with('employee')
+                ->whereIn('type', ['manager', 'hr', 'employee'])
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'employee_id' => $user->employee->employee_id ?? ''
+                    ];
+                });
+
+            return Inertia::render('hr/recruitment/candidate-assessments/index', [
+                'assessments' => $assessments,
+                'candidates' => $candidates,
+                'employees' => $employees,
+                'filters' => $request->all(['search', 'status', 'candidate_id', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
+        }
     }
 
     public function store(Request $request)

@@ -248,7 +248,7 @@ export default function AwardTypes() {
       key: 'created_at', 
       label: t('Created At'), 
       sortable: true,
-      render: (value: string) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value: string) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     }
   ];
 

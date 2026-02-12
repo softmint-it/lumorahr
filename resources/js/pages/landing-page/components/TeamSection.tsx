@@ -1,5 +1,6 @@
 import React from 'react';
 import { Linkedin, Twitter, Mail } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface TeamSectionProps {
   brandColor?: string;
@@ -23,35 +24,36 @@ interface TeamSectionProps {
 }
 
 export default function TeamSection({ settings, sectionData, brandColor = '#3b82f6' }: TeamSectionProps) {
+  const { t } = useTranslation();
   const defaultMembers = [
     {
       name: 'John Doe',
-      role: 'CEO & Founder',
-      bio: 'Experienced HR tech entrepreneur passionate about building intuitive HR solutions.',
+      role: t('CEO & Founder'),
+      bio: t('Experienced HR tech entrepreneur passionate about building intuitive HR solutions.'),
       image: '',
       linkedin: '#',
       email: 'john@example.com'
     },
     {
       name: 'Jane Smith',
-      role: 'CTO',
-      bio: 'Leads the tech team to create scalable and secure HR platforms.',
+      role: t('CTO'),
+      bio: t('Leads the tech team to create scalable and secure HR platforms.'),
       image: '',
       linkedin: '#',
       email: 'jane@example.com'
     },
     {
       name: 'Michael Lee',
-      role: 'Head of Product',
-      bio: 'Designs user-centric features to simplify HR processes.',
+      role: t('Head of Product'),
+      bio: t('Designs user-centric features to simplify HR processes.'),
       image: '',
       linkedin: '#',
       email: 'michael@example.com'
     },
     {
       name: 'Emily Davis',
-      role: 'HR Manager',
-      bio: 'Oversees employee engagement, recruitment, and HR operations.',
+      role: t('HR Manager'),
+      bio: t('Oversees employee engagement, recruitment, and HR operations.'),
       image: '',
       linkedin: '#',
       email: 'emily@example.com'
@@ -69,10 +71,10 @@ export default function TeamSection({ settings, sectionData, brandColor = '#3b82
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8 sm:mb-12 lg:mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {sectionData?.title || 'Meet Our Team'}
+            {sectionData?.title || t('Meet Our Team')}
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium">
-            {sectionData?.subtitle || 'We\'re a dedicated team of HR and technology experts.'}
+            {sectionData?.subtitle || t('We\'re a dedicated team of HR and technology experts.')}
           </p>
         </div>
 
@@ -135,13 +137,13 @@ export default function TeamSection({ settings, sectionData, brandColor = '#3b82
           <div className="text-center mt-8 sm:mt-12 lg:mt-16">
             <div className="bg-gray-50 rounded-xl p-8 border border-gray-200 max-w-2xl mx-auto">
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {sectionData?.cta_title || 'Want to Join Our Team?'}
+                {sectionData?.cta_title || t('Want to Join Our Team?')}
               </h3>
               <p className="text-gray-600 mb-6">
-                {sectionData?.cta_description || 'We\'re always looking for talented individuals to shape the future of HR management.'}
+                {sectionData?.cta_description || t('We\'re always looking for talented individuals to shape the future of HR management.')}
               </p>
               <button className="text-white px-8 py-3 rounded-lg transition-colors font-semibold" style={{ backgroundColor: brandColor }}>
-                {sectionData?.cta_button_text || 'View Open Positions'}
+                {sectionData?.cta_button_text || t('View Open Positions')}
               </button>
             </div>
           </div>

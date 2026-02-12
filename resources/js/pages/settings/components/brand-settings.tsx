@@ -43,6 +43,7 @@ export interface BrandSettings {
   favicon: string;
   titleText: string;
   footerText: string;
+  companyMobile?: string;
   themeColor: ThemeColor;
   customColor: string;
   sidebarVariant: string;
@@ -55,9 +56,10 @@ export interface BrandSettings {
 export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
   logoDark: 'logo/logo-dark.png',
   logoLight: 'logo/logo-light.png',
-  favicon: 'logo/favicon.ico',
-  titleText: 'LumoraHR',
-  footerText: '© 2026 LumoraHR. All rights reserved.',
+  favicon: 'logo/favicon.png',
+  titleText: 'WorkDo',
+  footerText: '© 2024 WorkDo. All rights reserved.',
+  companyMobile: '',
   themeColor: 'green',
   customColor: '#3b82f6',
   sidebarVariant: 'inset',
@@ -88,6 +90,7 @@ export const getBrandSettings = (userSettings?: Record<string, string>, globalSe
         favicon: parsedBrand.favicon || userSettings?.favicon || DEFAULT_BRAND_SETTINGS.favicon,
         titleText: parsedBrand.titleText || userSettings?.titleText || DEFAULT_BRAND_SETTINGS.titleText,
         footerText: parsedBrand.footerText || userSettings?.footerText || DEFAULT_BRAND_SETTINGS.footerText,
+        companyMobile: parsedBrand.companyMobile || userSettings?.companyMobile || DEFAULT_BRAND_SETTINGS.companyMobile,
         themeColor: parsedTheme.themeColor || DEFAULT_BRAND_SETTINGS.themeColor,
         customColor: parsedTheme.customColor || DEFAULT_BRAND_SETTINGS.customColor,
         sidebarVariant: parsedSidebar.variant || DEFAULT_BRAND_SETTINGS.sidebarVariant,
@@ -108,6 +111,7 @@ export const getBrandSettings = (userSettings?: Record<string, string>, globalSe
       favicon: userSettings.favicon || DEFAULT_BRAND_SETTINGS.favicon,
       titleText: userSettings.titleText || DEFAULT_BRAND_SETTINGS.titleText,
       footerText: userSettings.footerText || DEFAULT_BRAND_SETTINGS.footerText,
+      companyMobile: userSettings.companyMobile || DEFAULT_BRAND_SETTINGS.companyMobile,
       themeColor: (userSettings.themeColor as ThemeColor) || DEFAULT_BRAND_SETTINGS.themeColor,
       customColor: userSettings.customColor || DEFAULT_BRAND_SETTINGS.customColor,
       sidebarVariant: userSettings.sidebarVariant || DEFAULT_BRAND_SETTINGS.sidebarVariant,
@@ -129,6 +133,8 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
   const { t } = useTranslation();
   const { props } = usePage();
   const currentGlobalSettings = (props as any).globalSettings;
+  const auth = (props as any).auth;
+  const userRole = auth?.user?.type || auth?.user?.role;
   const [brandSettings, setBrandSettings] = useState<BrandSettings>(() => getBrandSettings(currentGlobalSettings || settings, currentGlobalSettings));
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -350,7 +356,7 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
                 <div className="space-y-3">
                   <Label>{t("Logo Dark")}</Label>
                   <div className="flex flex-col gap-3">
-                    <div className="border rounded-md p-4 flex items-center justify-center bg-muted/30 h-32">
+                    <div className="border rounded-md p-4 flex items-center justify-center bg-muted/30 dark:bg-white h-32">
                       {brandSettings.logoDark ? (
                         <img
                           src={getImagePath(brandSettings.logoDark)}
@@ -382,7 +388,7 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
                 <div className="space-y-3">
                   <Label>{t("Logo Light")}</Label>
                   <div className="flex flex-col gap-3">
-                    <div className="border rounded-md p-4 flex items-center justify-center bg-muted/30 h-32">
+                    <div className="border rounded-md p-4 flex items-center justify-center bg-black h-32">
                       {brandSettings.logoLight ? (
                         <img
                           src={getImagePath(brandSettings.logoLight)}
@@ -457,7 +463,7 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
                     name="titleText"
                     value={brandSettings.titleText}
                     onChange={handleInputChange}
-                    placeholder="LumoraHR"
+                    placeholder="WorkDo"
                   />
                   <p className="text-xs text-muted-foreground">
                     {t("Application title displayed in the browser tab")}
@@ -471,12 +477,28 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
                     name="footerText"
                     value={brandSettings.footerText}
                     onChange={handleInputChange}
-                    placeholder="© 2026 LumoraHR. All rights reserved."
+                    placeholder="© 2024 WorkDo. All rights reserved."
                   />
                   <p className="text-xs text-muted-foreground">
                     {t("Text displayed in the footer")}
                   </p>
                 </div>
+
+                {userRole === 'company' && (
+                  <div className="space-y-3">
+                    <Label htmlFor="companyMobile">{t("Company Mobile Number")}</Label>
+                    <Input
+                      id="companyMobile"
+                      name="companyMobile"
+                      value={brandSettings.companyMobile || ''}
+                      onChange={handleInputChange}
+                      placeholder="+1 234 567 8900"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t("Company contact mobile number")}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -494,7 +516,7 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
                   <Separator className="my-2" />
 
                   <div className="grid grid-cols-6 gap-2">
-                    {Object.entries({ blue: '#3b82f6', green: '#10b981', purple: '#8b5cf6', orange: '#f97316', red: '#ef4444' }).map(([color, hex]) => (
+                    {Object.entries({ blue: '#3b82f6', green: '#10b77f', purple: '#8b5cf6', orange: '#f97316', red: '#ef4444' }).map(([color, hex]) => (
                       <Button
                         key={color}
                         type="button"
@@ -745,7 +767,6 @@ export default function BrandSettings({ settings }: BrandSettingsProps) {
 
               {/* Text Preview */}
               <div className="mt-4 pt-4 border-t">
-                <div className="text-xs mb-2 text-muted-foreground">{t("Title:")} <span className="font-medium text-foreground">{brandSettings.titleText}</span></div>
                 <div className="text-xs text-muted-foreground">{t("Footer:")} <span className="font-medium text-foreground">{brandSettings.footerText}</span></div>
               </div>
             </div>

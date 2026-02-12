@@ -342,13 +342,13 @@ export default function Shifts() {
 
   // Prepare options for filters
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses') , disabled : true },
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
 
   const shiftTypeOptions = [
-    { value: 'all', label: t('All Types') },
+    { value: 'all', label: t('All Types') , disabled : true},
     { value: 'day', label: t('Day Shift') },
     { value: 'night', label: t('Night Shift') }
   ];
@@ -365,7 +365,7 @@ export default function Shifts() {
 
   return (
     <PageTemplate
-      title={t("Shift Management")}
+      title={t("Shifts")}
       url="/hr/shifts"
       actions={pageActions}
       breadcrumbs={breadcrumbs}
@@ -384,7 +384,7 @@ export default function Shifts() {
               type: 'select',
               value: selectedStatus,
               onChange: setSelectedStatus,
-              options: statusOptions
+              options: statusOptions,
             },
             {
               name: 'shift_type',

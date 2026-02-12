@@ -29,6 +29,11 @@ export default function CalendarIndex({ events, canManage }: CalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const breadcrumbs = [
+    { title: t('Dashboard'), href: route('dashboard') },
+    { title: t('Calendar') }
+  ];
+
   const pageActions = [];
 
   const handleEventClick = (clickInfo: any) => {
@@ -43,6 +48,7 @@ export default function CalendarIndex({ events, canManage }: CalendarProps) {
     <PageTemplate
       title={t('Calendar')}
       url="/calendar"
+      breadcrumbs={breadcrumbs}
       actions={pageActions}
     >
       <div className="bg-white rounded-lg shadow p-6">

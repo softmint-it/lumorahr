@@ -190,7 +190,7 @@ export default function LivePreview({ data, activeSection }: LivePreviewProps) {
           <div className="flex flex-col items-center gap-1">
             <div 
               className="w-8 h-8 rounded-lg shadow-sm border-2 border-white" 
-              style={{ backgroundColor: data.config_sections?.theme?.accent_color || '#10b981' }}
+              style={{ backgroundColor: data.config_sections?.theme?.accent_color || '#10b77f' }}
             ></div>
             <span className="text-xs text-gray-500 dark:text-gray-400">{t("Accent")}</span>
           </div>

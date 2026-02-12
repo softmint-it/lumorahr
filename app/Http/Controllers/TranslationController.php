@@ -35,15 +35,15 @@ class TranslationController extends BaseController
                 // Update authenticated user's language and direction settings
                 auth()->user()->update(['lang' => $locale]);
 
-                Setting::updateOrCreate(
-                    [
-                        'key' => 'layoutDirection',
-                        'user_id' => auth()->id()
-                    ],
-                    [
-                        'value' => $direction
-                    ]
-                );
+                // Setting::updateOrCreate(
+                //     [
+                //         'key' => 'layoutDirection',
+                //         'user_id' => auth()->id()
+                //     ],
+                //     [
+                //         'value' => $direction
+                //     ]
+                // );
                 // if (in_array($locale, ['ar', 'he'])) {
                 //     Setting::updateOrCreate(
                 //         [

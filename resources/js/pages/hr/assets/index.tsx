@@ -409,7 +409,7 @@ export default function Assets() {
       key: 'purchase_date', 
       label: t('Purchase Date'),
       sortable: true,
-      render: (value) => value ? (window.appSettings?.formatDateTime(value,false) || new Date(value).toLocaleString()) : '-'
+      render: (value) => value ? (window.appSettings?.formatDateTimeSimple(value,false) || new Date(value).toLocaleString()) : '-'
     },
     { 
       key: 'purchase_cost', 

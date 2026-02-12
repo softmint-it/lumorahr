@@ -63,8 +63,8 @@ class CalendarController extends Controller
                     'end' => $holiday->end_date ?: $holiday->start_date,
                     'type' => 'holiday',
                     'allDay' => true,
-                    'backgroundColor' => '#10b981',
-                    'borderColor' => '#10b981'
+                    'backgroundColor' => '#10b77f',
+                    'borderColor' => '#10b77f'
                 ];
             });
 

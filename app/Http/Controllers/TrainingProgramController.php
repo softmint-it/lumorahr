@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\TrainingProgram;
 use App\Models\TrainingType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
@@ -16,59 +17,71 @@ class TrainingProgramController extends Controller
      */
     public function index(Request $request)
     {
-        $query = TrainingProgram::withPermissionCheck()->with(['trainingType']);
-
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-training-programs')) {
+            $query = TrainingProgram::with(['trainingType'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-training-programs')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-training-programs')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
-        }
 
-        // Handle training type filter
-        if ($request->has('training_type_id') && !empty($request->training_type_id)) {
-            $query->where('training_type_id', $request->training_type_id);
-        }
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
-        }
+            // Handle training type filter
+            if ($request->has('training_type_id') && !empty($request->training_type_id)) {
+                $query->where('training_type_id', $request->training_type_id);
+            }
 
-        // Handle mandatory filter
-        if ($request->has('is_mandatory') && $request->is_mandatory === 'true') {
-            $query->where('is_mandatory', true);
-        }
+            // Handle status filter
+            if ($request->has('status') && !empty($request->status)) {
+                $query->where('status', $request->status);
+            }
 
-        // Handle self-enrollment filter
-        if ($request->has('is_self_enrollment') && $request->is_self_enrollment === 'true') {
-            $query->where('is_self_enrollment', true);
-        }
+            // Handle mandatory filter
+            if ($request->has('is_mandatory') && $request->is_mandatory === 'true') {
+                $query->where('is_mandatory', true);
+            }
 
-        // Handle sorting
-        if ($request->has('sort_field') && !empty($request->sort_field)) {
-            $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            // Handle self-enrollment filter
+            if ($request->has('is_self_enrollment') && $request->is_self_enrollment === 'true') {
+                $query->where('is_self_enrollment', true);
+            }
+
+            // Handle sorting
+            if ($request->has('sort_field') && !empty($request->sort_field)) {
+                $query->orderBy($request->sort_field, $request->sort_direction ?? 'asc');
+            } else {
+                $query->orderBy('id', 'desc');
+            }
+
+            // Add counts
+            $query->withCount(['sessions', 'employeeTrainings']);
+
+            $trainingPrograms = $query->paginate($request->per_page ?? 10);
+
+            // Get training types for filter dropdown with branch and departments
+            $trainingTypes = TrainingType::with(['branch', 'departments'])
+                ->whereIn('created_by', getCompanyAndUsersId())
+                ->select('id', 'name', 'branch_id')
+                ->get();
+
+            return Inertia::render('hr/training/programs/index', [
+                'trainingPrograms' => $trainingPrograms,
+                'trainingTypes' => $trainingTypes,
+                'filters' => $request->all(['search', 'training_type_id', 'status', 'is_mandatory', 'is_self_enrollment', 'sort_field', 'sort_direction', 'per_page']),
+            ]);
         } else {
-            $query->orderBy('id', 'desc');
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        // Add counts
-        $query->withCount(['sessions', 'employeeTrainings']);
-
-        $trainingPrograms = $query->paginate($request->per_page ?? 10);
-
-        // Get training types for filter dropdown with branch and departments
-        $trainingTypes = TrainingType::with(['branch', 'departments'])
-            ->whereIn('created_by', getCompanyAndUsersId())
-            ->select('id', 'name', 'branch_id')
-            ->get();
-
-        return Inertia::render('hr/training/programs/index', [
-            'trainingPrograms' => $trainingPrograms,
-            'trainingTypes' => $trainingTypes,
-            'filters' => $request->all(['search', 'training_type_id', 'status', 'is_mandatory', 'is_self_enrollment', 'sort_field', 'sort_direction', 'per_page']),
-        ]);
     }
 
     /**
@@ -234,7 +247,7 @@ class TrainingProgramController extends Controller
 
         // Delete assessments
         $trainingProgram->assessments()->delete();
-        
+
         // Delete the training program
         $trainingProgram->delete();
 
@@ -262,7 +275,7 @@ class TrainingProgramController extends Controller
 
         // Handle local storage paths
         $relativePath = str_replace('/Product/hrmgo-saas-react/storage/', '', $trainingProgram->materials);
-        
+
         if (!Storage::exists($relativePath)) {
             return redirect()->back()->with('error', __('Training materials not found'));
         }

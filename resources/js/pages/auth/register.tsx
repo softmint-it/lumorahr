@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { Mail, Lock, User } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
@@ -27,6 +27,8 @@ type RegisterForm = {
 
 export default function Register({ referralCode, planId }: { referralCode?: string; planId?: string }) {
     const { t } = useTranslation();
+    const { globalSettings } = usePage().props as any;
+    const termsConditionsUrl = globalSettings?.termsConditionsUrl;
     const [recaptchaToken, setRecaptchaToken] = useState<string>('');
     const { themeColor, customColor } = useBrand();
     const primaryColor = themeColor === 'custom' ? customColor : THEME_COLORS[themeColor as keyof typeof THEME_COLORS];
@@ -54,115 +56,102 @@ export default function Register({ referralCode, planId }: { referralCode?: stri
             description={t("Enter your details below to get started")}
         >
             <form className="space-y-5" onSubmit={submit}>
-                <div className="space-y-4">
-                    <div className="relative">
-                        <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 font-medium mb-1 block">{t("Full name")}</Label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <User className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="name"
-                                type="text"
-                                required
-                                autoFocus
-                                tabIndex={1}
-                                autoComplete="name"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder={t("John Doe")}
-                                className="pl-10 w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg transition-all duration-200"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
-                        </div>
-                        <InputError message={errors.name} />
-                    </div>
-
-                    <div className="relative">
-                        <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium mb-1 block">{t("Email address")}</Label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="email"
-                                type="email"
-                                required
-                                tabIndex={2}
-                                autoComplete="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="email@example.com"
-                                className="pl-10 w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg transition-all duration-200"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
-                        </div>
-                        <InputError message={errors.email} />
-                    </div>
-
-                    <div>
-                        <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium mb-1 block">{t("Password")}</Label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                required
-                                tabIndex={3}
-                                autoComplete="new-password"
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                placeholder="••••••••"
-                                className="pl-10 w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg transition-all duration-200"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
-                        </div>
-                        <InputError message={errors.password} />
-                    </div>
-
-                    <div>
-                        <Label htmlFor="password_confirmation" className="text-gray-700 dark:text-gray-300 font-medium mb-1 block">{t("Confirm password")}</Label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <Input
-                                id="password_confirmation"
-                                type="password"
-                                required
-                                tabIndex={4}
-                                autoComplete="new-password"
-                                value={data.password_confirmation}
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
-                                placeholder="••••••••"
-                                className="pl-10 w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg transition-all duration-200"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
-                        </div>
-                        <InputError message={errors.password_confirmation} />
-                    </div>
-
-                    <div className="flex items-start">
-                        <Checkbox
-                            id="terms"
-                            name="terms"
-                            checked={data.terms}
-                            onClick={() => setData('terms', !data.terms)}
-                            tabIndex={5}
-                            className="mt-1 border-gray-300 rounded"
-                            style={{ '--tw-ring-color': primaryColor, color: primaryColor } as React.CSSProperties}
-                        />
-                        <Label htmlFor="terms" className="ml-2 text-gray-600 dark:text-gray-400 text-sm">
-                            {t("I agree to the")}{' '}
-                            <a href="#" style={{ color: primaryColor }}>
-                                {t("Terms and Conditions")}
-                            </a>
-                        </Label>
-                    </div>
-                    <InputError message={errors.terms} />
+                <div className="mb-4">
+                    <Label htmlFor="name" className="block text-sm font-medium text-gray-900">{t("Full name")}</Label>
+                    <Input
+                        id="name"
+                        type="text"
+                        required
+                        autoFocus
+                        tabIndex={1}
+                        autoComplete="name"
+                        value={data.name}
+                        onChange={(e) => setData('name', e.target.value)}
+                        placeholder={t("Enter your full name")}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400 mt-2"
+                        onFocus={(e) => e.target.style.borderColor = primaryColor}
+                        onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                    />
+                    <InputError message={errors.name} />
                 </div>
+
+                <div className="mb-4">
+                    <Label htmlFor="email" className="block text-sm font-medium text-gray-900">{t("Email address")}</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        required
+                        tabIndex={2}
+                        autoComplete="email"
+                        value={data.email}
+                        onChange={(e) => setData('email', e.target.value)}
+                        placeholder="Enter your email"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400 mt-2"
+                        onFocus={(e) => e.target.style.borderColor = primaryColor}
+                        onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                    />
+                    <InputError message={errors.email} />
+                </div>
+
+                <div className="mb-4">
+                    <Label htmlFor="password" className="block text-sm font-medium text-gray-900">{t("Password")}</Label>
+                    <Input
+                        id="password"
+                        type="password"
+                        required
+                        tabIndex={3}
+                        autoComplete="new-password"
+                        value={data.password}
+                        onChange={(e) => setData('password', e.target.value)}
+                        placeholder="Enter your password"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400 mt-2"
+                        onFocus={(e) => e.target.style.borderColor = primaryColor}
+                        onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                    />
+                    <InputError message={errors.password} />
+                </div>
+
+                <div className="mb-4">
+                    <Label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-900">{t("Confirm password")}</Label>
+                    <Input
+                        id="password_confirmation"
+                        type="password"
+                        required
+                        tabIndex={4}
+                        autoComplete="new-password"
+                        value={data.password_confirmation}
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        placeholder="Confirm your password"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400 mt-2"
+                        onFocus={(e) => e.target.style.borderColor = primaryColor}
+                        onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                    />
+                    <InputError message={errors.password_confirmation} />
+                </div>
+
+                <div className="flex items-center !mt-4 !mb-5">
+                    <Checkbox
+                        id="terms"
+                        name="terms"
+                        checked={data.terms}
+                        onClick={() => setData('terms', !data.terms)}
+                        tabIndex={5}
+                        className="border border-gray-300 rounded"
+                    />
+                    <Label htmlFor="terms" className="ml-2 text-sm text-gray-600">
+                        {t("I agree to the")}{' '}
+                        <a 
+                            href={termsConditionsUrl || route('home')} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{ color: primaryColor }} 
+                            className="hover:underline"
+                        >
+                            {t("Terms and Conditions")}
+                        </a>
+                    </Label>
+                </div>
+                <InputError message={errors.terms} />
 
                 <Recaptcha 
                     onVerify={setRecaptchaToken}
@@ -170,23 +159,28 @@ export default function Register({ referralCode, planId }: { referralCode?: stri
                     onError={() => setRecaptchaToken('')}
                 />
 
-                <AuthButton 
-                    tabIndex={6} 
-                    processing={processing}
+                <button
+                    type="submit"
+                    disabled={processing}
+                    tabIndex={6}
+                    className="w-full text-white py-2.5 text-sm font-medium tracking-wide transition-all duration-200 rounded-md shadow-md hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50"
+                    style={{ backgroundColor: primaryColor }}
                 >
-                    {t("Create account")}
-                </AuthButton>
+                    {processing ? t("Creating account...") : t("Create Account")}
+                </button>
 
-                <div className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-                    {t("Already have an account?")}{' '}
-                    <TextLink 
-                        href={route('login')} 
-                        className="font-medium transition-colors duration-200" 
-                        style={{ color: primaryColor }}
-                        tabIndex={7}
-                    >
-                        {t("Log in")}
-                    </TextLink>
+                <div className="text-center">
+                    <p className="text-sm text-gray-500">
+                        {t("Already have an account?")}{' '}
+                        <TextLink 
+                            href={route('login')} 
+                            className="font-medium hover:underline" 
+                            style={{ color: primaryColor }}
+                            tabIndex={7}
+                        >
+                            {t("Sign in")}
+                        </TextLink>
+                    </p>
                 </div>
             </form>
         </AuthLayout>

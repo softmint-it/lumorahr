@@ -4,33 +4,46 @@ namespace App\Http\Controllers;
 
 use App\Models\JobType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 
-class JobTypeController extends Controller
+class JobTypeController extends Controller  
 {
     public function index(Request $request)
     {
-        $query = JobType::withPermissionCheck();
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-job-types')) {
+            $query = JobType::where(function ($q) {
+                if (Auth::user()->can('manage-any-job-types')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-job-types')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            $query->orderBy('id', 'desc');
+            $jobTypes = $query->paginate($request->per_page ?? 10);
+
+            return Inertia::render('hr/recruitment/job-types/index', [
+                'jobTypes' => $jobTypes,
+                'filters' => $request->all(['search', 'status', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        $query->orderBy('id', 'desc');
-        $jobTypes = $query->paginate($request->per_page ?? 10);
-
-        return Inertia::render('hr/recruitment/job-types/index', [
-            'jobTypes' => $jobTypes,
-            'filters' => $request->all(['search', 'status', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)

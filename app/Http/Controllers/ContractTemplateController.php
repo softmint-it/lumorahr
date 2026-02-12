@@ -8,45 +8,58 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class ContractTemplateController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ContractTemplate::withPermissionCheck()->with(['contractType']);
-
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+        if (Auth::user()->can('manage-contract-templates')) {
+            $query = ContractTemplate::with(['contractType'])->where(function ($q) {
+                if (Auth::user()->can('manage-any-contract-templates')) {
+                    $q->whereIn('created_by',  getCompanyAndUsersId());
+                } elseif (Auth::user()->can('manage-own-contract-templates')) {
+                    $q->where('created_by', Auth::id());
+                } else {
+                    $q->whereRaw('1 = 0');
+                }
             });
+
+            if ($request->has('search') && !empty($request->search)) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('description', 'like', '%' . $request->search . '%');
+                });
+            }
+
+            if ($request->has('contract_type_id') && !empty($request->contract_type_id) && $request->contract_type_id !== 'all') {
+                $query->where('contract_type_id', $request->contract_type_id);
+            }
+
+            if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('is_default') && $request->is_default !== 'all') {
+                $query->where('is_default', $request->is_default === 'true');
+            }
+
+            $query->orderBy('is_default', 'desc')->orderBy('id', 'desc');
+            $contractTemplates = $query->paginate($request->per_page ?? 10);
+
+            $contractTypes = ContractType::whereIn('created_by', getCompanyAndUsersId())
+                ->where('status', 'active')
+                ->select('id', 'name')
+                ->get();
+
+            return Inertia::render('hr/contracts/contract-templates/index', [
+                'contractTemplates' => $contractTemplates,
+                'contractTypes' => $contractTypes,
+                'filters' => $request->all(['search', 'contract_type_id', 'status', 'is_default', 'per_page']),
+            ]);
+        } else {
+            return redirect()->back()->with('error', __('Permission Denied.'));
         }
-
-        if ($request->has('contract_type_id') && !empty($request->contract_type_id) && $request->contract_type_id !== 'all') {
-            $query->where('contract_type_id', $request->contract_type_id);
-        }
-
-        if ($request->has('status') && !empty($request->status) && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('is_default') && $request->is_default !== 'all') {
-            $query->where('is_default', $request->is_default === 'true');
-        }
-
-        $query->orderBy('is_default', 'desc')->orderBy('id', 'desc');
-        $contractTemplates = $query->paginate($request->per_page ?? 10);
-
-        $contractTypes = ContractType::whereIn('created_by', getCompanyAndUsersId())
-            ->where('status', 'active')
-            ->select('id', 'name')
-            ->get();
-
-        return Inertia::render('hr/contracts/contract-templates/index', [
-            'contractTemplates' => $contractTemplates,
-            'contractTypes' => $contractTypes,
-            'filters' => $request->all(['search', 'contract_type_id', 'status', 'is_default', 'per_page']),
-        ]);
     }
 
     public function store(Request $request)
@@ -188,7 +201,8 @@ class ContractTemplateController extends Controller
         $generatedContent = $contractTemplate->generateContract($request->variables);
         $filename = $request->filename ?? ($contractTemplate->name . '_' . date('Y-m-d'));
 
-        $pdf = Pdf::loadHTML('<div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">' . nl2br(htmlspecialchars($generatedContent)) . '</div>');
+        $html = '<div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">' . nl2br($generatedContent) . '</div>';
+        $pdf = Pdf::loadHTML($html);
         return $pdf->download($filename . '.pdf');
     }
 }

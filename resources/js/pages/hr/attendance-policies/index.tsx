@@ -295,7 +295,7 @@ export default function AttendancePolicies() {
 
   // Prepare options for filters
   const statusOptions = [
-    { value: 'all', label: t('All Statuses') },
+    { value: 'all', label: t('All Statuses') , disabled : true},
     { value: 'active', label: t('Active') },
     { value: 'inactive', label: t('Inactive') }
   ];
@@ -304,7 +304,7 @@ export default function AttendancePolicies() {
 
   return (
     <PageTemplate
-      title={t("Attendance Policy Management")}
+      title={t("Attendance Policies")}
       url="/hr/attendance-policies"
       actions={pageActions}
       breadcrumbs={breadcrumbs}

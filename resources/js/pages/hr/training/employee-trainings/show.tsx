@@ -234,11 +234,11 @@ export default function EmployeeTrainingShow() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Assigned Date')}</h3>
-                  <p>{employeeTraining.assigned_date ? (window.appSettings?.formatDateTime(employeeTraining.assigned_date, false) || format(new Date(employeeTraining.assigned_date), 'MMM dd, yyyy')) : '-'}</p>
+                  <p>{employeeTraining.assigned_date ? (window.appSettings?.formatDateTimeSimple(employeeTraining.assigned_date, false) || format(new Date(employeeTraining.assigned_date), 'MMM dd, yyyy')) : '-'}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Completion Date')}</h3>
-                  <p>{employeeTraining.completion_date ? (window.appSettings?.formatDateTime(employeeTraining.completion_date, false) || format(new Date(employeeTraining.completion_date), 'MMM dd, yyyy')) : '-'}</p>
+                  <p>{employeeTraining.completion_date ? (window.appSettings?.formatDateTimeSimple(employeeTraining.completion_date, false) || format(new Date(employeeTraining.completion_date), 'MMM dd, yyyy')) : '-'}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">{t('Score')}</h3>
@@ -398,7 +398,7 @@ export default function EmployeeTrainingShow() {
                               {result.training_assessment?.type?.charAt(0).toUpperCase() + result.training_assessment?.type?.slice(1) || '-'}
                             </TableCell>
                             <TableCell>
-                              {window.appSettings?.formatDateTime(result.assessment_date, false) || format(new Date(result.assessment_date), 'MMM dd, yyyy')}
+                              {window.appSettings?.formatDateTimeSimple(result.assessment_date, false) || format(new Date(result.assessment_date), 'MMM dd, yyyy')}
                             </TableCell>
                             <TableCell>
                               {result.score}%
